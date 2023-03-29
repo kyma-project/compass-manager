@@ -1,10 +1,8 @@
-> **NOTE:** It is a general template that can be used for a project README.md, example README.md, or any other README.md type in all Kyma repositories in the Kyma organization. Not all the sections are mandatory. Use only those that suit your use case but keep the proposed section order.
-
-# {Project Title} (mandatory)
+# Compass Manager
 
 > Modify the title and insert the name of your project. Use Heading 1 (H1).
 
-## Overview (mandatory)
+## Overview
 
 > Provide a description of the project's functionality.
 >
