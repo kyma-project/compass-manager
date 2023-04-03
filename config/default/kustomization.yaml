@@ -9,8 +9,8 @@ namespace: compass-manager-system
 namePrefix: compass-manager-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
+commonLabels:
+  someName: compass-manager
 
 bases:
 - ../crd
