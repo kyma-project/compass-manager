@@ -1,16 +1,16 @@
 # Adds namespace to all resources.
-namespace: compass-manager-system
+namespace: kcp-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: compass-manager-
+namePrefix: compass-
 
 # Labels to add to all resources and selectors.
 commonLabels:
-  someName: compass-manager
+  app.kubernetes.io/component: compass-manager.kyma-project.io
 
 bases:
 - ../crd
