@@ -3,7 +3,7 @@ run:
   timeout: 10m
 
 output:
-  format: teamcity
+  format: tab
   sort-results: true
 
 # This file contains only configs which differ from defaults.
