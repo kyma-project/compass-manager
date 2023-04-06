@@ -17,6 +17,8 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+var testLint = 54
+
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
