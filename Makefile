@@ -38,6 +38,14 @@ help: ## Display this help.
 
 ##@ Development
 
+lint-autofix: ## Autofix all possible linting errors.
+	golangci-lint run -E goimports --fix
+
+lint: controller-gen
+	go version
+	golangci-lint version
+	GO111MODULE=on golangci-lint run -c .golangci.yaml
+
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
