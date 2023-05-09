@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/kyma-project/compass-manager/controllers"
+	"github.com/kyma-project/compass-manager/pkg/yaml"
 	"github.com/sirupsen/logrus"
 	"os"
 
@@ -76,13 +77,36 @@ func main() {
 		os.Exit(1)
 	}
 
+	file, err := os.Open("kyma.yaml")
+	if err != nil {
+		setupLog.Error(err, "unable to open k8s data")
+	}
+
+	data, err := yaml.LoadData(file)
+	if err != nil {
+		setupLog.Error(err, "unable to load k8s data")
+		os.Exit(1)
+	}
+
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
+
+	convertedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(data)
+	if err != nil {
+		setupLog.Error(err, "unable to convert CRD")
+	}
+
+	var kymaCRD []kyma.Kyma
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(convertedObj, kymaCRD)
+	if err != nil {
+		setupLog.Error(err, "unable to convert into Kyma CRD schema")
+	}
+
 	if err = (&controllers.CompassManagerReconciler{
 		Client:   mgr.GetClient(),
 		Scheme:   mgr.GetScheme(),
 		Log:      log,
-		KymaObjs: nil, //HERE tutaj dodac tak jak w kedzie
+		KymaObjs: kymaCRD,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

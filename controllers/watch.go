@@ -4,11 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	"hash"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func registerWatchDistinct(objs []unstructured.Unstructured, forWatch func(u unstructured.Unstructured)) error {
+func registerWatchDistinct(objs []kyma.Kyma, forWatch func(u kyma.Kyma)) error {
 	visited := map[string]struct{}{}
 	h := sha256.New()
 
@@ -28,9 +28,9 @@ func registerWatchDistinct(objs []unstructured.Unstructured, forWatch func(u uns
 	return nil
 }
 
-func calculateSHA(h hash.Hash, obj unstructured.Unstructured) (string, error) {
+func calculateSHA(h hash.Hash, obj kyma.Kyma) (string, error) {
 	str := fmt.Sprintf("%s:%s:%s:%s",
-		obj.GetKind(),
+		obj.Kind,
 		obj.GetObjectKind().GroupVersionKind().Group,
 		obj.GetObjectKind().GroupVersionKind().Version,
 		obj.GetCreationTimestamp().String())

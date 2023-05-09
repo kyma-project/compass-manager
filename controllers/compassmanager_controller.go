@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -17,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 )
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -24,12 +24,13 @@ type CompassManagerReconciler struct {
 	client.Client
 	Scheme   *runtime.Scheme
 	Log      *log.Logger
-	KymaObjs []unstructured.Unstructured
+	KymaObjs []kyma.Kyma
 }
 
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers/finalizers,verbs=update
+//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get;
 
@@ -89,43 +90,45 @@ func (r *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	return ctrl.Result{}, nil
 }
 
-func (r *CompassManagerReconciler) checkKubeconfigField(obj runtime.Object) bool {
-	convertedObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		r.Log.Errorf("%v", err)
+func (r *CompassManagerReconciler) checkKubeconfigStrategy(obj runtime.Object) bool {
+
+	kymaObj, ok := obj.(*kyma.Kyma)
+	if !ok {
+		r.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
 		return false
 	}
 
-	u := &unstructured.Unstructured{Object: convertedObj}
-	spec, found, err := unstructured.NestedMap(u.Object, "spec")
-	if err != nil {
-		r.Log.Errorf("%v", err)
-		return false
-	}
-	if !found {
-		r.Log.Errorf("'spec' field not found")
-		return false
-	}
-
-	sync, found := spec["sync"]
-	if !found {
-		r.Log.Errorf("'sync' field not found in 'spec'")
-		return false
-	}
-
-	_, found = sync.(map[string]interface{})["strategy"] // strategy, found := sync.(map[string]interface{})["strategy"]
-	if !found {
-		r.Log.Errorf("'strategy' not found in 'sync'")
+	if kymaObj.Spec.Sync.Strategy == "" {
+		r.Log.Errorf("%s", "Kubeconfig strategy not providied in Kyma Custom Resource")
 		return false
 	}
 
 	return true
 }
 
-//function above, return string instead of bool. Why? We can check if the values are blank, filled or the same.
-//for now the Create nad Update func is working the same way (as user updates startegy field the Recocniler is triggerd)
-// We can provide some logic to check if user updates the Kubeconfig e.g. field strategy
-//check if secret with kubeconfig is present in kcp-system?
+func (r *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld runtime.Object) bool {
+
+	kymaObjNew, okNew := objNew.(*kyma.Kyma)
+	kymaObjOld, okOld := objOld.(*kyma.Kyma)
+
+	if !okNew || !okOld {
+		r.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
+		return false
+	}
+
+	if kymaObjNew.Spec.Sync.Strategy == "" || kymaObjOld.Spec.Sync.Strategy == "" {
+		r.Log.Errorf("%s", "Kubeconfig strategy not providied in Kyma Custom Resource")
+		return false
+	}
+
+	if strings.Compare(string(kymaObjNew.Spec.Sync.Strategy), string(kymaObjOld.Spec.Sync.Strategy)) == 0 {
+		r.Log.Infof("%s", "Kubeconfig strategy has not changed, skipping reconcilation")
+		return false
+	}
+	return true
+}
+
+// We can provide some logic to check if user updates the Kubeconfig e.g. field strategy -> check if secret with Kubeconfig is present in kcp-system?
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -143,13 +146,13 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	fieldSelectorPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return r.checkKubeconfigField(e.Object)
+			return r.checkKubeconfigStrategy(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return r.checkKubeconfigField(e.ObjectNew)
+			return r.checkUpdateKubeconfigStrategy(e.ObjectNew, e.ObjectOld)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return r.checkKubeconfigField(e.Object)
+			return r.checkKubeconfigStrategy(e.Object)
 		},
 		DeleteFunc: nil,
 	}
@@ -157,7 +160,7 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	runner := ctrl.NewControllerManagedBy(mgr).
 		For(&kyma.Kyma{}, builder.WithPredicates(ommitStatusChanged))
 
-	watcher := func(u unstructured.Unstructured) {
+	watcher := func(u kyma.Kyma) {
 		r.Log.Infoln("gvk", u.GroupVersionKind().String(), " adding watcher")
 		runner = runner.Watches(
 			&source.Kind{Type: &u},
@@ -166,7 +169,6 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				predicate.And(
 					predicate.ResourceVersionChangedPredicate{},
 					labelSelectorPredicate,
-					fieldSelectorPredicate,
 				),
 			),
 		)
@@ -175,5 +177,6 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	if err := registerWatchDistinct(r.KymaObjs, watcher); err != nil {
 		return err
 	}
-	return runner.Complete(r)
+
+	return runner.WithEventFilter(fieldSelectorPredicate).Complete(r)
 }
