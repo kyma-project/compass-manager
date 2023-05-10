@@ -29,7 +29,7 @@ func registerWatchDistinct(objs []kyma.Kyma, forWatch func(u kyma.Kyma)) error {
 }
 
 func calculateSHA(h hash.Hash, obj kyma.Kyma) (string, error) {
-	str := fmt.Sprintf("%s:%s:%s:%s",
+	str := fmt.Sprintf("%s:%s:%s:",
 		obj.Kind,
 		obj.GetObjectKind().GroupVersionKind().Group,
 		obj.GetObjectKind().GroupVersionKind().Version)
