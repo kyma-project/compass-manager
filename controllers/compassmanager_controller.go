@@ -5,14 +5,17 @@ import (
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	log "github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"strings"
 )
 
@@ -129,17 +132,17 @@ func (r *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld 
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	//labelSelectorPredicate, err := predicate.LabelSelectorPredicate(
-	//	metav1.LabelSelector{
-	//		MatchLabels: map[string]string{
-	//			"app.kubernetes.io/name": "lifecycle-manager",
-	//		},
-	//	},
-	//)
+	labelSelectorPredicate, err := predicate.LabelSelectorPredicate(
+		metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.kubernetes.io/name": "lifecycle-manager",
+			},
+		},
+	)
 
-	//if err != nil {
-	//	return err
-	//}
+	if err != nil {
+		return err
+	}
 
 	fieldSelectorPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -161,14 +164,9 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// This is the equivalent of calling
 		// Watches(&source.Kind{Type: apiType}, &handler.EnqueueRequestForObject{}).
 	*/
-	runner := ctrl.NewControllerManagedBy(mgr).
-		For(&kyma.Kyma{}, builder.WithPredicates(
-			predicate.And(
-				predicate.ResourceVersionChangedPredicate{},
-				ommitStatusChanged,
-			)))
+	runner := ctrl.NewControllerManagedBy(mgr)
 
-	/*watcher := func(u kyma.Kyma) {
+	watcher := func(u kyma.Kyma) {
 		r.Log.Infoln("gvk", u.GroupVersionKind().String(), " adding watcher")
 		runner = runner.Watches(
 			&source.Kind{Type: &u},
@@ -184,7 +182,7 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	if err := registerWatchDistinct(r.KymaObjs, watcher); err != nil {
 		return err
-	}*/
+	}
 
 	return runner.WithEventFilter(fieldSelectorPredicate).Complete(r)
 }
