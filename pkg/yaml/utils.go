@@ -1,14 +1,15 @@
 package yaml
 
 import (
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	"io"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func LoadData(r io.Reader) ([]unstructured.Unstructured, error) {
-	results := make([]unstructured.Unstructured, 0)
+func LoadData(r io.Reader) ([]kyma.Kyma, error) {
+	results := make([]kyma.Kyma, 0)
 	decoder := yaml.NewDecoder(r)
 
 	for {
@@ -25,10 +26,12 @@ func LoadData(r io.Reader) ([]unstructured.Unstructured, error) {
 
 		u := unstructured.Unstructured{Object: obj}
 		if u.GetObjectKind().GroupVersionKind().Kind == "CustomResourceDefinition" {
-			results = append([]unstructured.Unstructured{u}, results...)
+			gvk := u.GroupVersionKind()
+			kymas := kyma.Kyma{}
+			kymas.SetGroupVersionKind(gvk)
+			results = append(results, kymas)
 			continue
 		}
-		results = append(results, u)
 	}
 
 	return results, nil

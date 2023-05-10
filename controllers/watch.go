@@ -32,8 +32,8 @@ func calculateSHA(h hash.Hash, obj kyma.Kyma) (string, error) {
 	str := fmt.Sprintf("%s:%s:%s:%s",
 		obj.Kind,
 		obj.GetObjectKind().GroupVersionKind().Group,
-		obj.GetObjectKind().GroupVersionKind().Version,
-		obj.GetCreationTimestamp().String())
+		obj.GetObjectKind().GroupVersionKind().Version)
+
 	_, err := h.Write([]byte(str))
 	if err != nil {
 		return "", err
