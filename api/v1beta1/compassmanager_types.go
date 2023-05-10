@@ -9,7 +9,7 @@ import (
 
 // CompassManagerSpec defines the desired state of CompassManager
 type CompassManagerSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+	// INSERT ADDITIONAL SPEC FIELDS - desired  state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CompassManager. Edit compassmanager_types.go to remove/update

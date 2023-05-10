@@ -13,8 +13,6 @@ RUN go mod download
 
 # Copy the go source
 COPY main.go main.go
-COPY kyma.yaml kyma.yaml
-COPY pkg/ pkg/
 COPY api/ api/
 COPY controllers/ controllers/
 
@@ -30,7 +28,6 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o ma
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --chown=65532:65532 --from=builder /workspace/manager .
-COPY --chown=65532:65532 --from=builder /workspace/kyma.yaml .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]

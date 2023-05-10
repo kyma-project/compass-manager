@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/kyma-project/compass-manager/controllers"
-	"github.com/kyma-project/compass-manager/pkg/yaml"
 	"github.com/sirupsen/logrus"
 	"os"
 
@@ -60,31 +59,9 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "2647ec81.kyma-project.io",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	file, err := os.Open("kyma.yaml")
-	if err != nil {
-		setupLog.Error(err, "unable to open k8s data")
-	}
-
-	data, err := yaml.LoadData(file)
-	if err != nil {
-		setupLog.Error(err, "unable to load k8s data")
 		os.Exit(1)
 	}
 
@@ -92,10 +69,9 @@ func main() {
 	log.SetLevel(logrus.InfoLevel)
 
 	if err = (&controllers.CompassManagerReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Log:      log,
-		KymaObjs: data,
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+		Log:    log,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)
