@@ -3,13 +3,13 @@ package controllers
 import (
 	"context"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"testing"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"time"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -75,7 +75,11 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(context.Background())
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		err = k8sManager.Start(ctx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
@@ -83,6 +87,18 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
-	err := testEnv.Stop()
+	err := (func() (err error) {
+		// Need to sleep if the first stop fails due to a bug:
+		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
+		sleepTime := 1 * time.Millisecond
+		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
+			if err = testEnv.Stop(); err == nil {
+				return
+			}
+			sleepTime *= 2
+			time.Sleep(sleepTime)
+		}
+		return
+	})()
 	Expect(err).NotTo(HaveOccurred())
 })
