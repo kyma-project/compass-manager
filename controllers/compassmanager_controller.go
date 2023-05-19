@@ -9,15 +9,42 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"strings"
 )
 
+//go:generate mockery --name=Registrator
+type Registrator interface {
+	Register(nameFromKymaCR string) (error, string)          //call to director, error + string
+	ConfigureRuntimeAgent(kubeconfigSecretName string) error //error, create compass agent confgiruation it is present on each skr
+}
+
+type CompassRegistrator struct{}
+
+func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfigSecretName string) error {
+	return nil
+}
+
+func (r *CompassRegistrator) Register(nameFromKymaCR string) (error, string) {
+	return nil, ""
+}
+
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    *log.Logger
+	Scheme      *runtime.Scheme
+	Log         *log.Logger
+	Registrator Registrator
+}
+
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, r Registrator) *CompassManagerReconciler {
+	return &CompassManagerReconciler{
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		Log:         log,
+		Registrator: r,
+	}
 }
 
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers,verbs=get;list;watch;create;update;patch;delete
@@ -33,45 +60,63 @@ var ommitStatusChanged = predicate.Or(
 	predicate.AnnotationChangedPredicate{},
 )
 
-func (r *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Infof("reconciliation triggered for resource named: %s", req.Name)
+func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	//if call to Director will not succeed trigger call once again, and if failed again wait 2 minutes and repeat whole process
+
+	cm.Log.Infof("reconciliation triggered for resource named: %s", req.Name)
+	kymaName := req.Name
+	kubeconfigSecretName := "kubeconfig-" + req.Name
+
+	err, _ := cm.Registrator.Register(kymaName)
+	if err != nil {
+		//ctrl.Result{RequeueAfter: time.Second}
+		return ctrl.Result{}, err
+
+	}
+	cm.Log.Info("Registered")
+	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
+	if err != nil {
+		//ctrl.Result{RequeueAfter: time.Second}
+		return ctrl.Result{}, err
+
+	}
+	cm.Log.Info("CRA configured")
 	return ctrl.Result{}, nil
 }
 
-func (r *CompassManagerReconciler) checkKubeconfigStrategy(obj runtime.Object) bool {
+func (cm *CompassManagerReconciler) checkKubeconfigStrategy(obj runtime.Object) bool {
 
 	kymaObj, ok := obj.(*kyma.Kyma)
 	if !ok {
-		r.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
+		cm.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
 		return false
 	}
 
 	if kymaObj.Spec.Sync.Strategy == "" {
-		r.Log.Infof("%s", "Kubeconfig strategy not providied in Kyma Custom Resource")
+		cm.Log.Infof("%s", "Kubeconfig not providied in Kyma Custom Resource")
 		return false
 	}
 
 	return true
 }
 
-func (r *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld runtime.Object) bool {
+func (cm *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld runtime.Object) bool {
 
 	kymaObjNew, okNew := objNew.(*kyma.Kyma)
 	kymaObjOld, okOld := objOld.(*kyma.Kyma)
 
 	if !okNew || !okOld {
-		r.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
+		cm.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
 		return false
 	}
 
 	if kymaObjNew.Spec.Sync.Strategy == "" {
-		r.Log.Infof("%s", "Kubeconfig strategy not providied in Kyma Custom Resource")
+		cm.Log.Infof("%s", "Kubeconfig not providied in Kyma Custom Resource")
 		return false
 	}
 
 	if strings.Compare(string(kymaObjNew.Spec.Sync.Strategy), string(kymaObjOld.Spec.Sync.Strategy)) == 0 {
-		r.Log.Infof("%s", "Kubeconfig strategy has not changed, skipping reconcilation")
+		cm.Log.Infof("%s", "Kubeconfig has not changed, skipping reconcilation")
 		return false
 	}
 	return true
@@ -80,17 +125,17 @@ func (r *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld 
 // We can provide some logic to check if user updates the Kubeconfig e.g. field strategy -> check if secret with Kubeconfig is present in kcp-system?
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	fieldSelectorPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return r.checkKubeconfigStrategy(e.Object)
+			return cm.checkKubeconfigStrategy(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return r.checkUpdateKubeconfigStrategy(e.ObjectNew, e.ObjectOld)
+			return cm.checkUpdateKubeconfigStrategy(e.ObjectNew, e.ObjectOld)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return r.checkKubeconfigStrategy(e.Object)
+			return cm.checkKubeconfigStrategy(e.Object)
 		},
 		DeleteFunc: nil,
 	}
@@ -109,5 +154,5 @@ func (r *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ommitStatusChanged,
 			)))
 
-	return runner.WithEventFilter(fieldSelectorPredicate).Complete(r)
+	return runner.WithEventFilter(fieldSelectorPredicate).Complete(cm)
 }

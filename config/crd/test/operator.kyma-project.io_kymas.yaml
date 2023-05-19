@@ -127,7 +127,6 @@ spec:
                         control plane into the SKR
                       type: boolean
                     strategy:
-                      default: secret
                       description: Strategy determines the way to look up the remotely
                         synced kubeconfig, by default it is fetched from a secret
                       type: string

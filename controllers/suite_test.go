@@ -2,103 +2,112 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/controllers/mocks"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"path/filepath"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"testing"
-	"time"
-
+	"github.com/stretchr/testify/suite"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"path/filepath"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
+	"testing"
+	"time"
 	//+kubebuilder:scaffold:imports
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
-
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
-
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Controller Suite")
+type CompassManagerSuite struct {
+	suite.Suite
+	cfg          *rest.Config
+	k8sClient    client.Client
+	testEnv      *envtest.Environment
+	mockRegister *mocks.Registrator
 }
 
-var _ = BeforeSuite(func() {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+func (cm *CompassManagerSuite) SetupSuite() {
+	cm.T().Logf("%s", "starting the test suite")
+	cm.T().Logf("%s", "bootstrapping test environment")
 
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
+	cm.testEnv = &envtest.Environment{
+		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "test")},
 		ErrorIfCRDPathMissing: true,
 	}
 
 	var err error
-	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	cm.cfg, err = cm.testEnv.Start()
+	cm.Require().NoError(err)
+	cm.Require().NotNil(cm.cfg)
 
 	err = operatorv1beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	cm.Require().NoError(err)
 	err = kyma.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
+	cm.Require().NoError(err)
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	cm.k8sClient, err = client.New(cm.cfg, client.Options{Scheme: scheme.Scheme})
+	cm.Require().NoError(err)
+	cm.Require().NotNil(cm.k8sClient)
 
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
+	k8sManager, err := ctrl.NewManager(cm.cfg, ctrl.Options{Scheme: scheme.Scheme})
+	cm.Require().NoError(err)
 
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	err = (&CompassManagerReconciler{
-		Client: k8sManager.GetClient(),
-		Scheme: k8sManager.GetScheme(),
-		Log:    log,
-	}).SetupWithManager(k8sManager)
-	Expect(err).ToNot(HaveOccurred())
+	cm.mockRegister = &mocks.Registrator{}
+	prepareMockFunctions(cm.mockRegister)
+
+	compassManager := NewCompassManagerReconciler(k8sManager, log, cm.mockRegister)
+
+	err = compassManager.SetupWithManager(k8sManager)
+	cm.Require().NoError(err)
 
 	go func() {
-		defer GinkgoRecover()
-
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		err = k8sManager.Start(ctx)
-		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
+		cm.Require().NoError(err, "failed to run manager")
 	}()
+}
 
-})
+func TestCompassManagerSuite(t *testing.T) {
+	suite.Run(t, new(CompassManagerSuite))
 
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
+}
+
+func (cm *CompassManagerSuite) TearDownSuite() {
+	cm.T().Logf("%s", "tearing down the test environment")
 	err := (func() (err error) {
 		// Need to sleep if the first stop fails due to a bug:
 		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 		sleepTime := 1 * time.Millisecond
 		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
-			if err = testEnv.Stop(); err == nil {
+			if err = cm.testEnv.Stop(); err == nil {
 				return
 			}
 			sleepTime *= 2
 			time.Sleep(sleepTime)
 		}
 		return
+
 	})()
-	Expect(err).NotTo(HaveOccurred())
-})
+	cm.Require().NoError(err)
+}
+
+func prepareMockFunctions(r *mocks.Registrator) {
+	r.On("Register", "all-good").Return(nil, "all-good")
+	r.On("ConfigureRuntimeAgent", "kubeconfig-all-good").Return(nil)
+
+	r.On("Register", "pass").Return(nil, "pass")
+	r.On("ConfigureRuntimeAgent", "kubeconfig-pass").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
+
+	r.On("Register", "fail-only").Return(errors.New("error during registration"), "")
+
+	r.On("Register", "insignificant-field").Return(nil, "insignificant-field")
+	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field").Return(nil)
+}

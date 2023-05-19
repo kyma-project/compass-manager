@@ -68,11 +68,10 @@ func main() {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	if err = (&controllers.CompassManagerReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-		Log:    log,
-	}).SetupWithManager(mgr); err != nil {
+	compassManagerRegistrator := &controllers.CompassRegistrator{}
+
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassManagerRegistrator)
+	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)
 	}
