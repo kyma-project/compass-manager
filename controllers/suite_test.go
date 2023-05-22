@@ -3,6 +3,10 @@ package controllers
 import (
 	"context"
 	"errors"
+	"path/filepath"
+	"testing"
+	"time"
+
 	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
@@ -10,12 +14,9 @@ import (
 	"github.com/stretchr/testify/suite"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"path/filepath"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"testing"
-	"time"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -77,7 +78,6 @@ func (cm *CompassManagerSuite) SetupSuite() {
 
 func TestCompassManagerSuite(t *testing.T) {
 	suite.Run(t, new(CompassManagerSuite))
-
 }
 
 func (cm *CompassManagerSuite) TearDownSuite() {
@@ -94,7 +94,6 @@ func (cm *CompassManagerSuite) TearDownSuite() {
 			time.Sleep(sleepTime)
 		}
 		return
-
 	})()
 	cm.Require().NoError(err)
 }

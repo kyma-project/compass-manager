@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"strings"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,7 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"strings"
 )
 
 //go:generate mockery --name=Registrator

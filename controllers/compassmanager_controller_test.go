@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,7 +10,6 @@ import (
 )
 
 func (cm *CompassManagerSuite) TestController() {
-
 	const (
 		kymaCustomResourceName       = "test-kyma-cr"
 		kymaCustomResourceNamespace  = "kcp-system"
@@ -55,40 +55,33 @@ func (cm *CompassManagerSuite) TestController() {
 	cm.T().Logf("Namespace created: %s", kymaCustomResourceNamespace)
 
 	cm.Run("Should enter the reconciliation loop, invoke registration of runtime in Compass and invoke creation of Compass Runtime Agent CR on cluster", func() {
-
 		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "all-good"
 
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
-
 	})
 
 	cm.Run("Should enter the reconciliation loop, invoke registration of runtime in Compass and return error during creation of Compass Runtime Agent CR on cluster", func() {
-
 		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "configure-fails"
 
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
-
 	})
 
 	cm.Run("Should enter the reconciliation loop, return error during registration of runtime in Compass and quit", func() {
-
 		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "registration-fails"
 
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
-
 	})
 
 	cm.Run("Should do not enter reconciliation loop if Kubeconfig was not provided in Kyma CR", func() {
-
 		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "empty-kubeconfig"
@@ -98,7 +91,6 @@ func (cm *CompassManagerSuite) TestController() {
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 	})
 	cm.Run("Should do not enter reconciliation loop if an insignificant field in Kyma CR has been changed", func() {
-
 		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "insignificant-field"
