@@ -100,14 +100,14 @@ func (cm *CompassManagerSuite) TearDownSuite() {
 }
 
 func prepareMockFunctions(r *mocks.Registrator) {
-	r.On("Register", "all-good").Return(nil, "all-good")
+	r.On("Register", "all-good").Return("all-good", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-all-good").Return(nil)
 
-	r.On("Register", "pass").Return(nil, "pass")
-	r.On("ConfigureRuntimeAgent", "kubeconfig-pass").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
+	r.On("Register", "configure-fails").Return("configure-fails", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
 
-	r.On("Register", "fail-only").Return(errors.New("error during registration"), "")
+	r.On("Register", "registration-fails").Return("", errors.New("error during registration"))
 
-	r.On("Register", "insignificant-field").Return(nil, "insignificant-field")
+	r.On("Register", "insignificant-field").Return("insignificant-field", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field").Return(nil)
 }

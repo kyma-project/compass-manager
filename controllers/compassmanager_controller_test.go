@@ -70,7 +70,7 @@ func (cm *CompassManagerSuite) TestController() {
 
 		//given
 		testSuiteKyma := kymaResource
-		testSuiteKyma.Name = "pass"
+		testSuiteKyma.Name = "configure-fails"
 
 		//when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
@@ -81,7 +81,7 @@ func (cm *CompassManagerSuite) TestController() {
 
 		//given
 		testSuiteKyma := kymaResource
-		testSuiteKyma.Name = "fail-only"
+		testSuiteKyma.Name = "registration-fails"
 
 		//when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)

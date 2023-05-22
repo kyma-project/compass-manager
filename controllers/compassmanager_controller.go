@@ -16,8 +16,8 @@ import (
 
 //go:generate mockery --name=Registrator
 type Registrator interface {
-	Register(nameFromKymaCR string) (error, string)          //call to director, error + string
-	ConfigureRuntimeAgent(kubeconfigSecretName string) error //error, create compass agent confgiruation it is present on each skr
+	Register(nameFromKymaCR string) (string, error)
+	ConfigureRuntimeAgent(kubeconfigSecretName string) error
 }
 
 type CompassRegistrator struct{}
@@ -26,8 +26,8 @@ func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfigSecretName string) 
 	return nil
 }
 
-func (r *CompassRegistrator) Register(nameFromKymaCR string) (error, string) {
-	return nil, ""
+func (r *CompassRegistrator) Register(nameFromKymaCR string) (string, error) {
+	return "", nil
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -61,24 +61,21 @@ var ommitStatusChanged = predicate.Or(
 )
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	//if call to Director will not succeed trigger call once again, and if failed again wait 2 minutes and repeat whole process
+	// if call to Director will not succeed trigger call once again, and if failed again wait 2 minutes and repeat whole process
 
 	cm.Log.Infof("reconciliation triggered for resource named: %s", req.Name)
 	kymaName := req.Name
 	kubeconfigSecretName := "kubeconfig-" + req.Name
 
-	err, _ := cm.Registrator.Register(kymaName)
+	_, err := cm.Registrator.Register(kymaName)
 	if err != nil {
-		//ctrl.Result{RequeueAfter: time.Second}
 		return ctrl.Result{}, err
 
 	}
 	cm.Log.Info("Registered")
 	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
 	if err != nil {
-		//ctrl.Result{RequeueAfter: time.Second}
 		return ctrl.Result{}, err
-
 	}
 	cm.Log.Info("CRA configured")
 	return ctrl.Result{}, nil

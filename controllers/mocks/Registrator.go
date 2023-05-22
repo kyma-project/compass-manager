@@ -24,24 +24,24 @@ func (_m *Registrator) ConfigureRuntimeAgent(kubeconfigSecretName string) error 
 }
 
 // Register provides a mock function with given fields: nameFromKymaCR
-func (_m *Registrator) Register(nameFromKymaCR string) (error, string) {
+func (_m *Registrator) Register(nameFromKymaCR string) (string, error) {
 	ret := _m.Called(nameFromKymaCR)
 
-	var r0 error
-	var r1 string
-	if rf, ok := ret.Get(0).(func(string) (error, string)); ok {
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
 		return rf(nameFromKymaCR)
 	}
-	if rf, ok := ret.Get(0).(func(string) error); ok {
+	if rf, ok := ret.Get(0).(func(string) string); ok {
 		r0 = rf(nameFromKymaCR)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) string); ok {
+	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(nameFromKymaCR)
 	} else {
-		r1 = ret.Get(1).(string)
+		r1 = ret.Error(1)
 	}
 
 	return r0, r1
