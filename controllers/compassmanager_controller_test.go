@@ -17,8 +17,7 @@ func (cm *CompassManagerSuite) TestController() {
 		kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta1"
 	)
 
-	var kymaCustomResourceLabels map[string]string
-	kymaCustomResourceLabels = make(map[string]string)
+	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
 
 	var kymaResource = kyma.Kyma{
@@ -57,63 +56,65 @@ func (cm *CompassManagerSuite) TestController() {
 
 	cm.Run("Should enter the reconciliation loop, invoke registration of runtime in Compass and invoke creation of Compass Runtime Agent CR on cluster", func() {
 
-		//given
+		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "all-good"
 
-		//when
+		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 	})
 
 	cm.Run("Should enter the reconciliation loop, invoke registration of runtime in Compass and return error during creation of Compass Runtime Agent CR on cluster", func() {
 
-		//given
+		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "configure-fails"
 
-		//when
+		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 	})
 
 	cm.Run("Should enter the reconciliation loop, return error during registration of runtime in Compass and quit", func() {
 
-		//given
+		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "registration-fails"
 
-		//when
+		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 	})
 
 	cm.Run("Should do not enter reconciliation loop if Kubeconfig was not provided in Kyma CR", func() {
-		//given
+
+		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "empty-kubeconfig"
 		testSuiteKyma.Spec.Sync.Strategy = ""
 
-		//when
+		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 	})
 	cm.Run("Should do not enter reconciliation loop if an insignificant field in Kyma CR has been changed", func() {
-		//given
+
+		// given
 		testSuiteKyma := kymaResource
 		testSuiteKyma.Name = "insignificant-field"
 
-		//when
+		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 		cm.shouldUpdateKyma(testSuiteKyma.Name, testSuiteKyma.Namespace)
 	})
 
-	//then
+	// then
 	cm.mockRegister.AssertExpectations(cm.T())
 }
 
 func (cm *CompassManagerSuite) shouldCreateKyma(kymaName string, obj kyma.Kyma) {
-	//act
+	// act
 	cm.T().Logf("Creating cr: %s", kymaName)
 	err := cm.k8sClient.Create(context.Background(), &obj)
 	cm.Require().NoError(err)
@@ -121,7 +122,7 @@ func (cm *CompassManagerSuite) shouldCreateKyma(kymaName string, obj kyma.Kyma) 
 }
 
 func (cm *CompassManagerSuite) shouldUpdateKyma(name, namespace string) {
-	//act
+	// act
 	var obj kyma.Kyma
 	key := types.NamespacedName{Name: name, Namespace: namespace}
 

@@ -70,7 +70,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	_, err := cm.Registrator.Register(kymaName)
 	if err != nil {
 		return ctrl.Result{}, err
-
 	}
 	cm.Log.Info("Registered")
 	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
@@ -82,7 +81,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 func (cm *CompassManagerReconciler) checkKubeconfigStrategy(obj runtime.Object) bool {
-
 	kymaObj, ok := obj.(*kyma.Kyma)
 	if !ok {
 		cm.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
@@ -98,7 +96,6 @@ func (cm *CompassManagerReconciler) checkKubeconfigStrategy(obj runtime.Object) 
 }
 
 func (cm *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld runtime.Object) bool {
-
 	kymaObjNew, okNew := objNew.(*kyma.Kyma)
 	kymaObjOld, okOld := objOld.(*kyma.Kyma)
 
@@ -123,7 +120,6 @@ func (cm *CompassManagerReconciler) checkUpdateKubeconfigStrategy(objNew, objOld
 
 // SetupWithManager sets up the controller with the Manager.
 func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-
 	fieldSelectorPredicate := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
 			return cm.checkKubeconfigStrategy(e.Object)
@@ -137,7 +133,7 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		DeleteFunc: nil,
 	}
 
-	//From documentation
+	// From documentation
 	/*
 		// For defines the type of Object being *reconciled*, and configures the ControllerManagedBy to respond to create / delete /
 		// update events by *reconciling the object*.
