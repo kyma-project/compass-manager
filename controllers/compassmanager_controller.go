@@ -49,7 +49,7 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	client.Client
+	Client      Client
 	Scheme      *runtime.Scheme
 	Log         *log.Logger
 	Registrator Registrator
@@ -81,7 +81,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	clusterSecretName := req.NamespacedName
 	clusterSecretName.Name = kubeconfigSecretName
 
-	err := cm.Get(ctx, clusterSecretName, clusterSecret)
+	err := cm.Client.Get(ctx, clusterSecretName, clusterSecret)
 	if err != nil {
 		cm.Log.Infof("cannot retrieve the Kubeconfig secret associated with Kyma CR named: %s, retying in 10 seconds", kymaName)
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
@@ -186,7 +186,7 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.NamespacedName, compassId string) {
 	instance := &kyma.Kyma{}
-	err := cm.Get(context.Background(), objKey, instance)
+	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Kyma Custom Resource not found")
@@ -202,7 +202,7 @@ func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.Namesp
 	l["operator.kyma-project.io/compass-id"] = compassId
 	instance.SetLabels(l)
 
-	err = cm.Update(context.Background(), instance)
+	err = cm.Client.Update(context.Background(), instance)
 	if err != nil {
 		log.Infof("%v, %s", err, " failed to update Kyma Custom Resource")
 	}
