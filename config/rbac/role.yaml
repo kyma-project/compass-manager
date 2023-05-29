@@ -14,6 +14,14 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - operator.kyma-project.io
   resources:
   - compassmanagers
@@ -46,6 +54,7 @@ rules:
   verbs:
   - get
   - list
+  - update
   - watch
 - apiGroups:
   - operator.kyma-project.io
