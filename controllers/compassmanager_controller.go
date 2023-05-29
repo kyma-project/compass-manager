@@ -112,7 +112,7 @@ func (cm *CompassManagerReconciler) checkCompassLabel(obj runtime.Object) bool {
 	labels := kymaObj.GetLabels()
 
 	if _, ok := labels["operator.kyma-project.io/compass-id"]; ok {
-		cm.Log.Infof("Compass id present on Kyma Custom Resource named: %s ,skipping reconciliation", kymaObj.Name)
+		cm.Log.Infof("Compass id is present on Kyma Custom Resource named: %s, skipping reconciliation", kymaObj.Name)
 		return false
 	}
 
@@ -130,6 +130,11 @@ func (cm *CompassManagerReconciler) checkUpdateCompassLabel(objNew, objOld runti
 
 	labelsNew := kymaObjNew.GetLabels()
 	labelsOld := kymaObjOld.GetLabels()
+
+	if labelsOld["operator.kyma-project.io/compass-id"] == labelsNew["operator.kyma-project.io/compass-id"] {
+		cm.Log.Infof("Compass id is present on Kyma Custom Resource named: %s, skipping reconciliation", kymaObjNew.Name)
+		return false
+	}
 
 	if _, ok := labelsOld["operator.kyma-project.io/compass-id"]; !ok {
 		if _, ok := labelsNew["operator.kyma-project.io/compass-id"]; ok {
