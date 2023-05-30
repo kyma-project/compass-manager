@@ -15,17 +15,16 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	//+kubebuilder:scaffold:imports
 )
 
 type CompassManagerSuite struct {
 	suite.Suite
-	cfg          *rest.Config
-	k8sClient    client.Client
-	testEnv      *envtest.Environment
-	mockRegister *mocks.Registrator
+	cfg            *rest.Config
+	compassManager *CompassManagerReconciler
+	testEnv        *envtest.Environment
+	mockRegister   *mocks.Registrator
 }
 
 func (cm *CompassManagerSuite) SetupSuite() {
@@ -49,10 +48,6 @@ func (cm *CompassManagerSuite) SetupSuite() {
 
 	//+kubebuilder:scaffold:scheme
 
-	cm.k8sClient, err = client.New(cm.cfg, client.Options{Scheme: scheme.Scheme})
-	cm.Require().NoError(err)
-	cm.Require().NotNil(cm.k8sClient)
-
 	k8sManager, err := ctrl.NewManager(cm.cfg, ctrl.Options{Scheme: scheme.Scheme})
 	cm.Require().NoError(err)
 
@@ -62,9 +57,9 @@ func (cm *CompassManagerSuite) SetupSuite() {
 	cm.mockRegister = &mocks.Registrator{}
 	prepareMockFunctions(cm.mockRegister)
 
-	compassManager := NewCompassManagerReconciler(k8sManager, log, cm.mockRegister)
+	cm.compassManager = NewCompassManagerReconciler(k8sManager, log, cm.mockRegister)
 
-	err = compassManager.SetupWithManager(k8sManager)
+	err = cm.compassManager.SetupWithManager(k8sManager)
 	cm.Require().NoError(err)
 
 	go func() {
@@ -107,6 +102,9 @@ func prepareMockFunctions(r *mocks.Registrator) {
 
 	r.On("Register", "registration-fails").Return("", errors.New("error during registration"))
 
-	r.On("Register", "insignificant-field").Return("insignificant-field", nil)
-	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field").Return(nil)
+	r.On("Register", "empty-kubeconfig").Return("empty-kubeconfig", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-empty-kubeconfig").Return(nil)
+
+	r.On("Register", "insignificant-field").Return("insignificant-field", nil).Once()
+	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field").Return(nil).Once()
 }

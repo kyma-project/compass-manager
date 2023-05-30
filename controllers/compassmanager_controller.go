@@ -45,6 +45,7 @@ func (r *CompassRegistrator) Register(nameFromKymaCR string) (string, error) {
 type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
+	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -89,12 +90,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	compassId, err := cm.Registrator.Register(kymaName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 	cm.Log.Info("Registered")
 	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 	cm.Log.Info("CRA configured")
 

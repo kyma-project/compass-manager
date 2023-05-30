@@ -17,6 +17,27 @@ type Client struct {
 	mock.Mock
 }
 
+// Create provides a mock function with given fields: ctx, obj, opts
+func (_m *Client) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	_va := make([]interface{}, len(opts))
+	for _i := range opts {
+		_va[_i] = opts[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, obj)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, client.Object, ...client.CreateOption) error); ok {
+		r0 = rf(ctx, obj, opts...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Get provides a mock function with given fields: ctx, key, obj, opts
 func (_m *Client) Get(ctx context.Context, key types.NamespacedName, obj client.Object, opts ...client.GetOption) error {
 	_va := make([]interface{}, len(opts))
