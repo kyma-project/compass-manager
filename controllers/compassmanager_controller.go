@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +16,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-	"time"
 )
 
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers,verbs=get;list;watch;create;update;patch;delete
@@ -71,6 +72,8 @@ var ommitStatusChanged = predicate.Or(
 	predicate.AnnotationChangedPredicate{},
 )
 
+var requeueTime = time.Second * 10
+
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// if call to Director will not succeed trigger call once again, and if failed again wait 2 minutes and repeat whole process
 
@@ -85,21 +88,21 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	err := cm.Client.Get(ctx, clusterSecretName, clusterSecret)
 	if err != nil {
 		cm.Log.Infof("cannot retrieve the Kubeconfig secret associated with Kyma CR named: %s, retying in 10 seconds", kymaName)
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 
-	compassId, err := cm.Registrator.Register(kymaName)
+	compassID, err := cm.Registrator.Register(kymaName)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 	cm.Log.Info("Registered")
 	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 	cm.Log.Info("CRA configured")
 
-	cm.applyLabelOnKymaResource(req.NamespacedName, compassId)
+	cm.applyLabelOnKymaResource(req.NamespacedName, compassID)
 	return ctrl.Result{}, nil
 }
 
@@ -144,7 +147,7 @@ func (cm *CompassManagerReconciler) checkUpdateCompassLabel(objNew, objOld runti
 		}
 	}
 
-	//prevent user from deletion of compass-id label. Risk -> if a user edits the label, we will not be able to force a reconciliation by removing the label. We can implement logic that prevents user from updating the label
+	// prevent user from deletion of compass-id label. Risk -> if a user edits the label, we will not be able to force a reconciliation by removing the label. We can implement logic that prevents user from updating the label
 	if _, ok := labelsOld["operator.kyma-project.io/compass-id"]; ok {
 		if _, ok := labelsNew["operator.kyma-project.io/compass-id"]; !ok {
 			key := types.NamespacedName{
@@ -185,7 +188,7 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return runner.WithEventFilter(fieldSelectorPredicate).Complete(cm)
 }
 
-func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.NamespacedName, compassId string) {
+func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.NamespacedName, compassID string) {
 	instance := &kyma.Kyma{}
 	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
@@ -200,7 +203,7 @@ func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.Namesp
 		l = make(map[string]string)
 	}
 
-	l["operator.kyma-project.io/compass-id"] = compassId
+	l["operator.kyma-project.io/compass-id"] = compassID
 	instance.SetLabels(l)
 
 	err = cm.Client.Update(context.Background(), instance)

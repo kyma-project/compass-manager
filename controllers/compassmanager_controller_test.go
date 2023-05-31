@@ -2,11 +2,12 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"time"
 )
 
 func (cm *CompassManagerSuite) TestController() {
@@ -63,7 +64,7 @@ func (cm *CompassManagerSuite) TestController() {
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
-		//then
+		// then
 		time.Sleep(1 * time.Second)
 		cm.shouldCheckLabels(testSuiteKyma.Name, testSuiteKyma.Namespace, false)
 	})
@@ -77,7 +78,7 @@ func (cm *CompassManagerSuite) TestController() {
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
-		//then
+		// then
 		time.Sleep(1 * time.Second)
 		cm.shouldCheckLabels(testSuiteKyma.Name, testSuiteKyma.Namespace, true)
 	})
@@ -91,7 +92,7 @@ func (cm *CompassManagerSuite) TestController() {
 		// when
 		cm.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
-		//then
+		// then
 		time.Sleep(1 * time.Second)
 		cm.shouldCheckLabels(testSuiteKyma.Name, testSuiteKyma.Namespace, true)
 	})
@@ -106,10 +107,9 @@ func (cm *CompassManagerSuite) TestController() {
 		time.Sleep(3 * time.Second)
 		cm.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace)
 
-		//then
+		// then
 		time.Sleep(10 * time.Second)
 		cm.shouldCheckLabels(testSuiteKyma.Name, testSuiteKyma.Namespace, false)
-
 	})
 
 	cm.Run("Should do not enter reconciliation loop if an insignificant field in Kyma CR has been changed and label is present on Kyma CR", func() {
@@ -122,7 +122,6 @@ func (cm *CompassManagerSuite) TestController() {
 		// when
 		time.Sleep(time.Second * 3)
 		cm.shouldUpdateKyma(testSuiteKyma.Name, testSuiteKyma.Namespace)
-
 	})
 
 	// then
@@ -181,5 +180,4 @@ func (cm *CompassManagerSuite) shouldCheckLabels(name, namespace string, shouldB
 			cm.FailNow("Kyma CR does not contain the compass-id label")
 		}
 	}
-
 }
