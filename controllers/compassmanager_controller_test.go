@@ -216,7 +216,7 @@ func (h *testHelper) shouldCheckCompassLabel(name, namespace string, shouldBeMis
 }
 
 func (h *testHelper) createNamespace() {
-	_ = fmt.Sprintf("Creating namespace: %s", h.kymaCustomResourceNamespace)
+	By(fmt.Sprintf("Creating namespace: %s", h.kymaCustomResourceNamespace))
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: h.kymaCustomResourceNamespace,
@@ -224,8 +224,8 @@ func (h *testHelper) createNamespace() {
 	}
 	err := cm.Client.Create(h.ctx, &namespace)
 	if err != nil {
-		fmt.Sprintf("Cannot create namespace, aborting")
+		By(fmt.Sprintf("Cannot create namespace, aborting"))
 		return
 	}
-	fmt.Sprintf("Namespace created: %s", h.kymaCustomResourceNamespace)
+	By(fmt.Sprintf("Namespace created: %s", h.kymaCustomResourceNamespace))
 }
