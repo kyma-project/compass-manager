@@ -4,9 +4,11 @@ import (
 	"context"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,11 +44,11 @@ func (r *CompassRegistrator) Register(nameFromKymaCR string) (string, error) {
 	return "compass-id", nil
 }
 
-//go:generate mockery --name=Client
 type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
+	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -75,23 +77,14 @@ var ommitStatusChanged = predicate.Or(
 var requeueTime = time.Second * 10
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// if call to Director will not succeed trigger call once again, and if failed again wait 2 minutes and repeat whole process
 
 	cm.Log.Infof("reconciliation triggered for resource named: %s", req.Name)
-	kymaName := req.Name
-	kubeconfigSecretName := "kubeconfig-" + req.Name
-
-	clusterSecret := &corev1.Secret{}
-	clusterSecretName := req.NamespacedName
-	clusterSecretName.Name = kubeconfigSecretName
-
-	err := cm.Client.Get(ctx, clusterSecretName, clusterSecret)
-	if err != nil {
-		cm.Log.Infof("cannot retrieve the Kubeconfig secret associated with Kyma CR named: %s, retying in 10 seconds", kymaName)
+	kubeconfigSecretName := cm.getKymaSecret(req.Name)
+	if kubeconfigSecretName == "" {
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 
-	compassID, err := cm.Registrator.Register(kymaName)
+	compassID, err := cm.Registrator.Register(req.Name)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
@@ -210,4 +203,26 @@ func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.Namesp
 	if err != nil {
 		log.Infof("%v, %s", err, " failed to update Kyma Custom Resource")
 	}
+}
+
+func (cm *CompassManagerReconciler) getKymaSecret(kymaName string) string {
+	secretList := &corev1.SecretList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		"operator.kyma-project.io/kyma-name": kymaName,
+	})
+
+	err := cm.Client.List(context.Background(), secretList, &client.ListOptions{
+		LabelSelector: labelSelector,
+	})
+	if err != nil {
+		cm.Log.Infof("%v", err)
+		return ""
+	}
+	if len(secretList.Items) == 0 {
+		cm.Log.Infof("cannot retrieve the Kubeconfig secret associated with Kyma CR named: %s, retying in 10 seconds", kymaName)
+		return ""
+	}
+	secret := &secretList.Items[0]
+
+	return secret.Name
 }

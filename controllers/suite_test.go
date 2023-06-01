@@ -7,81 +7,95 @@ import (
 	"testing"
 	"time"
 
-	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/suite"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
+	//+kubebuilder:scaffold:imports
 )
 
-type CompassManagerSuite struct {
-	suite.Suite
-	cfg            *rest.Config
-	compassManager *CompassManagerReconciler
-	testEnv        *envtest.Environment
-	mockRegister   *mocks.Registrator
+// These tests use Ginkgo (BDD-style Go testing framework). Refer to
+// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
+
+var cfg *rest.Config
+var k8sClient client.Client
+var testEnv *envtest.Environment
+var cm *CompassManagerReconciler
+var mockRegister *mocks.Registrator
+
+func TestAPIs(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Controller Suite")
 }
 
-func (cm *CompassManagerSuite) SetupSuite() {
-	cm.T().Logf("%s", "starting the test suite")
-	cm.T().Logf("%s", "bootstrapping test environment")
+var _ = BeforeSuite(func() {
+	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	cm.testEnv = &envtest.Environment{
+	By("bootstrapping test environment")
+	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "test")},
 		ErrorIfCRDPathMissing: true,
 	}
 
 	var err error
-	cm.cfg, err = cm.testEnv.Start()
-	cm.Require().NoError(err)
-	cm.Require().NotNil(cm.cfg)
+	// cfg is defined in this file globally.
+	cfg, err = testEnv.Start()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(cfg).NotTo(BeNil())
 
 	err = operatorv1beta1.AddToScheme(scheme.Scheme)
-	cm.Require().NoError(err)
+	Expect(err).NotTo(HaveOccurred())
 	err = kyma.AddToScheme(scheme.Scheme)
-	cm.Require().NoError(err)
+	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sManager, err := ctrl.NewManager(cm.cfg, ctrl.Options{Scheme: scheme.Scheme})
-	cm.Require().NoError(err)
+	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{Scheme: scheme.Scheme})
+	Expect(err).ToNot(HaveOccurred())
 
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	cm.mockRegister = &mocks.Registrator{}
-	prepareMockFunctions(cm.mockRegister)
+	mockRegister = &mocks.Registrator{}
+	prepareMockFunctions(mockRegister)
 
-	cm.compassManager = NewCompassManagerReconciler(k8sManager, log, cm.mockRegister)
+	cm = NewCompassManagerReconciler(k8sManager, log, mockRegister)
 
-	err = cm.compassManager.SetupWithManager(k8sManager)
-	cm.Require().NoError(err)
+	err = cm.SetupWithManager(k8sManager)
+	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
+		defer GinkgoRecover()
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
 		err = k8sManager.Start(ctx)
-		cm.Require().NoError(err, "failed to run manager")
+		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
-}
 
-func TestCompassManagerSuite(t *testing.T) {
-	suite.Run(t, new(CompassManagerSuite))
-}
+})
 
-func (cm *CompassManagerSuite) TearDownSuite() {
-	cm.T().Logf("%s", "tearing down the test environment")
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
 	err := (func() (err error) {
 		// Need to sleep if the first stop fails due to a bug:
 		// https://github.com/kubernetes-sigs/controller-runtime/issues/1571
 		sleepTime := 1 * time.Millisecond
 		for i := 0; i < 12; i++ { // Exponentially sleep up to ~4s
-			if err = cm.testEnv.Stop(); err == nil {
+			if err = testEnv.Stop(); err == nil {
 				return
 			}
 			sleepTime *= 2
@@ -89,8 +103,8 @@ func (cm *CompassManagerSuite) TearDownSuite() {
 		}
 		return
 	})()
-	cm.Require().NoError(err)
-}
+	Expect(err).NotTo(HaveOccurred())
+})
 
 func prepareMockFunctions(r *mocks.Registrator) {
 	r.On("Register", "all-good").Return("all-good", nil)
