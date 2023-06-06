@@ -9,7 +9,6 @@ import (
 
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -20,9 +19,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagers/finalizers,verbs=update
+const (
+	KymaNameLabel  = "operator.kyma-project.io/kyma-name"
+	CompassIDLabel = "operator.kyma-project.io/compass-id"
+	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
+	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
+	KubeconfigKey = "config"
+)
+
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch;update
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
@@ -30,24 +34,16 @@ import (
 
 //go:generate mockery --name=Registrator
 type Registrator interface {
-	Register(nameFromKymaCR string) (string, error)
-	ConfigureRuntimeAgent(kubeconfigSecretName string) error
-}
-
-type CompassRegistrator struct{}
-
-func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfigSecretName string) error {
-	return nil
-}
-
-func (r *CompassRegistrator) Register(nameFromKymaCR string) (string, error) {
-	return "compass-id", nil
+	// Register creates Runtime in the Compass system. It must be idempotent.
+	Register(name string) (string, error)
+	// ConfigureRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
+	ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error
 }
 
 type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
-	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
+	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
 }
 
@@ -68,127 +64,66 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, r Registr
 	}
 }
 
-var ommitStatusChanged = predicate.Or(
-	predicate.GenerationChangedPredicate{},
-	predicate.LabelChangedPredicate{},
-	predicate.AnnotationChangedPredicate{},
-)
-
-var requeueTime = time.Second * 10
+var requeueTime = time.Minute * 5
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 
-	cm.Log.Infof("reconciliation triggered for resource named: %s", req.Name)
-	kubeconfigSecretName := cm.getKymaSecret(req.Name)
-	if kubeconfigSecretName == "" {
-		return ctrl.Result{RequeueAfter: requeueTime}, nil
-	}
-
-	compassID, err := cm.Registrator.Register(req.Name)
+	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
+	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if kubeconfig == "" {
+		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
-	cm.Log.Info("Registered")
-	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfigSecretName)
+
+	compassRuntimeID, err := cm.Registrator.Register(req.Name)
 	if err != nil {
+		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
-	cm.Log.Info("CRA configured")
+	cm.Log.Infof("Runtime %s registered for Kyma resource %s.", compassRuntimeID, req.Name)
 
-	cm.applyLabelOnKymaResource(req.NamespacedName, compassID)
-	return ctrl.Result{}, nil
+	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfig, compassRuntimeID)
+	if err != nil {
+		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
+		return ctrl.Result{RequeueAfter: requeueTime}, nil
+	}
+	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
+
+	return ctrl.Result{}, cm.markRuntimeRegistered(req.NamespacedName, compassRuntimeID)
 }
 
-func (cm *CompassManagerReconciler) checkCompassLabel(obj runtime.Object) bool {
-	kymaObj, ok := obj.(*kyma.Kyma)
+func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
+	secretList := &corev1.SecretList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		KymaNameLabel: kymaName,
+	})
 
-	if !ok {
-		cm.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
-		return false
+	err := cm.Client.List(context.Background(), secretList, &client.ListOptions{
+		LabelSelector: labelSelector,
+	})
+
+	if err != nil {
+		return "", err
 	}
-	labels := kymaObj.GetLabels()
 
-	if _, ok := labels["operator.kyma-project.io/compass-id"]; ok {
-		cm.Log.Infof("Compass id is present on Kyma Custom Resource named: %s, skipping reconciliation", kymaObj.Name)
-		return false
+	if len(secretList.Items) == 0 {
+		return "", nil
 	}
+	secret := &secretList.Items[0]
 
-	return true
+	return string(secret.Data[KubeconfigKey]), nil
 }
 
-func (cm *CompassManagerReconciler) checkUpdateCompassLabel(objNew, objOld runtime.Object) bool {
-	kymaObjNew, okNew := objNew.(*kyma.Kyma)
-	kymaObjOld, okOld := objOld.(*kyma.Kyma)
+func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
 
-	if !okNew || !okOld {
-		cm.Log.Errorf("%s", "cannot parse Kyma Custom Resource")
-		return false
-	}
-
-	labelsNew := kymaObjNew.GetLabels()
-	labelsOld := kymaObjOld.GetLabels()
-
-	if labelsOld["operator.kyma-project.io/compass-id"] == labelsNew["operator.kyma-project.io/compass-id"] {
-		cm.Log.Infof("Compass id is present on Kyma Custom Resource named: %s, skipping reconciliation", kymaObjNew.Name)
-		return false
-	}
-
-	if _, ok := labelsOld["operator.kyma-project.io/compass-id"]; !ok {
-		if _, ok := labelsNew["operator.kyma-project.io/compass-id"]; ok {
-			cm.Log.Infof("Kyma Custom Resource named: %s successfully labeled with Compass ID", kymaObjNew.Name)
-			return false
-		}
-	}
-
-	// prevent user from deletion of compass-id label. Risk -> if a user edits the label, we will not be able to force a reconciliation by removing the label. We can implement logic that prevents user from updating the label
-	if _, ok := labelsOld["operator.kyma-project.io/compass-id"]; ok {
-		if _, ok := labelsNew["operator.kyma-project.io/compass-id"]; !ok {
-			key := types.NamespacedName{
-				Namespace: kymaObjNew.Namespace,
-				Name:      kymaObjNew.Name,
-			}
-			cm.applyLabelOnKymaResource(key, labelsOld["operator.kyma-project.io/compass-id"])
-			cm.Log.Infof("user cannot delete compass-id label from Kyma Custom Resource named: %s, reverting changes", kymaObjNew.Name)
-			return false
-		}
-	}
-
-	return true
-}
-
-// SetupWithManager sets up the controller with the Manager.
-func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	fieldSelectorPredicate := predicate.Funcs{
-		CreateFunc: func(e event.CreateEvent) bool {
-			return cm.checkCompassLabel(e.Object)
-		},
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return cm.checkUpdateCompassLabel(e.ObjectNew, e.ObjectOld)
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return cm.checkCompassLabel(e.Object)
-		},
-		DeleteFunc: nil,
-	}
-
-	runner := ctrl.NewControllerManagedBy(mgr).
-		For(&kyma.Kyma{}, builder.WithPredicates(
-			predicate.And(
-				predicate.ResourceVersionChangedPredicate{},
-				ommitStatusChanged,
-			)))
-
-	return runner.WithEventFilter(fieldSelectorPredicate).Complete(cm)
-}
-
-func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.NamespacedName, compassID string) {
 	instance := &kyma.Kyma{}
 	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			log.Info("Kyma Custom Resource not found")
-		}
-		log.Info("failed to read Kyma Custom Resource")
+		return err
 	}
 
 	l := instance.GetLabels()
@@ -196,33 +131,49 @@ func (cm *CompassManagerReconciler) applyLabelOnKymaResource(objKey types.Namesp
 		l = make(map[string]string)
 	}
 
-	l["operator.kyma-project.io/compass-id"] = compassID
+	l[CompassIDLabel] = compassID
+
 	instance.SetLabels(l)
 
-	err = cm.Client.Update(context.Background(), instance)
-	if err != nil {
-		log.Infof("%v, %s", err, " failed to update Kyma Custom Resource")
-	}
+	return cm.Client.Update(context.Background(), instance)
 }
 
-func (cm *CompassManagerReconciler) getKymaSecret(kymaName string) string {
-	secretList := &corev1.SecretList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{
-		"operator.kyma-project.io/kyma-name": kymaName,
-	})
-
-	err := cm.Client.List(context.Background(), secretList, &client.ListOptions{
-		LabelSelector: labelSelector,
-	})
-	if err != nil {
-		cm.Log.Infof("%v", err)
-		return ""
+// SetupWithManager sets up the controller with the Manager.
+func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	fieldSelectorPredicate := predicate.Funcs{
+		CreateFunc: func(e event.CreateEvent) bool {
+			return cm.needsToBeReconciled(e.Object)
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return cm.needsToBeReconciled(e.ObjectNew)
+		},
 	}
-	if len(secretList.Items) == 0 {
-		cm.Log.Infof("cannot retrieve the Kubeconfig secret associated with Kyma CR named: %s, retying in 10 seconds", kymaName)
-		return ""
-	}
-	secret := &secretList.Items[0]
 
-	return secret.Name
+	omitStatusChanged := predicate.Or(
+		predicate.GenerationChangedPredicate{},
+		predicate.LabelChangedPredicate{},
+		predicate.AnnotationChangedPredicate{},
+	)
+
+	runner := ctrl.NewControllerManagedBy(mgr).
+		For(&kyma.Kyma{}, builder.WithPredicates(
+			predicate.And(
+				predicate.ResourceVersionChangedPredicate{},
+				omitStatusChanged,
+			)))
+
+	return runner.WithEventFilter(fieldSelectorPredicate).Complete(cm)
+}
+
+func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool {
+
+	kymaObj, ok := obj.(*kyma.Kyma)
+
+	if !ok {
+		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
+		return false
+	}
+	_, labelFound := kymaObj.GetLabels()[CompassIDLabel]
+
+	return !labelFound
 }
