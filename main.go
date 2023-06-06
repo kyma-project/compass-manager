@@ -63,7 +63,7 @@ func main() {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	compassManagerRegistrator := &controllers.CompassRegistrator{}
+	compassManagerRegistrator := &CompassRegistrator{}
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassManagerRegistrator)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
@@ -86,4 +86,14 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+type CompassRegistrator struct{}
+
+func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error {
+	return nil
+}
+
+func (r *CompassRegistrator) Register(name string) (string, error) {
+	return "compass-id", nil
 }
