@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 type testHelper struct {
@@ -80,7 +79,7 @@ var _ = Describe("Compass Manager controller", func() {
 				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
 
 				//when
-				h.shouldCreateKyma(kymaCustomResourceName, kymaResource)
+				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 				//then
 				h.shouldCheckCompassLabel(testSuiteKyma.Name, testSuiteKyma.Namespace, false)
@@ -158,7 +157,7 @@ var _ = Describe("Compass Manager controller", func() {
 
 func (h *testHelper) shouldCreateKyma(kymaCRName string, obj *kyma.Kyma) {
 	By(fmt.Sprintf("Creating crd: %s", kymaCRName))
-	Expect(cm.Client.Create(h.ctx, obj)).To(Succeed())
+	Expect(k8sClient.Create(h.ctx, obj)).To(Succeed())
 	By(fmt.Sprintf("Crd created: %s", kymaCRName))
 }
 
@@ -191,7 +190,7 @@ func (h *testHelper) shouldCreateSecret(name, namespace string, labels map[strin
 		StringData: nil,
 		Type:       "Opaque",
 	}
-	Expect(cm.Client.Create(context.Background(), &obj)).To(Succeed())
+	Expect(k8sClient.Create(context.Background(), &obj)).To(Succeed())
 }
 
 func (h *testHelper) shouldCheckCompassLabel(name, namespace string, shouldBeMissing bool) {
@@ -222,7 +221,7 @@ func (h *testHelper) createNamespace() {
 			Name: h.kymaCustomResourceNamespace,
 		},
 	}
-	err := cm.Client.Create(h.ctx, &namespace)
+	err := k8sClient.Create(h.ctx, &namespace)
 	if err != nil {
 		By(fmt.Sprintf("Cannot create namespace, aborting"))
 		return

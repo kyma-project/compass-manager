@@ -9,13 +9,13 @@ type Registrator struct {
 	mock.Mock
 }
 
-// ConfigureRuntimeAgent provides a mock function with given fields: kubeconfigSecretName
-func (_m *Registrator) ConfigureRuntimeAgent(kubeconfigSecretName string) error {
-	ret := _m.Called(kubeconfigSecretName)
+// ConfigureRuntimeAgent provides a mock function with given fields: kubeconfig, runtimeID
+func (_m *Registrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error {
+	ret := _m.Called(kubeconfig, runtimeID)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(kubeconfigSecretName)
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(kubeconfig, runtimeID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -23,23 +23,23 @@ func (_m *Registrator) ConfigureRuntimeAgent(kubeconfigSecretName string) error 
 	return r0
 }
 
-// Register provides a mock function with given fields: nameFromKymaCR
-func (_m *Registrator) Register(nameFromKymaCR string) (string, error) {
-	ret := _m.Called(nameFromKymaCR)
+// Register provides a mock function with given fields: name
+func (_m *Registrator) Register(name string) (string, error) {
+	ret := _m.Called(name)
 
 	var r0 string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string) (string, error)); ok {
-		return rf(nameFromKymaCR)
+		return rf(name)
 	}
 	if rf, ok := ret.Get(0).(func(string) string); ok {
-		r0 = rf(nameFromKymaCR)
+		r0 = rf(name)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(nameFromKymaCR)
+		r1 = rf(name)
 	} else {
 		r1 = ret.Error(1)
 	}

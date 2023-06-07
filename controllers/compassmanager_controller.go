@@ -42,7 +42,6 @@ type Registrator interface {
 
 type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
-	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
 }
@@ -115,7 +114,9 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	}
 	secret := &secretList.Items[0]
 
-	return string(secret.Data[KubeconfigKey]), nil
+	//For now, we need only to return secret name. In next iteration we will implement getting and parsing secret data.
+	//return string(secret.Data[KubeconfigKey]), nil
+	return secret.Name, nil
 }
 
 func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {

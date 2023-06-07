@@ -50,6 +50,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
+	requeueTime = time.Second * 5
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
@@ -72,7 +73,7 @@ var _ = BeforeSuite(func() {
 	prepareMockFunctions(mockRegister)
 
 	cm = NewCompassManagerReconciler(k8sManager, log, mockRegister)
-
+	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
@@ -107,17 +108,17 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(r *mocks.Registrator) {
-	r.On("Register", "all-good").Return("all-good", nil)
-	r.On("ConfigureRuntimeAgent", "kubeconfig-all-good").Return(nil)
+	r.On("Register", "all-good").Return("id-all-good", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-all-good", "id-all-good").Return(nil)
 
-	r.On("Register", "configure-fails").Return("configure-fails", nil)
-	r.On("ConfigureRuntimeAgent", "kubeconfig-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
+	r.On("Register", "configure-fails").Return("id-configure-fails", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
 
 	r.On("Register", "registration-fails").Return("", errors.New("error during registration"))
 
-	r.On("Register", "empty-kubeconfig").Return("empty-kubeconfig", nil)
-	r.On("ConfigureRuntimeAgent", "kubeconfig-empty-kubeconfig").Return(nil)
+	r.On("Register", "empty-kubeconfig").Return("id-empty-kubeconfig", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 
-	r.On("Register", "insignificant-field").Return("insignificant-field", nil).Once()
-	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field").Return(nil).Once()
+	r.On("Register", "insignificant-field").Return("id-insignificant-field", nil)
+	r.On("ConfigureRuntimeAgent", "kubeconfig-insignificant-field", "id-insignificant-field").Return(nil)
 }
