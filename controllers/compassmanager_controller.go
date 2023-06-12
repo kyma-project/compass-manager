@@ -81,14 +81,14 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	compassRuntimeID, err := cm.Registrator.Register(req.Name)
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: requeueTime}, nil
+		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 	cm.Log.Infof("Runtime %s registered for Kyma resource %s.", compassRuntimeID, req.Name)
 
 	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: requeueTime}, nil
+		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
