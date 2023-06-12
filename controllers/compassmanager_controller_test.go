@@ -76,7 +76,9 @@ var _ = Describe("Compass Manager controller", func() {
 				testSuiteKyma.Name = "all-good"
 				kymaSecretLabels := make(map[string]string)
 				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
+				kymaKubeconfigData := make(map[string][]byte)
+				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
+				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
 
 				//when
 				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
@@ -93,7 +95,9 @@ var _ = Describe("Compass Manager controller", func() {
 				testSuiteKyma.Name = "configure-fails"
 				kymaSecretLabels := make(map[string]string)
 				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
+				kymaKubeconfigData := make(map[string][]byte)
+				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
+				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
 
 				// when
 				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
@@ -109,7 +113,9 @@ var _ = Describe("Compass Manager controller", func() {
 				testSuiteKyma.Name = "registration-fails"
 				kymaSecretLabels := make(map[string]string)
 				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
+				kymaKubeconfigData := make(map[string][]byte)
+				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
+				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
 
 				// when
 				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
@@ -131,7 +137,9 @@ var _ = Describe("Compass Manager controller", func() {
 			h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 			kymaSecretLabels := make(map[string]string)
 			kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-			h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
+			kymaKubeconfigData := make(map[string][]byte)
+			kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
+			h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
 
 			// then
 			h.shouldCheckCompassLabel(testSuiteKyma.Name, testSuiteKyma.Namespace, false)
@@ -145,7 +153,9 @@ var _ = Describe("Compass Manager controller", func() {
 			testSuiteKyma.Name = "insignificant-field"
 			kymaSecretLabels := make(map[string]string)
 			kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-			h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels)
+			kymaKubeconfigData := make(map[string][]byte)
+			kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
+			h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
 			h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
 
 			// when
@@ -171,6 +181,11 @@ func (h *testHelper) shouldUpdateKyma(name, namespace string) {
 			return false
 		}
 
+		_, labelFound := obj.GetLabels()[CompassIDLabel]
+		if !labelFound {
+			return false
+		}
+
 		obj.Spec.Channel = "fast"
 
 		err = cm.Client.Update(context.Background(), &obj)
@@ -181,12 +196,12 @@ func (h *testHelper) shouldUpdateKyma(name, namespace string) {
 	}, h.clientTimeout, h.clientInterval).Should(BeTrue())
 }
 
-func (h *testHelper) shouldCreateSecret(name, namespace string, labels map[string]string) {
+func (h *testHelper) shouldCreateSecret(name, namespace string, labels map[string]string, secretData map[string][]byte) {
 	obj := corev1.Secret{
 		TypeMeta:   metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace, Labels: labels},
 		Immutable:  nil,
-		Data:       nil,
+		Data:       secretData,
 		StringData: nil,
 		Type:       "Opaque",
 	}

@@ -114,9 +114,7 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	}
 	secret := &secretList.Items[0]
 
-	//For now, we need only to return secret name. In next iteration we will implement getting and parsing secret data.
-	//return string(secret.Data[KubeconfigKey]), nil
-	return secret.Name, nil
+	return string(secret.Data[KubeconfigKey]), nil
 }
 
 func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
