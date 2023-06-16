@@ -77,6 +77,8 @@ var _ = BeforeSuite(func() {
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
+	Expect(createNamespace(kymaCustomResourceNamespace)).To(Succeed())
+
 	go func() {
 		defer GinkgoRecover()
 

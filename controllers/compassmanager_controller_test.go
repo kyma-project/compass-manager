@@ -21,43 +21,17 @@ type testHelper struct {
 	clientInterval              time.Duration
 }
 
-var _ = Describe("Compass Manager controller", func() {
+const (
+	kymaCustomResourceName       = "test-kyma-cr"
+	kymaCustomResourceNamespace  = "kcp-system"
+	kymaCustomResourceKind       = "Kyma"
+	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta1"
+)
 
-	const (
-		kymaCustomResourceName       = "test-kyma-cr"
-		kymaCustomResourceNamespace  = "kcp-system"
-		kymaCustomResourceKind       = "Kyma"
-		kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta1"
-	)
+var _ = Describe("Compass Manager controller", func() {
 
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
-	var kymaResource *kyma.Kyma
-
-	BeforeEach(func() {
-		kymaResource = &kyma.Kyma{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       kymaCustomResourceKind,
-				APIVersion: kymaCustomResourceAPIVersion,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      kymaCustomResourceName,
-				Namespace: kymaCustomResourceNamespace,
-				Labels:    kymaCustomResourceLabels,
-			},
-			Spec: kyma.KymaSpec{
-				Channel: "regular",
-				Modules: nil,
-				Sync: kyma.Sync{
-					Enabled:       true,
-					Strategy:      "secret",
-					Namespace:     kymaCustomResourceNamespace,
-					NoModuleCopy:  false,
-					ModuleCatalog: false,
-				},
-			},
-		}
-	})
 
 	h := testHelper{
 		ctx:                         context.Background(),
@@ -67,74 +41,89 @@ var _ = Describe("Compass Manager controller", func() {
 		clientInterval:              time.Second * 3,
 	}
 
-	Context("When secret with Kubeconfig is correctly created and present on environment, and reconciliation was triggered", func() {
-		When("successfully invoke registration of runtime in Compass and invoke creation of Compass Runtime Agent CR on cluster", func() {
-			It("label with compass-id must be present on Kyma CR", func() {
-				h.createNamespace()
-				// given
-				testSuiteKyma := kymaResource
-				testSuiteKyma.Name = "all-good"
-				kymaSecretLabels := make(map[string]string)
-				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				kymaKubeconfigData := make(map[string][]byte)
-				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
+	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
+		When("Runtime successfully registered, and Compass Runtime Agent's configuration created", func() {
+			It("Should set compass-id label on Kyma CR", func() {
+				By("Create Kyma Resource")
+				kyma := createKymaResource("all-good")
+				Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
 
-				//when
-				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
+				By("Create secret with credentials")
+				secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
+				Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
-				//then
-				h.shouldCheckCompassLabel(testSuiteKyma.Name, testSuiteKyma.Namespace, false)
+				Eventually(func() bool {
+					label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
 
+					return err == nil && label != ""
+				}, h.clientTimeout, h.clientInterval).Should(BeTrue())
 			})
 		})
-		When("successfully invoke registration of runtime in Compass and return error during creation of Compass Runtime Agent CR on cluster", func() {
-			It("label with-compass must not be present on Kyma CR", func() {
-				// given
-				testSuiteKyma := kymaResource
-				testSuiteKyma.Name = "configure-fails"
-				kymaSecretLabels := make(map[string]string)
-				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				kymaKubeconfigData := make(map[string][]byte)
-				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
+		When("Runtime successfully registered, but Compass Runtime Agent's configuration creation failed", func() {
+			It("should not set compass-id label on Kyma CR", func() {
+				By("Create Kyma Resource")
+				kyma := createKymaResource("configure-fails")
+				Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
 
-				// when
-				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
+				By("Create secret with credentials")
+				secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
+				Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
-				// then
-				h.shouldCheckCompassLabel(testSuiteKyma.Name, testSuiteKyma.Namespace, true)
+				Consistently(func() bool {
+					label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+
+					return err == nil && label == ""
+				}, h.clientTimeout, h.clientInterval).Should(BeTrue())
 			})
 		})
-		When("return error during invoking the registration of runtime in Compass", func() {
-			It("label with-compass must not be present on Kyma CR", func() {
-				// given
-				testSuiteKyma := kymaResource
-				testSuiteKyma.Name = "registration-fails"
-				kymaSecretLabels := make(map[string]string)
-				kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
-				kymaKubeconfigData := make(map[string][]byte)
-				kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
-				h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
+		When("Runtime Registration Error", func() {
+			It("should not set compass-id label on Kyma CR", func() {
 
-				// when
-				h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
+				By("Create Kyma Resource")
+				kyma := createKymaResource("registration-fails")
+				Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
 
-				// then
-				h.shouldCheckCompassLabel(testSuiteKyma.Name, testSuiteKyma.Namespace, true)
+				By("Create secret with credentials")
+				secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
+				Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
+				Consistently(func() bool {
+					label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+
+					return err == nil && label == ""
+				}, h.clientTimeout, h.clientInterval).Should(BeTrue())
 			})
 		})
 	})
 
+	//DescribeTable("Controller failed to register, or configure Runtime", func(kymaName string) {
+	//	By("Create Kyma Resource")
+	//	kyma := createKymaResource(kymaName)
+	//	Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
+	//
+	//	By("Create secret with credentials")
+	//	secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
+	//	Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
+	//
+	//	Consistently(func() bool {
+	//		label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+	//
+	//		return err == nil && label == ""
+	//	}, h.clientTimeout, h.clientInterval).Should(BeTrue())
+	//},
+	//	Entry("Runtime successfully registered, and Compass Runtime Agent's configuration creation failed", "configure-fails"),
+	//	Entry("Runtime Registration Error", "registration-fails"),
+	//)
+
+	// The same with Describe Table
+
 	Context("When secret with Kubeconfig is not present on environment", func() {
 		It("requeue the request if and succeeded when user add the secret", func() {
 			// given
-			testSuiteKyma := kymaResource
-			testSuiteKyma.Name = "empty-kubeconfig"
+			testSuiteKyma := createKymaResource("empty-kubeconfig")
 
 			// when
-			h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
+			h.shouldCreateKyma(testSuiteKyma.Name, &testSuiteKyma)
 			kymaSecretLabels := make(map[string]string)
 			kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
 			kymaKubeconfigData := make(map[string][]byte)
@@ -149,14 +138,13 @@ var _ = Describe("Compass Manager controller", func() {
 	Context("When an insignificant field in Kyma CR has been changed and label is present on Kyma CR should not enter reconcilation loop", func() {
 		It("do not enter reconciliation loop", func() {
 			// given
-			testSuiteKyma := kymaResource
-			testSuiteKyma.Name = "insignificant-field"
+			testSuiteKyma := createKymaResource("insignificant-field")
 			kymaSecretLabels := make(map[string]string)
 			kymaSecretLabels["operator.kyma-project.io/kyma-name"] = testSuiteKyma.Name
 			kymaKubeconfigData := make(map[string][]byte)
 			kymaKubeconfigData[KubeconfigKey] = []byte("kubeconfig-data-" + testSuiteKyma.Name)
 			h.shouldCreateSecret("kubeconfig-"+testSuiteKyma.Name, testSuiteKyma.Namespace, kymaSecretLabels, kymaKubeconfigData)
-			h.shouldCreateKyma(testSuiteKyma.Name, testSuiteKyma)
+			h.shouldCreateKyma(testSuiteKyma.Name, &testSuiteKyma)
 
 			// when
 			h.shouldUpdateKyma(testSuiteKyma.Name, testSuiteKyma.Namespace)
@@ -229,17 +217,67 @@ func (h *testHelper) shouldCheckCompassLabel(name, namespace string, shouldBeMis
 	}, h.clientTimeout, h.clientInterval).ShouldNot(BeFalse())
 }
 
-func (h *testHelper) createNamespace() {
-	By(fmt.Sprintf("Creating namespace: %s", h.kymaCustomResourceNamespace))
+func createNamespace(name string) error {
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: h.kymaCustomResourceNamespace,
+			Name: name,
 		},
 	}
-	err := k8sClient.Create(h.ctx, &namespace)
-	if err != nil {
-		By(fmt.Sprintf("Cannot create namespace, aborting"))
-		return
+	return k8sClient.Create(context.Background(), &namespace)
+}
+
+func createKymaResource(name string) kyma.Kyma {
+	kymaCustomResourceLabels := make(map[string]string)
+	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
+
+	return kyma.Kyma{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       kymaCustomResourceKind,
+			APIVersion: kymaCustomResourceAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: kymaCustomResourceNamespace,
+			Labels:    kymaCustomResourceLabels,
+		},
+		Spec: kyma.KymaSpec{
+			Channel: "regular",
+			Modules: nil,
+			Sync: kyma.Sync{
+				Enabled:       true,
+				Strategy:      "secret",
+				Namespace:     kymaCustomResourceNamespace,
+				NoModuleCopy:  false,
+				ModuleCatalog: false,
+			},
+		},
 	}
-	By(fmt.Sprintf("Namespace created: %s", h.kymaCustomResourceNamespace))
+}
+
+func createCredentialsSecret(kymaName, namespace string) corev1.Secret {
+	return corev1.Secret{
+		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kymaName,
+			Namespace: namespace,
+			Labels:    map[string]string{"operator.kyma-project.io/kyma-name": kymaName},
+		},
+		Immutable:  nil,
+		Data:       map[string][]byte{KubeconfigKey: []byte("kubeconfig-data-" + kymaName)},
+		StringData: nil,
+		Type:       "Opaque",
+	}
+}
+
+func getKymaLabel(kymaName, labelName, namespace string) (string, error) {
+	var obj kyma.Kyma
+	key := types.NamespacedName{Name: kymaName, Namespace: namespace}
+
+	err := cm.Client.Get(context.Background(), key, &obj)
+	if err != nil {
+		return "", err
+	}
+
+	labels := obj.GetLabels()
+	return labels[labelName], nil
 }
