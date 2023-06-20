@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 
-	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
 	"github.com/sirupsen/logrus"
@@ -24,8 +23,6 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(operatorv1beta1.AddToScheme(scheme))
 	utilruntime.Must(kyma.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }

@@ -12,33 +12,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-type testHelper struct {
-	ctx                         context.Context
-	kymaCustomResourceName      string
-	kymaCustomResourceNamespace string
-	clientTimeout               time.Duration
-	clientInterval              time.Duration
-}
-
 const (
-	kymaCustomResourceName       = "test-kyma-cr"
 	kymaCustomResourceNamespace  = "kcp-system"
 	kymaCustomResourceKind       = "Kyma"
 	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta1"
+	clientTimeout                = time.Second * 30
+	clientInterval               = time.Second * 3
 )
 
 var _ = Describe("Compass Manager controller", func() {
 
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
-
-	h := testHelper{
-		ctx:                         context.Background(),
-		kymaCustomResourceName:      kymaCustomResourceName,
-		kymaCustomResourceNamespace: kymaCustomResourceNamespace,
-		clientTimeout:               time.Second * 30,
-		clientInterval:              time.Second * 3,
-	}
 
 	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
 		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string) {
@@ -48,13 +33,13 @@ var _ = Describe("Compass Manager controller", func() {
 
 			By("Create Kyma Resource")
 			kyma := createKymaResource(kymaName)
-			Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
 
 			Eventually(func() bool {
 				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
 
-				return err == nil && label == ""
-			}, h.clientTimeout, h.clientInterval).Should(BeTrue())
+				return err == nil && label != ""
+			}, clientTimeout, clientInterval).Should(BeTrue())
 		},
 			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good"),
 			Entry("The first attempt to register Runtime failed, and retry succeeded", "registration-fails"),
@@ -67,13 +52,13 @@ var _ = Describe("Compass Manager controller", func() {
 
 			By("Create Kyma Resource")
 			kyma := createKymaResource("empty-kubeconfig")
-			Expect(k8sClient.Create(h.ctx, &kyma)).To(Succeed())
+			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
 
 			Consistently(func() bool {
 				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
 
 				return err == nil && label == ""
-			}, h.clientTimeout, h.clientInterval).Should(BeTrue())
+			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Create secret with credentials")
 			secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
@@ -83,7 +68,7 @@ var _ = Describe("Compass Manager controller", func() {
 				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
 
 				return err == nil && label != ""
-			}, h.clientTimeout, h.clientInterval).Should(BeTrue())
+			}, clientTimeout, clientInterval).Should(BeTrue())
 		})
 	})
 })

@@ -21,8 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	operatorv1beta1 "github.com/kyma-project/compass-manager/api/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -45,19 +43,17 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "test")},
+		CRDDirectoryPaths:     []string{filepath.Join("..", "hack", "crd")},
 		ErrorIfCRDPathMissing: true,
 	}
 
 	var err error
-	requeueTime = time.Second * 15
+	requeueTime = time.Second * 10
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = operatorv1beta1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
 	err = kyma.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
