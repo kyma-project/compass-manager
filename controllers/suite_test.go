@@ -113,14 +113,16 @@ func prepareMockFunctions(r *mocks.Registrator) {
 	r.On("Register", "all-good").Return("id-all-good", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
 
+	// The first call to ConfigureRuntimeAgent fails, but the second is successful
 	r.On("Register", "configure-fails").Return("id-configure-fails", nil)
-	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR"))
+	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
+	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
 
-	r.On("Register", "registration-fails").Return("", errors.New("error during registration"))
+	// The first call to Register fails, but the second is successful.
+	r.On("Register", "registration-fails").Return("", errors.New("error during registration")).Once()
+	r.On("Register", "registration-fails").Return("registration-fails", nil).Once()
+	r.On("ConfigureRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
 
 	r.On("Register", "empty-kubeconfig").Return("id-empty-kubeconfig", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
-
-	r.On("Register", "insignificant-field").Return("id-insignificant-field", nil).Once()
-	r.On("ConfigureRuntimeAgent", "kubeconfig-data-insignificant-field", "id-insignificant-field").Return(nil).Once()
 }
