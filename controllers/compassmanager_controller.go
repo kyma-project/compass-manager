@@ -154,6 +154,10 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		predicate.AnnotationChangedPredicate{},
 	)
 
+	// We can simplify passing the predicate filters to controller
+	// The predicates passed in For(builder.WithPredicates()) function is merged with runner.WithEventFilter() predicates to single slice with predicates.
+	// Proposal: delete the predicates from For() functions, and return runner.WithEventFilter(fieldSelectorPredicate).WithEventFilter(predicates).Complete(cm)
+
 	runner := ctrl.NewControllerManagedBy(mgr).
 		For(&kyma.Kyma{}, builder.WithPredicates(
 			predicate.And(
