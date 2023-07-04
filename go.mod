@@ -1,6 +1,6 @@
 module github.com/kyma-project/compass-manager
 
-go 1.19
+go 1.20
 
 require (
 	github.com/kyma-project/lifecycle-manager v0.0.0-20230503071506-f52bd5eec10b
