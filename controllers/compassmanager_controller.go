@@ -20,8 +20,9 @@ import (
 )
 
 const (
-	KymaNameLabel  = "operator.kyma-project.io/kyma-name"
-	CompassIDLabel = "operator.kyma-project.io/compass-id"
+	KymaNameLabel        = "operator.kyma-project.io/kyma-name"
+	CompassIDLabel       = "operator.kyma-project.io/compass-id"
+	GlobalAccountIDLabel = "kyma-project.io/global-account-id"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
@@ -35,7 +36,7 @@ const (
 //go:generate mockery --name=Registrator
 type Registrator interface {
 	// Register creates Runtime in the Compass system. It must be idempotent.
-	Register(name string) (string, error)
+	Register(name, globalAccount string) (string, error)
 	// ConfigureRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
 	ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error
 }
@@ -78,7 +79,13 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 
-	compassRuntimeID, err := cm.Registrator.Register(req.Name)
+	globalAccountID, err := cm.globalAccountFromLabel(req.NamespacedName)
+	if err != nil {
+		cm.Log.Warnf("Failed to obtain Global Account ID from Kyma resource %s: %v.", req.Name, err)
+		return ctrl.Result{RequeueAfter: requeueTime}, err
+	}
+
+	compassRuntimeID, err := cm.Registrator.Register(req.Name, globalAccountID)
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
@@ -117,17 +124,34 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	return string(secret.Data[KubeconfigKey]), nil
 }
 
-func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
-
+func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (map[string]string, error) {
 	instance := &kyma.Kyma{}
 	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	l := instance.GetLabels()
 	if l == nil {
 		l = make(map[string]string)
+	}
+	return l, nil
+}
+
+func (cm *CompassManagerReconciler) globalAccountFromLabel(objKey types.NamespacedName) (string, error) {
+	l, err := cm.getKymaLabels(objKey)
+	if err != nil {
+		return "", err
+	}
+
+	return l[GlobalAccountIDLabel], nil
+}
+
+func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
+	instance := &kyma.Kyma{}
+	l, err := cm.getKymaLabels(objKey)
+	if err != nil {
+		return err
 	}
 
 	l[CompassIDLabel] = compassID
