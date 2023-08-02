@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -15,7 +15,7 @@ import (
 const (
 	kymaCustomResourceNamespace  = "kcp-system"
 	kymaCustomResourceKind       = "Kyma"
-	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta1"
+	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta2"
 	clientTimeout                = time.Second * 30
 	clientInterval               = time.Second * 3
 )
@@ -85,6 +85,7 @@ func createNamespace(name string) error {
 func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
+	kymaCustomResourceLabels["kyma-project.io/global-account-id"] = "globalAccount"
 
 	return kyma.Kyma{
 		TypeMeta: metav1.TypeMeta{
@@ -98,14 +99,6 @@ func createKymaResource(name string) kyma.Kyma {
 		},
 		Spec: kyma.KymaSpec{
 			Channel: "regular",
-			Modules: nil,
-			Sync: kyma.Sync{
-				Enabled:       true,
-				Strategy:      "secret",
-				Namespace:     kymaCustomResourceNamespace,
-				NoModuleCopy:  false,
-				ModuleCatalog: false,
-			},
 		},
 	}
 }

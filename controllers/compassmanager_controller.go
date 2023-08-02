@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -45,6 +46,8 @@ type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
+	GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error)
+	IsObjectNamespaced(obj runtime.Object) (bool, error)
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -124,22 +127,18 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	return string(secret.Data[KubeconfigKey]), nil
 }
 
-func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (map[string]string, error) {
+func (cm *CompassManagerReconciler) globalAccountFromLabel(objKey types.NamespacedName) (string, error) {
 	instance := &kyma.Kyma{}
+
 	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	l := instance.GetLabels()
 	if l == nil {
 		l = make(map[string]string)
 	}
-	return l, nil
-}
-
-func (cm *CompassManagerReconciler) globalAccountFromLabel(objKey types.NamespacedName) (string, error) {
-	l, err := cm.getKymaLabels(objKey)
 	if err != nil {
 		return "", err
 	}
@@ -149,15 +148,20 @@ func (cm *CompassManagerReconciler) globalAccountFromLabel(objKey types.Namespac
 
 func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
 	instance := &kyma.Kyma{}
-	l, err := cm.getKymaLabels(objKey)
+
+	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
 		return err
+	}
+
+	l := instance.GetLabels()
+	if l == nil {
+		l = make(map[string]string)
 	}
 
 	l[CompassIDLabel] = compassID
 
 	instance.SetLabels(l)
-
 	return cm.Client.Update(context.Background(), instance)
 }
 
@@ -203,4 +207,12 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 	_, labelFound := kymaObj.GetLabels()[CompassIDLabel]
 
 	return !labelFound
+}
+
+func (cm *CompassManagerReconciler) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	return cm.Client.GroupVersionKindFor(obj)
+}
+
+func (cm *CompassManagerReconciler) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	return cm.Client.IsObjectNamespaced(obj)
 }

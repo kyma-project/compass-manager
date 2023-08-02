@@ -21,9 +21,7 @@ spec:
         - jsonPath: .metadata.creationTimestamp
           name: Age
           type: date
-      deprecated: true
-      deprecationWarning: kyma-project.io/v1beta1 Kyma is deprecated. Use v1beta2 instead.
-      name: v1beta1
+      name: v1beta2
       schema:
         openAPIV3Schema:
           description: Kyma is the Schema for the kymas API.
@@ -99,38 +97,9 @@ spec:
                       - name
                     type: object
                   type: array
-                sync:
-                  description: Active Synchronization Settings
-                  properties:
-                    enabled:
-                      default: false
-                      description: Enabled set to true will look up a kubeconfig for
-                        the remote cluster based on the strategy and synchronize its
-                        state there.
-                      type: boolean
-                    moduleCatalog:
-                      default: true
-                      description: ModuleCatalog set to true will cause a copy of all
-                        ModuleTemplate in the cluster to be synchronized for discovery
-                        purposes
-                      type: boolean
-                    namespace:
-                      description: The target namespace, if empty the namespace is reflected
-                        from the control plane Note that cleanup is currently not supported
-                        if you are switching the namespace, so you will manually need
-                        to clean up old synchronized Kymas
-                      type: string
-                    noModuleCopy:
-                      default: true
-                      description: NoModuleCopy set to true will cause the remote Kyma
-                        to be initialized without copying over the module spec of the
-                        control plane into the SKR
-                      type: boolean
-                    strategy:
-                      description: Strategy determines the way to look up the remotely
-                        synced kubeconfig, by default it is fetched from a secret
-                      type: string
-                  type: object
+                  x-kubernetes-list-map-keys:
+                    - name
+                  x-kubernetes-list-type: map
               required:
                 - channel
               type: object
@@ -349,6 +318,7 @@ spec:
                           - Ready
                           - Error
                           - ""
+                          - Warning
                         type: string
                       template:
                         description: It contains information about the last parsed ModuleTemplate
@@ -414,6 +384,7 @@ spec:
                     - Ready
                     - Error
                     - ""
+                    - Warning
                   type: string
               type: object
           type: object

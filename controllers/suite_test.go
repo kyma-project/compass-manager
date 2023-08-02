@@ -9,7 +9,7 @@ import (
 
 	"github.com/kyma-project/compass-manager/controllers/mocks"
 
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
@@ -111,19 +111,19 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(r *mocks.Registrator) {
-	r.On("Register", "all-good").Return("id-all-good", nil)
+	r.On("Register", "all-good", "globalAccount").Return("id-all-good", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
 
 	// The first call to ConfigureRuntimeAgent fails, but the second is successful
-	r.On("Register", "configure-fails").Return("id-configure-fails", nil)
+	r.On("Register", "configure-fails", "globalAccount").Return("id-configure-fails", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
 
 	// The first call to Register fails, but the second is successful.
-	r.On("Register", "registration-fails").Return("", errors.New("error during registration")).Once()
-	r.On("Register", "registration-fails").Return("registration-fails", nil).Once()
+	r.On("Register", "registration-fails", "globalAccount").Return("", errors.New("error during registration")).Once()
+	r.On("Register", "registration-fails", "globalAccount").Return("registration-fails", nil).Once()
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
 
-	r.On("Register", "empty-kubeconfig").Return("id-empty-kubeconfig", nil)
+	r.On("Register", "empty-kubeconfig", "globalAccount").Return("id-empty-kubeconfig", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 }

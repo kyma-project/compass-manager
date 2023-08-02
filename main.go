@@ -16,7 +16,7 @@ import (
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/graphql"
 	"github.com/kyma-project/compass-manager/internal/oauth"
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
