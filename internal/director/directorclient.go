@@ -12,7 +12,7 @@ import (
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	gql "github.com/kyma-project/compass-manager/internal/graphql"
 	"github.com/kyma-project/compass-manager/internal/oauth"
-	gcli "github.com/kyma-project/control-plane/components/provisioner/third_party/machinebox/graphql"
+	gcli "github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
 )
 
 const (
@@ -20,15 +20,15 @@ const (
 	TenantHeader        = "Tenant"
 )
 
-//go:generate mockery --name=DirectorClient
-type DirectorClient interface {
+//go:generate mockery --name=Client
+type Client interface {
 	CreateRuntime(config *gqlschema.RuntimeInput, tenant string) (string, apperrors.AppError)
 	GetRuntime(id, tenant string) (graphql.RuntimeExt, apperrors.AppError)
+	GetConnectionToken(id, tenant string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
+	//RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
 	//UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
 	//DeleteRuntime(id, tenant string) apperrors.AppError
 	//SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError
-	//GetConnectionToken(id, tenant string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
-	//RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
 }
 
 type directorClient struct {
@@ -39,7 +39,7 @@ type directorClient struct {
 	oauthClient   oauth.Client
 }
 
-func NewDirectorClient(gqlClient gql.Client, oauthClient oauth.Client) DirectorClient {
+func NewDirectorClient(gqlClient gql.Client, oauthClient oauth.Client) Client {
 	return &directorClient{
 		gqlClient:     gqlClient,
 		oauthClient:   oauthClient,
@@ -110,6 +110,24 @@ func (cc *directorClient) GetRuntime(id, tenant string) (graphql.RuntimeExt, app
 	}
 
 	log.Infof("Successfully got Runtime %s from Director for tenant %s", id, tenant)
+	return *response.Result, nil
+}
+
+func (cc *directorClient) GetConnectionToken(id, tenant string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError) {
+	runtimeQuery := cc.queryProvider.requestOneTimeTokenMutation(id)
+
+	var response OneTimeTokenResponse
+	err := cc.executeDirectorGraphQLCall(runtimeQuery, tenant, &response)
+	if err != nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, err.Append("Failed to get OneTimeToken for Runtime %s in Director", id)
+	}
+
+	if response.Result == nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, apperrors.Internal("Failed to get OneTimeToken for Runtime %s in Director: received nil response.", id).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+	}
+
+	log.Infof("Received OneTimeToken for Runtime %s in Director for tenant %s", id, tenant)
+
 	return *response.Result, nil
 }
 

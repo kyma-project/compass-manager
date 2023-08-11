@@ -37,11 +37,11 @@ func (c *QueryAssertClient) Do(req *graphql.Request, res interface{}) error {
 	return c.err
 }
 
-//func NewQueryAssertClient(t *testing.T, err error, expectedReq []*graphql.Request, modifyResponseFunc ...func(t *testing.T, r interface{})) DirectorClient {
-//	return &QueryAssertClient{
-//		t:                  t,
-//		expectedRequests:   expectedReq,
-//		err:                err,
-//		modifyResponseFunc: modifyResponseFunc,
-//	}
-//}
+func NewQueryAssertClient(t *testing.T, err error, expectedReq []*graphql.Request, modifyResponseFunc ...func(t *testing.T, r interface{})) Client {
+	return &QueryAssertClient{
+		t:                  t,
+		expectedRequests:   expectedReq,
+		err:                err,
+		modifyResponseFunc: modifyResponseFunc,
+	}
+}

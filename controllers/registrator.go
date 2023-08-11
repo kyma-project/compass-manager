@@ -13,14 +13,14 @@ import (
 const nameIDLen = 4
 
 type CompassRegistrator struct {
-	DirectorClient director.DirectorClient
-	Log            *logrus.Logger
+	Client director.Client
+	Log    *logrus.Logger
 }
 
-func NewCompassRegistator(directorClient director.DirectorClient, log *logrus.Logger) *CompassRegistrator {
+func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *CompassRegistrator {
 	return &CompassRegistrator{
-		DirectorClient: directorClient,
-		Log:            log,
+		Client: directorClient,
+		Log:    log,
 	}
 }
 
@@ -38,7 +38,7 @@ func (r *CompassRegistrator) Register(kymaLabels map[string]string) (string, err
 	}
 
 	err = util.RetryOnError(5*time.Second, 3, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
-		runtimeID, err = r.DirectorClient.CreateRuntime(runtimeInput, kymaLabels[GlobalAccountIDLabel])
+		runtimeID, err = r.Client.CreateRuntime(runtimeInput, kymaLabels[GlobalAccountIDLabel])
 		return
 	})
 

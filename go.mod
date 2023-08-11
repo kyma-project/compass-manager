@@ -4,20 +4,16 @@ go 1.20
 
 require (
 	github.com/99designs/gqlgen v0.11.3
-	github.com/gardener/gardener v1.74.1
 	github.com/kyma-incubator/compass/components/director v0.0.0-20230719142033-84d33197415a
-	github.com/kyma-incubator/hydroform/install v0.0.0-20210525111154-8fe3a378654f
-	github.com/kyma-project/control-plane/components/provisioner v0.0.0-20230727073432-3d1c2c2c1173
-	github.com/onsi/ginkgo/v2 v2.11.0
-	github.com/onsi/gomega v1.27.8
 	github.com/kyma-project/lifecycle-manager v0.0.0-20230801092349-c8b936a97d7c
 	github.com/matryer/is v1.4.0
+	github.com/onsi/ginkgo/v2 v2.11.0
+	github.com/onsi/gomega v1.27.8
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.4
 	github.com/vektah/gqlparser/v2 v2.1.0
 	github.com/vrischmann/envconfig v1.3.0
-	gotest.tools v2.2.0+incompatible
 	k8s.io/api v0.27.3
 	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
@@ -26,7 +22,6 @@ require (
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -72,7 +67,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/kyma-project/kyma/components/kyma-operator v0.0.0-20220112092842-4cb8388cc0c6 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mandelsoft/filepath v0.0.0-20220503095057-4432a2285b68 // indirect
 	github.com/mandelsoft/logging v0.0.0-20221114215048-ab754b164dd6 // indirect
@@ -86,6 +80,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onrik/logrus v0.10.0 // indirect
 	github.com/open-component-model/ocm v0.2.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

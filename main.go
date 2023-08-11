@@ -130,7 +130,7 @@ func main() {
 	}
 }
 
-func newDirectorClient(config config) (director.DirectorClient, error) {
+func newDirectorClient(config config) (director.Client, error) {
 	file, err := os.ReadFile(config.DirectorOAuthPath)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to open director config")

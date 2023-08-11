@@ -16,20 +16,6 @@ func (qp queryProvider) getRuntimeQuery(runtimeID string) string {
 }}`, runtimeID)
 }
 
-func (qp queryProvider) updateRuntimeMutation(runtimeID, runtimeInput string) string {
-	return fmt.Sprintf(`mutation {
-    result: updateRuntime(id: "%s" in: %s) {
-		id
-}}`, runtimeID, runtimeInput)
-}
-
-func (qp queryProvider) deleteRuntimeMutation(runtimeID string) string {
-	return fmt.Sprintf(`mutation {
-	result: unregisterRuntime(id: "%s") {
-		id
-}}`, runtimeID)
-}
-
 func (qp queryProvider) requestOneTimeTokenMutation(runtimeID string) string {
 	return fmt.Sprintf(`mutation {
 	result: requestOneTimeTokenForRuntime(id: "%s") {
