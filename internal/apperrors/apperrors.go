@@ -8,32 +8,19 @@ type ErrReason string
 type ErrComponent string
 
 const (
-	ErrDB                      ErrComponent = "db - provisioner"
-	ErrProvisionerK8SClient    ErrComponent = "k8s client - provisioner"
-	ErrProvisioner             ErrComponent = "provisioner"
-	ErrCompassDirectorClient   ErrComponent = "compass director client"
-	ErrCompassDirector         ErrComponent = "compass director"
-	ErrMpsOAuth2               ErrComponent = "mps oauth2"
-	ErrCompassConnectionClient ErrComponent = "compass connection client"
-	ErrCompassConnection       ErrComponent = "compass connection"
-	ErrGardenerClient          ErrComponent = "k8s client - gardener"
-	ErrGardener                ErrComponent = "gardener"
-	ErrClusterK8SClient        ErrComponent = "k8s client - cluster"
-	ErrKymaInstaller           ErrComponent = "kyma installer"
+	ErrCompassManager        ErrComponent = "compass manager"
+	ErrCompassDirectorClient ErrComponent = "compass director client"
+	ErrCompassDirector       ErrComponent = "compass director"
+	ErrMpsOAuth2             ErrComponent = "mps oauth2"
+	ErrClusterK8SClient      ErrComponent = "k8s client - cluster"
 )
 
 const (
-	ErrProvisionerInternal     ErrReason = "err_provisioner_internal"
-	ErrProvisionerTimeout      ErrReason = "err_provisioner_timeout"
-	ErrProvisionerStepNotFound ErrReason = "err_provisioner_step_not_found"
+	ErrCompassManagerInternal ErrReason = "err_compass_manager_internal"
 
 	ErrDirectorNilResponse       ErrReason = "err_director_nil_response"
 	ErrDirectorRuntimeIDMismatch ErrReason = "err_director_runtime_id_mismatch"
 	ErrDirectorClientGraphqlizer ErrReason = "err_director_client_graphqlizer"
-
-	ErrCheckKymaInstallationState ErrReason = "err_check_kyma_installation_state"
-	ErrTriggerKymaInstall         ErrReason = "err_trigger_kyma_install"
-	ErrTriggerKymaUninstall       ErrReason = "err_trigger_kyma_uninstall"
 )
 
 type ErrCode int
@@ -131,14 +118,14 @@ func (ae appError) Cause() CauseCode {
 
 func (ae appError) Component() ErrComponent {
 	if ae.component == "" {
-		return ErrProvisioner
+		return ErrCompassManager
 	}
 	return ae.component
 }
 
 func (ae appError) Reason() ErrReason {
-	if (ae.component == "" || ae.component == ErrProvisioner) && ae.reason == "" {
-		return ErrProvisionerInternal
+	if (ae.component == "" || ae.component == ErrCompassManager) && ae.reason == "" {
+		return ErrCompassManagerInternal
 	}
 	return ae.reason
 }

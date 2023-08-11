@@ -100,7 +100,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -120,7 +120,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -140,7 +140,7 @@ package director
 //			Expiration:  passedExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(expiredToken, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -155,7 +155,7 @@ package director
 //
 //	t.Run("Should not register Runtime and return error when the client fails to get an access token for Director", func(t *testing.T) {
 //		// given
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internal("Failed token error"))
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -176,7 +176,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		gqlClient := gql.NewQueryAssertClient(t, nil, []*gcli.Request{expectedRequest}, func(t *testing.T, r interface{}) {
@@ -203,7 +203,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		gqlClient := gql.NewQueryAssertClient(t, errors.New("error"), []*gcli.Request{expectedRequest}, func(t *testing.T, r interface{}) {
@@ -250,7 +250,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -269,7 +269,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(emptyToken, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -288,7 +288,7 @@ package director
 //			Expiration:  passedExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(expiredToken, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -302,7 +302,7 @@ package director
 //
 //	t.Run("Should not unregister Runtime and return error when the client fails to get an access token for Director", func(t *testing.T) {
 //		// given
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internal("Failed token error"))
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -322,7 +322,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		// given
@@ -356,7 +356,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -390,7 +390,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(validToken, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -431,7 +431,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -453,7 +453,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -473,7 +473,7 @@ package director
 //			Expiration:  passedExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -499,7 +499,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -539,7 +539,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -560,7 +560,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(emptyToken, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -587,7 +587,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -614,7 +614,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -662,7 +662,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -691,7 +691,7 @@ package director
 //			StatusCondition: &conditionConnected,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(emptyToken, nil)
 //
 //		configClient := NewDirectorClient(nil, mockedOAuthClient)
@@ -727,7 +727,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -789,7 +789,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -828,7 +828,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -873,7 +873,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -912,7 +912,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -939,7 +939,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -971,7 +971,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -1003,7 +1003,7 @@ package director
 //			Expiration:  futureExpirationTime,
 //		}
 //
-//		mockedOAuthClient := &oauthmocks.Client{}
+//		mockedOAuthClient := &oauthmocks.DirectorClient{}
 //		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
@@ -1157,7 +1157,7 @@ package director
 //
 //			gqlClient := gql.NewQueryAssertClient(t, directorError, []*gcli.Request{expectedRequest})
 //
-//			mockedOAuthClient := &oauthmocks.Client{}
+//			mockedOAuthClient := &oauthmocks.DirectorClient{}
 //			mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
 //
 //			directorClient := NewDirectorClient(gqlClient, mockedOAuthClient)

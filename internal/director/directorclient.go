@@ -2,6 +2,7 @@ package director
 
 import (
 	"fmt"
+	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
@@ -21,7 +22,7 @@ const (
 
 //go:generate mockery --name=DirectorClient
 type DirectorClient interface {
-	//CreateRuntime(config *gqlschema.RuntimeInput, tenant string) (string, apperrors.AppError)
+	CreateRuntime(config *gqlschema.RuntimeInput, tenant string) (string, apperrors.AppError)
 	GetRuntime(id, tenant string) (graphql.RuntimeExt, apperrors.AppError)
 	//UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
 	//DeleteRuntime(id, tenant string) apperrors.AppError
@@ -46,6 +47,49 @@ func NewDirectorClient(gqlClient gql.Client, oauthClient oauth.Client) DirectorC
 		graphqlizer:   graphqlizer.Graphqlizer{},
 		token:         oauth.Token{},
 	}
+}
+
+func (cc *directorClient) CreateRuntime(config *gqlschema.RuntimeInput, tenant string) (string, apperrors.AppError) {
+	log.Infof("Registering Runtime on Director service")
+
+	if config == nil {
+		return "", apperrors.BadRequest("Cannot register runtime in Director: missing Runtime config")
+	}
+
+	var labels graphql.Labels
+	if config.Labels != nil {
+		l := graphql.Labels(config.Labels)
+		labels = l
+	}
+
+	directorInput := graphql.RuntimeRegisterInput{
+		Name:        config.Name,
+		Description: config.Description,
+		Labels:      labels,
+	}
+
+	runtimeInput, err := cc.graphqlizer.RuntimeRegisterInputToGQL(directorInput)
+	if err != nil {
+		log.Infof("Failed to create graphQLized Runtime input")
+		return "", apperrors.Internal("Failed to create graphQLized Runtime input: %s", err.Error()).SetComponent(apperrors.ErrCompassDirectorClient).SetReason(apperrors.ErrDirectorClientGraphqlizer)
+	}
+
+	runtimeQuery := cc.queryProvider.createRuntimeMutation(runtimeInput)
+
+	var response CreateRuntimeResponse
+	appErr := cc.executeDirectorGraphQLCall(runtimeQuery, tenant, &response)
+	if appErr != nil {
+		return "", appErr.Append("Failed to register runtime in Director. Request failed")
+	}
+
+	// Nil check is necessary due to GraphQL client not checking response code
+	if response.Result == nil {
+		return "", apperrors.Internal("Failed to register runtime in Director: Received nil response.").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+	}
+
+	log.Infof("Successfully registered Runtime %s in Director for tenant %s", config.Name, tenant)
+
+	return response.Result.ID, nil
 }
 
 func (cc *directorClient) GetRuntime(id, tenant string) (graphql.RuntimeExt, apperrors.AppError) {

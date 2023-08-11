@@ -22,7 +22,7 @@ func (p *presenter) Do(ctx context.Context, err error) *gqlerror.Error {
 	customErr := AppError(nil)
 	if ok := errors.As(err, &customErr); !ok {
 		p.Logger.Errorf("Unknown error: %s\n", err.Error())
-		return newGraphqlErrorResponse(ctx, CodeInternal, ErrProvisionerInternal, ErrProvisioner, err.Error())
+		return newGraphqlErrorResponse(ctx, CodeInternal, ErrCompassManagerInternal, ErrCompassManager, err.Error())
 	}
 
 	if customErr.Code() == CodeInternal {

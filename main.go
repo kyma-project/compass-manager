@@ -42,7 +42,7 @@ type config struct {
 }
 
 func (c *config) String() string {
-	return fmt.Sprintf("Address: %s, APIEndpoint: %s, DirectorURL: %s, SkipDirectorCertVerification: %v, DirectorOAuthPath: %s, ",
+	return fmt.Sprintf("Address: %s, APIEndpoint: %s, DirectorURL: %s, SkipDirectorCertVerification: %v, DirectorOAuthPath: %s",
 		c.Address, c.APIEndpoint, c.DirectorURL,
 		c.SkipDirectorCertVerification, c.DirectorOAuthPath)
 }
@@ -99,15 +99,15 @@ func main() {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	compassManagerRegistrator := &controllers.CompassRegistrator{Log: log}
 	directorClient, err := newDirectorClient(cfg)
 	if err != nil {
 		setupLog.Error(err, "unable to create Director Client")
 		os.Exit(1)
 	}
-	compassManagerRegistrator.Client = directorClient
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassManagerRegistrator)
+	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
+
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassRegistrator)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

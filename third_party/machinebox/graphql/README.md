@@ -54,7 +54,7 @@ if err := client.Run(ctx, req, &respData); err != nil {
 ### File support via multipart form data
 
 By default, the package will send a JSON body. To enable the sending of files, you can opt to
-use multipart form data instead using the `UseMultipartForm` option when you create your `Client`:
+use multipart form data instead using the `UseMultipartForm` option when you create your `DirectorClient`:
 
 ```
 client := graphql.NewClient("https://machinebox.io/graphql", graphql.UseMultipartForm())

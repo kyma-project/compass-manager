@@ -29,8 +29,8 @@ func TestPresenter_ErrorPresenter(t *testing.T) {
 		require.NotNil(t, entry)
 		assert.Equal(t, fmt.Sprintf("Unknown error: %s\n", errMsg), entry.Message)
 		assert.Contains(t, err.Error(), "testErr")
-		assert.Equal(t, apperrors.ErrProvisioner, err.Extensions["error_component"])
-		assert.Equal(t, apperrors.ErrProvisionerInternal, err.Extensions["error_reason"])
+		assert.Equal(t, apperrors.ErrCompassManager, err.Extensions["error_component"])
+		assert.Equal(t, apperrors.ErrCompassManagerInternal, err.Extensions["error_reason"])
 		hook.Reset()
 	})
 

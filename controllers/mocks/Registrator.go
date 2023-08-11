@@ -23,23 +23,23 @@ func (_m *Registrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string
 	return r0
 }
 
-// Register provides a mock function with given fields: name, globalAccount
-func (_m *Registrator) Register(name string, globalAccount string) (string, error) {
-	ret := _m.Called(name, globalAccount)
+// Register provides a mock function with given fields: kymaLabels
+func (_m *Registrator) Register(kymaLabels map[string]string) (string, error) {
+	ret := _m.Called(kymaLabels)
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string) (string, error)); ok {
-		return rf(name, globalAccount)
+	if rf, ok := ret.Get(0).(func(map[string]string) (string, error)); ok {
+		return rf(kymaLabels)
 	}
-	if rf, ok := ret.Get(0).(func(string, string) string); ok {
-		r0 = rf(name, globalAccount)
+	if rf, ok := ret.Get(0).(func(map[string]string) string); ok {
+		r0 = rf(kymaLabels)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(name, globalAccount)
+	if rf, ok := ret.Get(1).(func(map[string]string) error); ok {
+		r1 = rf(kymaLabels)
 	} else {
 		r1 = ret.Error(1)
 	}
