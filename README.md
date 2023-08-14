@@ -1,3 +1,5 @@
+[![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/compass-manager)](https://api.reuse.software/info/github.com/kyma-project/compass-manager)
+
 # Compass Manager
 
 > Modify the title and insert the name of your project. Use Heading 1 (H1).
