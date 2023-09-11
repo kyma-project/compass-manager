@@ -84,9 +84,8 @@ func createNamespace(name string) error {
 
 func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels := make(map[string]string)
-	kymaCustomResourceLabels[ManagedByLabel] = "lifecycle-manager"
 	kymaCustomResourceLabels[GlobalAccountIDLabel] = "globalAccount"
-	kymaCustomResourceLabels[KymaNameLabel] = name
+	kymaCustomResourceLabels[ShootNameLabel] = name
 
 	return kyma.Kyma{
 		TypeMeta: metav1.TypeMeta{

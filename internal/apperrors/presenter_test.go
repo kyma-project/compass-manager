@@ -49,21 +49,4 @@ func TestPresenter_ErrorPresenter(t *testing.T) {
 		assert.Contains(t, err.Error(), "testErr")
 		hook.Reset()
 	})
-
-	//t.Run("DB Error", func(t *testing.T) {
-	//	//given
-	//	customErr := dberrors.NotFound("db error")
-	//
-	//	//when
-	//	err := presenter.Do(context.TODO(), customErr)
-	//
-	//	//then
-	//	entry := hook.LastEntry()
-	//	assert.Nil(t, entry)
-	//	assert.Equal(t, dberrors.CodeNotFound, err.Extensions["error_code"])
-	//	assert.Equal(t, dberrors.ErrDBNotFound, err.Extensions["error_reason"])
-	//	assert.Equal(t, apperrors.ErrDB, err.Extensions["error_component"])
-	//	assert.Contains(t, err.Error(), "db error")
-	//	hook.Reset()
-	//})
 }

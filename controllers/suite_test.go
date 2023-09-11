@@ -112,24 +112,24 @@ var _ = AfterSuite(func() {
 
 func prepareMockFunctions(r *mocks.Registrator) {
 
-	kymaCRLabelsAllGood := map[string]string{KymaNameLabel: "all-good", ManagedByLabel: "lifecycle-manager", GlobalAccountIDLabel: "globalAccount"}
-	kymaCRLabelsConfigureFails := map[string]string{KymaNameLabel: "configure-fails", ManagedByLabel: "lifecycle-manager", GlobalAccountIDLabel: "globalAccount"}
-	kymaCRLabelsRegistrationFails := map[string]string{KymaNameLabel: "registration-fails", ManagedByLabel: "lifecycle-manager", GlobalAccountIDLabel: "globalAccount"}
-	kymaCRLabelsEmptyKubeconfig := map[string]string{KymaNameLabel: "empty-kubeconfig", ManagedByLabel: "lifecycle-manager", GlobalAccountIDLabel: "globalAccount"}
+	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "all-good", GlobalAccountIDLabel: "globalAccount"})
+	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
+	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "registration-fails", GlobalAccountIDLabel: "globalAccount"})
+	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
 
-	r.On("Register", kymaCRLabelsAllGood).Return("id-all-good", nil)
+	r.On("Register", compassLabelsAllGood).Return("id-all-good", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
 
 	// The first call to ConfigureRuntimeAgent fails, but the second is successful
-	r.On("Register", kymaCRLabelsConfigureFails).Return("id-configure-fails", nil)
+	r.On("Register", compassLabelsConfigureFails).Return("id-configure-fails", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
 
 	// The first call to Register fails, but the second is successful.
-	r.On("Register", kymaCRLabelsRegistrationFails).Return("", errors.New("error during registration")).Once()
-	r.On("Register", kymaCRLabelsRegistrationFails).Return("registration-fails", nil).Once()
+	r.On("Register", compassLabelsRegistrationFails).Return("", errors.New("error during registration")).Once()
+	r.On("Register", compassLabelsRegistrationFails).Return("registration-fails", nil).Once()
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
 
-	r.On("Register", kymaCRLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
+	r.On("Register", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
 	r.On("ConfigureRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 }

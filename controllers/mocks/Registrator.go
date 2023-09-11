@@ -23,23 +23,23 @@ func (_m *Registrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string
 	return r0
 }
 
-// Register provides a mock function with given fields: kymaLabels
-func (_m *Registrator) Register(kymaLabels map[string]string) (string, error) {
-	ret := _m.Called(kymaLabels)
+// Register provides a mock function with given fields: compassRuntimeLabels
+func (_m *Registrator) Register(compassRuntimeLabels map[string]interface{}) (string, error) {
+	ret := _m.Called(compassRuntimeLabels)
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(map[string]string) (string, error)); ok {
-		return rf(kymaLabels)
+	if rf, ok := ret.Get(0).(func(map[string]interface{}) (string, error)); ok {
+		return rf(compassRuntimeLabels)
 	}
-	if rf, ok := ret.Get(0).(func(map[string]string) string); ok {
-		r0 = rf(kymaLabels)
+	if rf, ok := ret.Get(0).(func(map[string]interface{}) string); ok {
+		r0 = rf(compassRuntimeLabels)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(map[string]string) error); ok {
-		r1 = rf(kymaLabels)
+	if rf, ok := ret.Get(1).(func(map[string]interface{}) error); ok {
+		r1 = rf(compassRuntimeLabels)
 	} else {
 		r1 = ret.Error(1)
 	}

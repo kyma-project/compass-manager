@@ -28,17 +28,17 @@ func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID 
 	return nil
 }
 
-func (r *CompassRegistrator) Register(kymaLabels map[string]string) (string, error) {
+func (r *CompassRegistrator) Register(compassRuntimeLabels map[string]interface{}) (string, error) {
 
 	var runtimeID string
-	r.Log.Infof("KymaLavels: %s", kymaLabels)
-	runtimeInput, err := createRuntimeInput(kymaLabels)
+	r.Log.Infof("Compass-Runtime-Labels: %s", compassRuntimeLabels)
+	runtimeInput, err := createRuntimeInput(compassRuntimeLabels)
 	if err != nil {
 		return "", err
 	}
 
 	err = util.RetryOnError(5*time.Second, 3, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
-		runtimeID, err = r.Client.CreateRuntime(runtimeInput, kymaLabels[GlobalAccountIDLabel])
+		runtimeID, err = r.Client.CreateRuntime(runtimeInput, compassRuntimeLabels["global_account_id"].(string))
 		return
 	})
 
@@ -49,14 +49,12 @@ func (r *CompassRegistrator) Register(kymaLabels map[string]string) (string, err
 	return runtimeID, nil
 }
 
-func createRuntimeInput(kymaLabels map[string]string) (*gqlschema.RuntimeInput, error) {
+func createRuntimeInput(compassRuntimeLabels map[string]interface{}) (*gqlschema.RuntimeInput, error) {
 
 	runtimeInput := &gqlschema.RuntimeInput{}
-	runtimeInput.Name = kymaLabels[ShootNameLabel] + "-" + generateRandomText(nameIDLen)
+	runtimeInput.Name = compassRuntimeLabels["gardenerClusterName"].(string) + "-" + generateRandomText(nameIDLen)
 
-	generatedLabels := createRuntimeLabels(kymaLabels)
-
-	err := runtimeInput.Labels.UnmarshalGQL(generatedLabels)
+	err := runtimeInput.Labels.UnmarshalGQL(compassRuntimeLabels)
 	if err != nil {
 		return nil, err
 	}
@@ -71,21 +69,4 @@ func generateRandomText(count int) string {
 		runes[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
 	return string(runes)
-}
-
-func createRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
-
-	runtimeLabels := make(map[string]interface{})
-
-	// check if label exists?
-	runtimeLabels["kyma_managed_by"] = kymaLabels[ManagedByLabel]
-	runtimeLabels["director_connection_managed_by"] = "compass-manager"
-	runtimeLabels["broker_instance_id"] = kymaLabels[BrokerInstanceIDLabel]
-	runtimeLabels["gardenerClusterName"] = kymaLabels[ShootNameLabel]
-	runtimeLabels["subaccount_id"] = kymaLabels[SubaccountIDLabel]
-	runtimeLabels["global_account_id"] = kymaLabels[GlobalAccountIDLabel]
-	runtimeLabels["broker_plan_id"] = kymaLabels[BrokerPlanIDLabel]
-	runtimeLabels["broker_plan_name"] = kymaLabels[BrokerPlanNameLabel]
-
-	return runtimeLabels
 }
