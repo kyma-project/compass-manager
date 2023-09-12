@@ -24,11 +24,19 @@ func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *C
 	}
 }
 
-func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error {
+func (r *CompassRegistrator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error {
 	return nil
 }
 
-func (r *CompassRegistrator) Register(compassRuntimeLabels map[string]interface{}) (string, error) {
+func (r *CompassRegistrator) ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error) {
+	return true, nil
+}
+
+func (r *CompassRegistrator) UpdateCompassRuntimeAgent(kubeconfig string) error {
+	return nil
+}
+
+func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
 
 	var runtimeID string
 	r.Log.Infof("Compass-Runtime-Labels: %s", compassRuntimeLabels)

@@ -38,12 +38,16 @@ const (
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
-//go:generate mockery --name=Registrator
-type Registrator interface {
-	// Register creates Runtime in the Compass system. It must be idempotent.
-	Register(compassRuntimeLabels map[string]interface{}) (string, error)
-	// ConfigureRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error
+//go:generate mockery --name=Configurator
+type Configurator interface {
+	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
+	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
+	// ConfigureCompassRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
+	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
+	// ConfigurationForRuntimeAgentExists checks if config map used by the Compass Runtime Agent is present in the Runtime
+	ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error)
+	// UpdateCompassRuntimeAgent updates the config map in the Runtime that is used by the Compass Runtime Agent
+	UpdateCompassRuntimeAgent(kubeconfig string) error
 }
 
 type Client interface {
@@ -54,18 +58,18 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	Client      Client
-	Scheme      *runtime.Scheme
-	Log         *log.Logger
-	Registrator Registrator
+	Client       Client
+	Scheme       *runtime.Scheme
+	Log          *log.Logger
+	Configurator Configurator
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, r Registrator) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Log:         log,
-		Registrator: r,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Log:          log,
+		Configurator: c,
 	}
 }
 
@@ -90,14 +94,14 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 
-	compassRuntimeID, err := cm.Registrator.Register(createCompassRuntimeLabels(kymaLabels))
+	compassRuntimeID, err := cm.Configurator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 	cm.Log.Infof("Runtime %s registered for Kyma resource %s.", compassRuntimeID, req.Name)
 
-	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfig, compassRuntimeID)
+	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
