@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,8 +20,14 @@ import (
 )
 
 const (
-	KymaNameLabel  = "operator.kyma-project.io/kyma-name"
-	CompassIDLabel = "operator.kyma-project.io/compass-id"
+	KymaNameLabel         = "operator.kyma-project.io/kyma-name"
+	CompassIDLabel        = "operator.kyma-project.io/compass-id"
+	BrokerPlanIDLabel     = "kyma-project.io/broker-plan-id"
+	BrokerPlanNameLabel   = "kyma-project.io/broker-plan-name"
+	GlobalAccountIDLabel  = "kyma-project.io/global-account-id"
+	BrokerInstanceIDLabel = "kyma-project.io/instance-id"
+	ShootNameLabel        = "kyma-project.io/shoot-name"
+	SubaccountIDLabel     = "kyma-project.io/subaccount-id"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
@@ -32,12 +38,16 @@ const (
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
-//go:generate mockery --name=Registrator
-type Registrator interface {
-	// Register creates Runtime in the Compass system. It must be idempotent.
-	Register(name string) (string, error)
-	// ConfigureRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error
+//go:generate mockery --name=Configurator
+type Configurator interface {
+	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
+	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
+	// ConfigureCompassRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
+	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
+	// ConfigurationForRuntimeAgentExists checks if config map used by the Compass Runtime Agent is present in the Runtime
+	ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error)
+	// UpdateCompassRuntimeAgent updates the config map in the Runtime that is used by the Compass Runtime Agent
+	UpdateCompassRuntimeAgent(kubeconfig string) error
 }
 
 type Client interface {
@@ -48,18 +58,18 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	Client      Client
-	Scheme      *runtime.Scheme
-	Log         *log.Logger
-	Registrator Registrator
+	Client       Client
+	Scheme       *runtime.Scheme
+	Log          *log.Logger
+	Configurator Configurator
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, r Registrator) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
-		Client:      mgr.GetClient(),
-		Scheme:      mgr.GetScheme(),
-		Log:         log,
-		Registrator: r,
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		Log:          log,
+		Configurator: c,
 	}
 }
 
@@ -78,14 +88,20 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 
-	compassRuntimeID, err := cm.Registrator.Register(req.Name)
+	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
+	if err != nil {
+		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v.", req.Name, err)
+		return ctrl.Result{RequeueAfter: requeueTime}, err
+	}
+
+	compassRuntimeID, err := cm.Configurator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 	cm.Log.Infof("Runtime %s registered for Kyma resource %s.", compassRuntimeID, req.Name)
 
-	err = cm.Registrator.ConfigureRuntimeAgent(kubeconfig, compassRuntimeID)
+	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
@@ -117,9 +133,28 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	return string(secret.Data[KubeconfigKey]), nil
 }
 
-func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
-
+func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (map[string]string, error) {
 	instance := &kyma.Kyma{}
+
+	err := cm.Client.Get(context.Background(), objKey, instance)
+	if err != nil {
+		return nil, err
+	}
+
+	l := instance.GetLabels()
+	if l == nil {
+		l = make(map[string]string)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return l, nil
+}
+
+func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
+	instance := &kyma.Kyma{}
+
 	err := cm.Client.Get(context.Background(), objKey, instance)
 	if err != nil {
 		return err
@@ -133,7 +168,6 @@ func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.Namespace
 	l[CompassIDLabel] = compassID
 
 	instance.SetLabels(l)
-
 	return cm.Client.Update(context.Background(), instance)
 }
 
@@ -179,4 +213,19 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 	_, labelFound := kymaObj.GetLabels()[CompassIDLabel]
 
 	return !labelFound
+}
+
+func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
+
+	runtimeLabels := make(map[string]interface{})
+
+	runtimeLabels["director_connection_managed_by"] = "compass-manager"
+	runtimeLabels["broker_instance_id"] = kymaLabels[BrokerInstanceIDLabel]
+	runtimeLabels["gardenerClusterName"] = kymaLabels[ShootNameLabel]
+	runtimeLabels["subaccount_id"] = kymaLabels[SubaccountIDLabel]
+	runtimeLabels["global_account_id"] = kymaLabels[GlobalAccountIDLabel]
+	runtimeLabels["broker_plan_id"] = kymaLabels[BrokerPlanIDLabel]
+	runtimeLabels["broker_plan_name"] = kymaLabels[BrokerPlanNameLabel]
+
+	return runtimeLabels
 }

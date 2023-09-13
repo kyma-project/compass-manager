@@ -1,11 +1,22 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
+	"fmt"
+	"github.com/pkg/errors"
+	"github.com/vrischmann/envconfig"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/kyma-project/compass-manager/controllers"
-	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/internal/director"
+	"github.com/kyma-project/compass-manager/internal/graphql"
+	"github.com/kyma-project/compass-manager/internal/oauth"
+	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -21,6 +32,29 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
+type config struct {
+	Address                      string `envconfig:"default=127.0.0.1:3000"`
+	APIEndpoint                  string `envconfig:"default=/graphql"`
+	PlaygroundAPIEndpoint        string `envconfig:"default=/graphql"`
+	DirectorURL                  string `envconfig:"default=https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql"`
+	SkipDirectorCertVerification bool   `envconfig:"default=false"`
+	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
+}
+
+func (c *config) String() string {
+	return fmt.Sprintf("Address: %s, APIEndpoint: %s, DirectorURL: %s, SkipDirectorCertVerification: %v, DirectorOAuthPath: %s",
+		c.Address, c.APIEndpoint, c.DirectorURL,
+		c.SkipDirectorCertVerification, c.DirectorOAuthPath)
+}
+
+type DirectorOAuth struct {
+	Data struct {
+		ClientID       string `json:"client_id"`
+		ClientSecret   string `json:"client_secret"`
+		TokensEndpoint string `json:"tokens_endpoint"`
+	} `json:"data"`
+}
+
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(kyma.AddToScheme(scheme))
@@ -28,6 +62,11 @@ func init() {
 }
 
 func main() {
+
+	cfg := config{}
+	err := envconfig.InitWithPrefix(&cfg, "APP")
+	exitOnError(err, "Failed to load application config")
+
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
@@ -60,9 +99,15 @@ func main() {
 	log := logrus.New()
 	log.SetLevel(logrus.InfoLevel)
 
-	compassManagerRegistrator := &CompassRegistrator{}
+	directorClient, err := newDirectorClient(cfg)
+	if err != nil {
+		setupLog.Error(err, "unable to create Director Client")
+		os.Exit(1)
+	}
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassManagerRegistrator)
+	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
+
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassRegistrator)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)
@@ -85,12 +130,36 @@ func main() {
 	}
 }
 
-type CompassRegistrator struct{}
+func newDirectorClient(config config) (director.Client, error) {
+	file, err := os.ReadFile(config.DirectorOAuthPath)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to open director config")
+	}
 
-func (r *CompassRegistrator) ConfigureRuntimeAgent(kubeconfig string, runtimeID string) error {
-	return nil
+	cfg := DirectorOAuth{}
+	err = yaml.Unmarshal(file, &cfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to unmarshal director config")
+	}
+
+	gqlClient := graphql.NewGraphQLClient(config.DirectorURL, true, config.SkipDirectorCertVerification)
+	oauthClient := oauth.NewOauthClient(newHTTPClient(config.SkipDirectorCertVerification), cfg.Data.ClientID, cfg.Data.ClientSecret, cfg.Data.TokensEndpoint)
+
+	return director.NewDirectorClient(gqlClient, oauthClient), nil
 }
 
-func (r *CompassRegistrator) Register(name string) (string, error) {
-	return "compass-id", nil
+func newHTTPClient(skipCertVerification bool) *http.Client {
+	return &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipCertVerification},
+		},
+		Timeout: 30 * time.Second,
+	}
+}
+
+func exitOnError(err error, context string) {
+	if err != nil {
+		wrappedError := errors.Wrap(err, context)
+		log.Fatal(wrappedError)
+	}
 }
