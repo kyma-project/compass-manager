@@ -2,6 +2,7 @@
 
 # Compass Manager
 
+.
 > Modify the title and insert the name of your project. Use Heading 1 (H1).
 
 ## Overview
