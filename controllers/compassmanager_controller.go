@@ -21,7 +21,6 @@ import (
 
 const (
 	KymaNameLabel         = "operator.kyma-project.io/kyma-name"
-	CompassIDLabel        = "operator.kyma-project.io/compass-id"
 	BrokerPlanIDLabel     = "kyma-project.io/broker-plan-id"
 	BrokerPlanNameLabel   = "kyma-project.io/broker-plan-name"
 	GlobalAccountIDLabel  = "kyma-project.io/global-account-id"
@@ -153,22 +152,24 @@ func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (
 }
 
 func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
-	instance := &kyma.Kyma{}
-
-	err := cm.Client.Get(context.Background(), objKey, instance)
-	if err != nil {
-		return err
-	}
-
-	l := instance.GetLabels()
-	if l == nil {
-		l = make(map[string]string)
-	}
-
-	l[CompassIDLabel] = compassID
-
-	instance.SetLabels(l)
-	return cm.Client.Update(context.Background(), instance)
+	//instance := &kyma.Kyma{}
+	//
+	//err := cm.Client.Get(context.Background(), objKey, instance)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//l := instance.GetLabels()
+	//if l == nil {
+	//	l = make(map[string]string)
+	//}
+	//
+	//l[CompassIDLabel] = compassID
+	//
+	//instance.SetLabels(l)
+	//return cm.Client.Update(context.Background(), instance)
+	cm.Log.Infof("=====COMPASS ID=====  %s", compassID)
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -210,9 +211,19 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
 		return false
 	}
-	_, labelFound := kymaObj.GetLabels()[CompassIDLabel]
 
-	return !labelFound
+	kymaModules := kymaObj.Spec.Modules
+
+	for _, v := range kymaModules {
+		// Placeholder for App Conn module name, change if the name will be already known
+		if v.Name == "application-connector-module" {
+			return true
+		}
+	}
+
+	// If kcp-system Namespace contains Compass Manager CR with compass-id and runtime-id correlated with given in Kyma CR, skip reconciliation. Cluster is already connected
+
+	return false
 }
 
 func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
