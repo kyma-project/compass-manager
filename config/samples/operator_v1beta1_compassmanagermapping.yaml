@@ -1,0 +1,12 @@
+apiVersion: operator.kyma-project.io/v1beta1
+kind: CompassManagerMapping
+metadata:
+  labels:
+    app.kubernetes.io/name: compassmanagermapping
+    app.kubernetes.io/instance: compassmanagermapping-sample
+    app.kubernetes.io/part-of: compass-manager
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: compass-manager
+  name: compassmanagermapping-sample
+spec:
+  # TODO(user): Add fields here

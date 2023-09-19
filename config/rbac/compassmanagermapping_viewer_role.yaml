@@ -1,0 +1,27 @@
+# permissions for end users to view compassmanagermappings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: compassmanagermapping-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: compass-manager
+    app.kubernetes.io/part-of: compass-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: compassmanagermapping-viewer-role
+rules:
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - compassmanagermappings
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - compassmanagermappings/status
+  verbs:
+  - get

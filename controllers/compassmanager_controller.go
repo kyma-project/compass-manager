@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,20 +21,25 @@ import (
 )
 
 const (
-	KymaNameLabel         = "operator.kyma-project.io/kyma-name"
-	BrokerPlanIDLabel     = "kyma-project.io/broker-plan-id"
-	BrokerPlanNameLabel   = "kyma-project.io/broker-plan-name"
-	GlobalAccountIDLabel  = "kyma-project.io/global-account-id"
-	BrokerInstanceIDLabel = "kyma-project.io/instance-id"
-	ShootNameLabel        = "kyma-project.io/shoot-name"
-	SubaccountIDLabel     = "kyma-project.io/subaccount-id"
+	KymaNameLabel                  = "operator.kyma-project.io/kyma-name"
+	BrokerPlanIDLabel              = "kyma-project.io/broker-plan-id"
+	BrokerPlanNameLabel            = "kyma-project.io/broker-plan-name"
+	GlobalAccountIDLabel           = "kyma-project.io/global-account-id"
+	BrokerInstanceIDLabel          = "kyma-project.io/instance-id"
+	ShootNameLabel                 = "kyma-project.io/shoot-name"
+	SubaccountIDLabel              = "kyma-project.io/subaccount-id"
+	KymaIDLabel                    = "kyma-project.io/kyma-id"
+	ComppassIDLabel                = "kyma-project.io/compass-runtime-id"
+	DefaultResourceNamespace       = "kcp-system"
+	ApplicationConnectorModuleName = "application-connector-module"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
 )
 
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch;update
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;watch;update;delete
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
@@ -50,6 +56,7 @@ type Configurator interface {
 }
 
 type Client interface {
+	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
@@ -107,7 +114,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
-	return ctrl.Result{}, cm.markRuntimeRegistered(req.NamespacedName, compassRuntimeID)
+	return ctrl.Result{}, cm.createCompassMappingResource(compassRuntimeID, kymaLabels)
 }
 
 func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
@@ -151,25 +158,21 @@ func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (
 	return l, nil
 }
 
-func (cm *CompassManagerReconciler) markRuntimeRegistered(objKey types.NamespacedName, compassID string) error {
-	//instance := &kyma.Kyma{}
-	//
-	//err := cm.Client.Get(context.Background(), objKey, instance)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//l := instance.GetLabels()
-	//if l == nil {
-	//	l = make(map[string]string)
-	//}
-	//
-	//l[CompassIDLabel] = compassID
-	//
-	//instance.SetLabels(l)
-	//return cm.Client.Update(context.Background(), instance)
-	cm.Log.Infof("=====COMPASS ID=====  %s", compassID)
-	return nil
+func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeID string, kymaLabels map[string]string) error {
+	compassMapping := &v1beta1.CompassManagerMapping{}
+	compassMapping.Name = kymaLabels[KymaNameLabel]
+	compassMapping.Namespace = DefaultResourceNamespace
+
+	compassMappingLabels := make(map[string]string)
+	compassMappingLabels[KymaIDLabel] = kymaLabels[KymaNameLabel]
+	compassMappingLabels[ComppassIDLabel] = compassRuntimeID
+	compassMappingLabels[GlobalAccountIDLabel] = kymaLabels[GlobalAccountIDLabel]
+	compassMappingLabels[SubaccountIDLabel] = kymaLabels[SubaccountIDLabel]
+
+	compassMapping.SetLabels(compassMappingLabels)
+
+	err := cm.Client.Create(context.Background(), compassMapping)
+	return err
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -216,7 +219,7 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 
 	for _, v := range kymaModules {
 		// Placeholder for App Conn module name, change if the name will be already known
-		if v.Name == "application-connector-module" {
+		if v.Name == ApplicationConnectorModuleName {
 			return true
 		}
 	}

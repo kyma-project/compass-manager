@@ -4,18 +4,17 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/vrischmann/envconfig"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/kyma-project/compass-manager/controllers"
-	"github.com/kyma-project/compass-manager/internal/director"
-	"github.com/kyma-project/compass-manager/internal/graphql"
-	"github.com/kyma-project/compass-manager/internal/oauth"
+	"github.com/kyma-project/compass-manager/api/v1beta1"
+
+	"github.com/pkg/errors"
+	"github.com/vrischmann/envconfig"
+	"k8s.io/apimachinery/pkg/util/yaml"
+
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +24,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	"github.com/kyma-project/compass-manager/controllers"
+	"github.com/kyma-project/compass-manager/internal/director"
+	"github.com/kyma-project/compass-manager/internal/graphql"
+	"github.com/kyma-project/compass-manager/internal/oauth"
 )
 
 var (
@@ -58,6 +62,7 @@ type DirectorOAuth struct {
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(kyma.AddToScheme(scheme))
+	utilruntime.Must(v1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

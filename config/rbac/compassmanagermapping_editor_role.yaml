@@ -1,0 +1,31 @@
+# permissions for end users to edit compassmanagermappings.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: compassmanagermapping-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: compass-manager
+    app.kubernetes.io/part-of: compass-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: compassmanagermapping-editor-role
+rules:
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - compassmanagermappings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
+  - compassmanagermappings/status
+  verbs:
+  - get

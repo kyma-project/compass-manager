@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
@@ -36,7 +38,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -55,9 +57,9 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
 
 			Consistently(func() bool {
-				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
-				return err == nil && label == ""
+				return errors.IsNotFound(err) && label == ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Create secret with credentials")
@@ -65,7 +67,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getKymaLabel(kyma.Name, "operator.kyma-project.io/compass-id", kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -86,6 +88,10 @@ func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels[GlobalAccountIDLabel] = "globalAccount"
 	kymaCustomResourceLabels[ShootNameLabel] = name
+	kymaCustomResourceLabels[KymaNameLabel] = name
+
+	kymaModules := make([]kyma.Module, 1)
+	kymaModules[0].Name = ApplicationConnectorModuleName
 
 	return kyma.Kyma{
 		TypeMeta: metav1.TypeMeta{
@@ -99,6 +105,7 @@ func createKymaResource(name string) kyma.Kyma {
 		},
 		Spec: kyma.KymaSpec{
 			Channel: "regular",
+			Modules: kymaModules,
 		},
 	}
 }
@@ -118,8 +125,8 @@ func createCredentialsSecret(kymaName, namespace string) corev1.Secret {
 	}
 }
 
-func getKymaLabel(kymaName, labelName, namespace string) (string, error) {
-	var obj kyma.Kyma
+func getCompassMappingLabel(kymaName, labelName, namespace string) (string, error) {
+	var obj v1beta1.CompassManagerMapping
 	key := types.NamespacedName{Name: kymaName, Namespace: namespace}
 
 	err := cm.Client.Get(context.Background(), key, &obj)
