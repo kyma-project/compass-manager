@@ -37,7 +37,6 @@ func (r *CompassRegistrator) UpdateCompassRuntimeAgent(kubeconfig string) error 
 }
 
 func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
-
 	var runtimeID string
 	r.Log.Infof("Compass-Runtime-Labels: %s", compassRuntimeLabels)
 	runtimeInput, err := createRuntimeInput(compassRuntimeLabels)

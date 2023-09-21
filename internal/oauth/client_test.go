@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -46,7 +46,7 @@ func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 
 				return &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       ioutil.NopCloser(bytes.NewReader(jsonToken)),
+					Body:       io.NopCloser(bytes.NewReader(jsonToken)),
 				}
 			}
 			return &http.Response{
@@ -85,7 +85,6 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func createFakeCredentialsSecret(t *testing.T, secrets core.SecretInterface, credentials credentials) {
-
 	secret := &v1.Secret{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      secretName,

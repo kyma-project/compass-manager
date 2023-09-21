@@ -2,9 +2,10 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"

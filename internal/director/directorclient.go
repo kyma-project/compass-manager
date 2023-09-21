@@ -1,7 +1,9 @@
 package director
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
@@ -158,7 +160,8 @@ func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, tenan
 	req.Header.Set(TenantHeader, tenant)
 
 	if err := cc.gqlClient.Do(req, response); err != nil {
-		if egErr, ok := err.(gcli.ExtendedError); ok {
+		var egErr gcli.ExtendedError
+		if errors.As(err, &egErr) {
 			return mapDirectorErrorToProvisionerError(egErr).Append("Failed to execute GraphQL request to Director")
 		}
 		return apperrors.Internal("Failed to execute GraphQL request to Director: %v", err)

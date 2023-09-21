@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"context"
-	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"time"
+
+	"github.com/kyma-project/compass-manager/api/v1beta1"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -151,9 +152,6 @@ func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (
 	if l == nil {
 		l = make(map[string]string)
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	return l, nil
 }
@@ -209,7 +207,6 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool {
 
 	kymaObj, ok := obj.(*kyma.Kyma)
-
 	if !ok {
 		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
 		return false
@@ -232,7 +229,6 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
 
 	runtimeLabels := make(map[string]interface{})
-
 	runtimeLabels["director_connection_managed_by"] = "compass-manager"
 	runtimeLabels["broker_instance_id"] = kymaLabels[BrokerInstanceIDLabel]
 	runtimeLabels["gardenerClusterName"] = kymaLabels[ShootNameLabel]
