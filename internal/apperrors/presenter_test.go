@@ -15,16 +15,16 @@ import (
 )
 
 func TestPresenter_ErrorPresenter(t *testing.T) {
-	//given
+	// given
 	errMsg := "testErr"
 	log, hook := test.NewNullLogger()
 	presenter := apperrors.NewPresenter(log)
 
 	t.Run("Unknown error", func(t *testing.T) {
-		//when
+		// when
 		err := presenter.Do(context.TODO(), errors.New(errMsg))
 
-		//then
+		// then
 		entry := hook.LastEntry()
 		require.NotNil(t, entry)
 		assert.Equal(t, fmt.Sprintf("Unknown error: %s\n", errMsg), entry.Message)
@@ -35,13 +35,13 @@ func TestPresenter_ErrorPresenter(t *testing.T) {
 	})
 
 	t.Run("Internal Error", func(t *testing.T) {
-		//given
+		// given
 		customErr := apperrors.Internal(errMsg)
 
-		//when
+		// when
 		err := presenter.Do(context.TODO(), customErr)
 
-		//then
+		// then
 		entry := hook.LastEntry()
 		require.NotNil(t, entry)
 		assert.Equal(t, fmt.Sprintf("Internal Server Error: %s", errMsg), entry.Message)
