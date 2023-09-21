@@ -34,6 +34,7 @@ var (
 	testEnv          *envtest.Environment
 	cm               *CompassManagerReconciler
 	mockConfigurator *mocks.Configurator
+	mockRegistrator  *mocks.Registrator
 	suiteCtx         context.Context
 	cancelSuiteCtx   context.CancelFunc
 )
@@ -73,9 +74,10 @@ var _ = BeforeSuite(func() {
 	log.SetLevel(logrus.InfoLevel)
 
 	mockConfigurator = &mocks.Configurator{}
-	prepareMockFunctions(mockConfigurator)
+	mockRegistrator = &mocks.Registrator{}
+	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator)
+	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -113,7 +115,7 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func prepareMockFunctions(r *mocks.Configurator) {
+func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 
 	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "all-good", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
@@ -121,18 +123,18 @@ func prepareMockFunctions(r *mocks.Configurator) {
 	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
 
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
-	r.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
 
 	// The first call to ConfigureRuntimeAgent fails, but the second is successful
 	r.On("RegisterInCompass", compassLabelsConfigureFails).Return("id-configure-fails", nil)
-	r.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
-	r.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
 
 	// The first call to RegisterInCompass fails, but the second is successful.
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("", errors.New("error during registration")).Once()
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("registration-fails", nil).Once()
-	r.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
 
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
-	r.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 }

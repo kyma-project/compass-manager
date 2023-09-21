@@ -46,14 +46,16 @@ const (
 
 //go:generate mockery --name=Configurator
 type Configurator interface {
+	// ConfigureCompassRuntimeAgent creates a secret in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
+	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
+	// UpdateCompassRuntimeAgent updates the secret in the Runtime that is used by the Compass Runtime Agent
+	UpdateCompassRuntimeAgent(kubeconfig string) error
+}
+
+//go:generate mockery --name=Registrator
+type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
-	// ConfigureCompassRuntimeAgent creates a config map in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
-	// ConfigurationForRuntimeAgentExists checks if config map used by the Compass Runtime Agent is present in the Runtime
-	ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error)
-	// UpdateCompassRuntimeAgent updates the config map in the Runtime that is used by the Compass Runtime Agent
-	UpdateCompassRuntimeAgent(kubeconfig string) error
 }
 
 type Client interface {
@@ -69,14 +71,16 @@ type CompassManagerReconciler struct {
 	Scheme       *runtime.Scheme
 	Log          *log.Logger
 	Configurator Configurator
+	Registrator  Registrator
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Log:          log,
 		Configurator: c,
+		Registrator:  r,
 	}
 }
 
@@ -101,7 +105,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 
-	compassRuntimeID, err := cm.Configurator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+	compassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
