@@ -30,9 +30,8 @@ const (
 	BrokerInstanceIDLabel          = "kyma-project.io/instance-id"
 	ShootNameLabel                 = "kyma-project.io/shoot-name"
 	SubaccountIDLabel              = "kyma-project.io/subaccount-id"
-	KymaIDLabel                    = "kyma-project.io/kyma-id"
 	ComppassIDLabel                = "kyma-project.io/compass-runtime-id"
-	DefaultResourceNamespace       = "kcp-system"
+	ManagedByLabel                 = "operator.kyma-project.io/managed-by"
 	ApplicationConnectorModuleName = "application-connector-module"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
@@ -41,7 +40,7 @@ const (
 
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;watch;update;delete
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
@@ -106,11 +105,11 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if compassMappingLabels != nil {
 		_, err := cm.Registrator.RefreshCompassToken(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
 		if err != nil {
-			cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaIDLabel])
+			cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaNameLabel])
 			return ctrl.Result{RequeueAfter: requeueTime}, err
 		}
 		// update CRA secret in client cluster
-		cm.Log.Infof("One time token for Kyma Runtime %s refreshed", compassMappingLabels[KymaIDLabel])
+		cm.Log.Infof("One time token for Kyma Runtime %s refreshed", compassMappingLabels[KymaNameLabel])
 		return ctrl.Result{}, nil
 	}
 
@@ -134,7 +133,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
-	return ctrl.Result{}, cm.createCompassMappingResource(compassRuntimeID, kymaLabels)
+	return ctrl.Result{}, cm.createCompassMappingResource(compassRuntimeID, req.Namespace, kymaLabels)
 }
 
 func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
@@ -175,16 +174,17 @@ func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (
 	return l, nil
 }
 
-func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeID string, kymaLabels map[string]string) error {
+func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
 	compassMapping := &v1beta1.CompassManagerMapping{}
 	compassMapping.Name = kymaLabels[KymaNameLabel]
-	compassMapping.Namespace = DefaultResourceNamespace
+	compassMapping.Namespace = namespace
 
 	compassMappingLabels := make(map[string]string)
-	compassMappingLabels[KymaIDLabel] = kymaLabels[KymaNameLabel]
+	compassMappingLabels[KymaNameLabel] = kymaLabels[KymaNameLabel]
 	compassMappingLabels[ComppassIDLabel] = compassRuntimeID
 	compassMappingLabels[GlobalAccountIDLabel] = kymaLabels[GlobalAccountIDLabel]
 	compassMappingLabels[SubaccountIDLabel] = kymaLabels[SubaccountIDLabel]
+	compassMappingLabels[ManagedByLabel] = "compass-manager"
 
 	compassMapping.SetLabels(compassMappingLabels)
 
@@ -195,7 +195,7 @@ func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeI
 func (cm *CompassManagerReconciler) getCompassMappingLabels(mappingName string) (map[string]string, error) {
 	mappingList := &v1beta1.CompassManagerMappingList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
-		KymaIDLabel: mappingName,
+		KymaNameLabel: mappingName,
 	})
 
 	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{

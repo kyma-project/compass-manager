@@ -30,8 +30,6 @@ rules:
   - delete
   - get
   - list
-  - update
-  - watch
 - apiGroups:
   - operator.kyma-project.io
   resources:
