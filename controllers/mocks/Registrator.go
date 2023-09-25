@@ -12,23 +12,23 @@ type Registrator struct {
 	mock.Mock
 }
 
-// RefreshCompassToken provides a mock function with given fields: compassId, globalAccount
-func (_m *Registrator) RefreshCompassToken(compassId string, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
-	ret := _m.Called(compassId, globalAccount)
+// RefreshCompassToken provides a mock function with given fields: compassID, globalAccount
+func (_m *Registrator) RefreshCompassToken(compassID string, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
+	ret := _m.Called(compassID, globalAccount)
 
 	var r0 graphql.OneTimeTokenForRuntimeExt
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string, string) (graphql.OneTimeTokenForRuntimeExt, error)); ok {
-		return rf(compassId, globalAccount)
+		return rf(compassID, globalAccount)
 	}
 	if rf, ok := ret.Get(0).(func(string, string) graphql.OneTimeTokenForRuntimeExt); ok {
-		r0 = rf(compassId, globalAccount)
+		r0 = rf(compassID, globalAccount)
 	} else {
 		r0 = ret.Get(0).(graphql.OneTimeTokenForRuntimeExt)
 	}
 
 	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(compassId, globalAccount)
+		r1 = rf(compassID, globalAccount)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -44,11 +44,10 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 	return runtimeID, nil
 }
 
-func (r *CompassRegistrator) RefreshCompassToken(compassId, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
+func (r *CompassRegistrator) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
 	var token graphql.OneTimeTokenForRuntimeExt
-	var err error
-	err = util.RetryOnError(5*time.Second, 3, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
-		token, err = r.Client.GetConnectionToken(compassId, globalAccount)
+	err := util.RetryOnError(5*time.Second, 3, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
+		token, err = r.Client.GetConnectionToken(compassID, globalAccount)
 		return
 	})
 
@@ -60,7 +59,6 @@ func (r *CompassRegistrator) RefreshCompassToken(compassId, globalAccount string
 }
 
 func createRuntimeInput(compassRuntimeLabels map[string]interface{}) (*gqlschema.RuntimeInput, error) {
-
 	runtimeInput := &gqlschema.RuntimeInput{}
 	runtimeInput.Name = compassRuntimeLabels["gardenerClusterName"].(string) + "-" + generateRandomText(nameIDLen)
 

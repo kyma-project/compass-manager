@@ -57,7 +57,7 @@ type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
 	// RefreshCompassToken gets new connection token for Compass requests
-	RefreshCompassToken(compassId, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
+	RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
 }
 
 type Client interface {
@@ -247,7 +247,6 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool {
-
 	kymaObj, ok := obj.(*kyma.Kyma)
 	if !ok {
 		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
@@ -267,7 +266,6 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 }
 
 func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
-
 	runtimeLabels := make(map[string]interface{})
 	runtimeLabels["director_connection_managed_by"] = "compass-manager"
 	runtimeLabels["broker_instance_id"] = kymaLabels[BrokerInstanceIDLabel]

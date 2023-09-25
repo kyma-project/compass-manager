@@ -24,7 +24,7 @@ const (
 
 func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 	t.Run("Should return oauth token", func(t *testing.T) {
-		//given
+		// given
 		credentials := credentials{
 			clientID:       "12345",
 			clientSecret:   "some dark and scary secret",
@@ -61,12 +61,12 @@ func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 
 		oauthClient := NewOauthClient(client, credentials.clientID, credentials.clientSecret, credentials.tokensEndpoint)
 
-		//when
+		// when
 		responseToken, err := oauthClient.GetAuthorizationToken()
 		require.NoError(t, err)
 		token.Expiration += time.Now().Unix()
 
-		//then
+		// then
 		assert.Equal(t, token.AccessToken, responseToken.AccessToken)
 		assert.Equal(t, token.Expiration, responseToken.Expiration)
 	})
