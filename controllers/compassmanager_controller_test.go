@@ -2,11 +2,10 @@ package controllers
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -35,11 +34,11 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
-			kyma := createKymaResource(kymaName)
-			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
+			kymaCR := createKymaResource(kymaName)
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -54,25 +53,58 @@ var _ = Describe("Compass Manager controller", func() {
 		It("requeue the request if and succeeded when user add the secret", func() {
 
 			By("Create Kyma Resource")
-			kyma := createKymaResource("empty-kubeconfig")
-			Expect(k8sClient.Create(context.Background(), &kyma)).To(Succeed())
+			kymaCR := createKymaResource("empty-kubeconfig")
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Consistently(func() bool {
-				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return errors.IsNotFound(err) && label == ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Create secret with credentials")
-			secret := createCredentialsSecret(kyma.Name, kymaCustomResourceNamespace)
+			secret := createCredentialsSecret(kymaCR.Name, kymaCustomResourceNamespace)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingLabel(kyma.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
 		})
+	})
+
+	Context("After successful runtime registration when user re-enable Application Connector module", func() {
+		DescribeTable("the one-time token for Compass Runtime Agent should be refreshed", func(kymaName string) {
+			By("Create secret with credentials")
+			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
+
+			By("Create Kyma Resource")
+			kymaCR := createKymaResource(kymaName)
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
+
+			Eventually(func() bool {
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+
+				return err == nil && label != ""
+			}, clientTimeout, clientInterval).Should(BeTrue())
+
+			By("Disable the Application Connector module")
+			modifiedKyma, err := modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
+
+			By("Re-enable the Application Connector module")
+			kymaModules := make([]kyma.Module, 2)
+			kymaModules[0].Name = ApplicationConnectorModuleName
+			kymaModules[1].Name = "test-module"
+			modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
+		},
+			Entry("Token successfully refreshed", "refresh-token"),
+		)
 	})
 })
 
@@ -137,4 +169,18 @@ func getCompassMappingLabel(kymaName, labelName, namespace string) (string, erro
 
 	labels := obj.GetLabels()
 	return labels[labelName], nil
+}
+
+func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
+	var obj kyma.Kyma
+	key := types.NamespacedName{Name: kymaName, Namespace: kymaNamespace}
+
+	err := cm.Client.Get(context.Background(), key, &obj)
+	if err != nil {
+		return &kyma.Kyma{}, err
+	}
+
+	obj.Spec.Modules = kymaModules
+
+	return &obj, nil
 }

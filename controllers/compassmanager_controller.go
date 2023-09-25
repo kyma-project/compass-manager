@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
@@ -56,6 +57,8 @@ type Configurator interface {
 type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
+	// RefreshCompassToken gets new connection token for Compass requests
+	RefreshCompassToken(compassId, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
 }
 
 type Client interface {
@@ -97,6 +100,18 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if kubeconfig == "" {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
+	}
+
+	compassMappingLabels, err := cm.getCompassMappingLabels(req.Name)
+	if compassMappingLabels != nil {
+		_, err := cm.Registrator.RefreshCompassToken(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
+		if err != nil {
+			cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaIDLabel])
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+		// update CRA secret in client cluster
+		cm.Log.Infof("One time token for Kyma Runtime %s refreshed", compassMappingLabels[KymaIDLabel])
+		return ctrl.Result{}, nil
 	}
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
@@ -177,6 +192,29 @@ func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeI
 	return err
 }
 
+func (cm *CompassManagerReconciler) getCompassMappingLabels(mappingName string) (map[string]string, error) {
+	mappingList := &v1beta1.CompassManagerMappingList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		KymaIDLabel: mappingName,
+	})
+
+	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
+		LabelSelector: labelSelector,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(mappingList.Items) == 0 {
+		return nil, nil
+	}
+
+	mappingLabels := mappingList.Items[0].GetLabels()
+
+	return mappingLabels, nil
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	fieldSelectorPredicate := predicate.Funcs{
@@ -224,8 +262,6 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 			return true
 		}
 	}
-
-	// If kcp-system Namespace contains Compass Manager CR with compass-id and runtime-id correlated with given in Kyma CR, skip reconciliation. Cluster is already connected
 
 	return false
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"path/filepath"
 	"testing"
@@ -121,6 +122,12 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "registration-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
+	compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
+	refreshedToken := graphql.OneTimeTokenForRuntimeExt{
+		OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{},
+		Raw:                    "rawToken",
+		RawEncoded:             "rawEncodedToken",
+	}
 
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
@@ -137,4 +144,9 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
+
+	r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
+	r.On("RefreshCompassToken", "id-refresh-token", "globalAccount").Return(refreshedToken, nil).Once()
+
 }

@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/util"
@@ -26,7 +27,6 @@ func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *C
 
 func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
 	var runtimeID string
-	r.Log.Infof("Compass-Runtime-Labels: %s", compassRuntimeLabels)
 	runtimeInput, err := createRuntimeInput(compassRuntimeLabels)
 	if err != nil {
 		return "", err
@@ -42,6 +42,21 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 	}
 
 	return runtimeID, nil
+}
+
+func (r *CompassRegistrator) RefreshCompassToken(compassId, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
+	var token graphql.OneTimeTokenForRuntimeExt
+	var err error
+	err = util.RetryOnError(5*time.Second, 3, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
+		token, err = r.Client.GetConnectionToken(compassId, globalAccount)
+		return
+	})
+
+	if err != nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, err
+	}
+
+	return token, nil
 }
 
 func createRuntimeInput(compassRuntimeLabels map[string]interface{}) (*gqlschema.RuntimeInput, error) {
