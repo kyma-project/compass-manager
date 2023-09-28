@@ -16,6 +16,13 @@ func (qp queryProvider) getRuntimeQuery(compassID string) string {
 }}`, compassID)
 }
 
+func (qp queryProvider) deleteRuntimeMutation(runtimeID string) string {
+	return fmt.Sprintf(`mutation {
+	result: unregisterRuntime(id: "%s") {
+		id
+}}`, runtimeID)
+}
+
 func (qp queryProvider) requestOneTimeTokenMutation(compassID string) string {
 	return fmt.Sprintf(`mutation {
 	result: requestOneTimeTokenForRuntime(id: "%s") {

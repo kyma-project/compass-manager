@@ -49,6 +49,17 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 	return runtimeID, nil
 }
 
+func (r *CompassRegistrator) DeregisterFromCompass(compassID, globalAccount string) error {
+	err := util.RetryOnError(10*time.Second, 3, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
+		err = r.Client.DeleteRuntime(compassID, globalAccount)
+		return
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r *CompassRegistrator) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
 	var token graphql.OneTimeTokenForRuntimeExt
 	err := util.RetryOnError(retryTime*time.Second, attempts, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {

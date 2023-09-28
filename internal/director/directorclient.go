@@ -27,7 +27,7 @@ type Client interface {
 	GetConnectionToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
 	// RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
 	// UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
-	// DeleteRuntime(id, tenant string) apperrors.AppError
+	 DeleteRuntime(compassID, globalAccount string) apperrors.AppError
 	// SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError
 }
 
@@ -129,6 +129,28 @@ func (cc *directorClient) GetConnectionToken(compassID, globalAccount string) (g
 	log.Infof("Received OneTimeToken for Runtime %s in Director for Global Account %s", compassID, globalAccount)
 
 	return *response.Result, nil
+}
+
+func (cc *directorClient) DeleteRuntime(compassID, globalAccount string) apperrors.AppError {
+	runtimeQuery := cc.queryProvider.deleteRuntimeMutation(compassID)
+
+	var response DeleteRuntimeResponse
+	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response)
+	if err != nil {
+		return err.Append("Failed to unregister runtime %s in Director", compassID)
+	}
+	// Nil check is necessary due to GraphQL client not checking response code
+	if response.Result == nil {
+		return apperrors.Internal("Failed to unregister runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+	}
+
+	if response.Result.ID != compassID {
+		return apperrors.Internal("Failed to unregister runtime %s in Director: received unexpected RuntimeID.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
+	}
+
+	log.Infof("Successfully unregistered Runtime %s in Director for tenant %s", compassID, globalAccount)
+
+	return nil
 }
 
 func (cc *directorClient) getToken() apperrors.AppError {

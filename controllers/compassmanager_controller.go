@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -62,6 +62,8 @@ type Registrator interface {
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
 	// RefreshCompassToken gets new connection token for Compass requests
 	RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
+	// DeregisterFromCompass deletes Runtime from Compass system
+	DeregisterFromCompass(compassID, globalAccount string) error
 }
 
 type Client interface {
@@ -94,6 +96,32 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
+
+	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
+	//if err != nil {
+	//	if k8serrors.IsNotFound(err) {
+	//		compassMappingLabels, err := cm.getCompassMappingLabels(req.Name)
+	//		if compassMappingLabels == nil {
+	//			cm.Log.Infof("Runtime was not connected in Compass, nothing to delete")
+	//			return ctrl.Result{}, nil
+	//		}
+	//		if err != nil {
+	//			cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", req.Name, err)
+	//			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+	//		}
+	//		cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", req.Name)
+	//		err = cm.Registrator.DeregisterFromCompass(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
+	//		if err != nil {
+	//			cm.Log.Warnf("Failed to deregister Runtime from Compass fro Kyma Resource %s: %v", req.Name, err)
+	//			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+	//		}
+	//		cm.Log.Infof("Runtime %s deregistered from Compass", req.Name)
+	//		return ctrl.Result{}, nil
+	//	}
+	//	cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v", req.Name, err)
+	//	return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+	//}
+
 	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -279,6 +307,9 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			return cm.needsToBeReconciled(e.ObjectNew)
 		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return cm.needsToBeDeleted(e.Object)
+		},
 	}
 
 	omitStatusChanged := predicate.Or(
@@ -318,6 +349,16 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 	}
 
 	return false
+}
+
+func (cm *CompassManagerReconciler) needsToBeDeleted(obj runtime.Object) bool {
+	_, ok := obj.(*kyma.Kyma)
+	if !ok {
+		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
+		return false
+	}
+
+	return true
 }
 
 func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {

@@ -12,6 +12,10 @@ type GetRuntimeResponse struct {
 	Result *graphql.RuntimeExt `json:"result"`
 }
 
+type DeleteRuntimeResponse struct {
+	Result *graphql.Runtime `json:"result"`
+}
+
 type OneTimeTokenResponse struct {
 	Result *graphql.OneTimeTokenForRuntimeExt `json:"result"`
 }
