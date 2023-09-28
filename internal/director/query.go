@@ -9,16 +9,16 @@ func (qp queryProvider) createRuntimeMutation(runtimeInput string) string {
 	result: registerRuntime(in: %s) { id } }`, runtimeInput)
 }
 
-func (qp queryProvider) getRuntimeQuery(runtimeID string) string {
+func (qp queryProvider) getRuntimeQuery(compassID string) string {
 	return fmt.Sprintf(`query {
     result: runtime(id: "%s") {
          id name description labels
-}}`, runtimeID)
+}}`, compassID)
 }
 
-func (qp queryProvider) requestOneTimeTokenMutation(runtimeID string) string {
+func (qp queryProvider) requestOneTimeTokenMutation(compassID string) string {
 	return fmt.Sprintf(`mutation {
 	result: requestOneTimeTokenForRuntime(id: "%s") {
 		token connectorURL
-}}`, runtimeID)
+}}`, compassID)
 }

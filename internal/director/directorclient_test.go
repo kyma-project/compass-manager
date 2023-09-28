@@ -21,10 +21,10 @@ import (
 )
 
 const (
-	runtimeTestingID   = "test-runtime-ID-12345"
-	runtimeTestingName = "Runtime Test name"
+	compassTestingID   = "test-runtime-ID-12345"
+	compassTestingName = "Runtime Test name"
 	validTokenValue    = "12345"
-	tenantValue        = "3e64ebae-38b5-46a0-b1ed-9ccee153a0ae"
+	globalAccountValue = "3e64ebae-38b5-46a0-b1ed-9ccee153a0ae"
 	oneTimeToken       = "54321"
 	connectorURL       = "https://kyma.cx/connector/graphql"
 
@@ -53,12 +53,12 @@ var (
 func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 	expectedRequest := gcli.NewRequest(expectedRegisterRuntimeQuery)
 	expectedRequest.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", validTokenValue))
-	expectedRequest.Header.Set(TenantHeader, tenantValue)
+	expectedRequest.Header.Set(TenantHeader, globalAccountValue)
 
 	inputDescription := "runtime description"
 
 	runtimeInput := &gqlschema.RuntimeInput{
-		Name:        runtimeTestingName,
+		Name:        compassTestingName,
 		Description: &inputDescription,
 	}
 
@@ -66,12 +66,12 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		// given
 		responseDescription := "runtime description"
 		expectedResponse := &graphql.Runtime{
-			ID:          runtimeTestingID,
-			Name:        runtimeTestingName,
+			ID:          compassTestingID,
+			Name:        compassTestingName,
 			Description: &responseDescription,
 		}
 
-		expectedID := runtimeTestingID
+		expectedID := compassTestingID
 
 		gqlClient := gql.NewQueryAssertClient(t, nil, []*gcli.Request{expectedRequest}, func(t *testing.T, r interface{}) {
 			cfg, ok := r.(*CreateRuntimeResponse)
@@ -91,7 +91,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.NoError(t, err)
@@ -111,7 +111,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -131,7 +131,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -146,7 +146,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -174,7 +174,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -201,7 +201,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, tenantValue)
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -212,7 +212,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 func TestDirectorClient_GetConnectionToken(t *testing.T) {
 	expectedRequest := gcli.NewRequest(expectedOneTimeTokenQuery)
 	expectedRequest.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", validTokenValue))
-	expectedRequest.Header.Set(TenantHeader, tenantValue)
+	expectedRequest.Header.Set(TenantHeader, globalAccountValue)
 
 	t.Run("Should return OneTimeToken when Oauth Token is valid", func(t *testing.T) {
 		// given
@@ -243,7 +243,7 @@ func TestDirectorClient_GetConnectionToken(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		receivedOneTimeToken, err := configClient.GetConnectionToken(runtimeTestingID, tenantValue)
+		receivedOneTimeToken, err := configClient.GetConnectionToken(compassTestingID, globalAccountValue)
 
 		// then
 		require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestDirectorClient_GetConnectionToken(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		receivedOneTimeToken, err := configClient.GetConnectionToken(runtimeTestingID, tenantValue)
+		receivedOneTimeToken, err := configClient.GetConnectionToken(compassTestingID, globalAccountValue)
 
 		// then
 		require.Error(t, err)
@@ -285,7 +285,7 @@ func TestDirectorClient_GetConnectionToken(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		receivedOneTimeToken, err := configClient.GetConnectionToken(runtimeTestingID, tenantValue)
+		receivedOneTimeToken, err := configClient.GetConnectionToken(compassTestingID, globalAccountValue)
 
 		// then
 		require.Error(t, err)
@@ -311,7 +311,7 @@ func TestDirectorClient_GetConnectionToken(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		receivedOneTimeToken, err := configClient.GetConnectionToken(runtimeTestingID, tenantValue)
+		receivedOneTimeToken, err := configClient.GetConnectionToken(compassTestingID, globalAccountValue)
 
 		// then
 		require.Error(t, err)
@@ -322,14 +322,14 @@ func TestDirectorClient_GetConnectionToken(t *testing.T) {
 func TestDirectorClient_GetRuntime(t *testing.T) {
 	expectedRequest := gcli.NewRequest(expectedGetRuntimeQuery)
 	expectedRequest.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", validTokenValue))
-	expectedRequest.Header.Set(TenantHeader, tenantValue)
+	expectedRequest.Header.Set(TenantHeader, globalAccountValue)
 
 	t.Run("should return Runtime", func(t *testing.T) {
 		// given
 		expectedResponse := &graphql.RuntimeExt{
 			Runtime: graphql.Runtime{
-				ID:   runtimeTestingID,
-				Name: runtimeTestingName,
+				ID:   compassTestingID,
+				Name: compassTestingName,
 			},
 		}
 
@@ -351,7 +351,7 @@ func TestDirectorClient_GetRuntime(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		runtime, err := configClient.GetRuntime(runtimeTestingID, tenantValue)
+		runtime, err := configClient.GetRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		require.NoError(t, err)
@@ -372,7 +372,7 @@ func TestDirectorClient_GetRuntime(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		runtime, err := configClient.GetRuntime(runtimeTestingID, tenantValue)
+		runtime, err := configClient.GetRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -399,7 +399,7 @@ func TestDirectorClient_GetRuntime(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		runtime, err := configClient.GetRuntime(runtimeTestingID, tenantValue)
+		runtime, err := configClient.GetRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		require.Error(t, err)
@@ -426,7 +426,7 @@ func TestDirectorClient_GetRuntime(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		runtime, err := configClient.GetRuntime(runtimeTestingID, tenantValue)
+		runtime, err := configClient.GetRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		require.Error(t, err)
@@ -451,11 +451,11 @@ func TestDirectorClient_MapDirectorErrors(t *testing.T) {
 	// given
 	expectedRequest := gcli.NewRequest(expectedRegisterRuntimeQuery)
 	expectedRequest.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", validTokenValue))
-	expectedRequest.Header.Set(TenantHeader, tenantValue)
+	expectedRequest.Header.Set(TenantHeader, globalAccountValue)
 
 	inputDescription := "runtime description"
 	runtimeInput := &gqlschema.RuntimeInput{
-		Name:        runtimeTestingName,
+		Name:        compassTestingName,
 		Description: &inputDescription,
 	}
 
@@ -524,14 +524,14 @@ func TestDirectorClient_MapDirectorErrors(t *testing.T) {
 			"Should map Director Tenant Required Error to Provisioner Bad Request Error",
 			map[string]interface{}{"error_code": float64(directorApperrors.TenantRequired)},
 			apperrors.CodeBadRequest,
-			apperrors.TenantNotFound,
+			apperrors.GlobalAccountNotFound,
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, graphql: some error",
 		},
 		{
 			"Should map Director Tenant Not Found Error to Provisioner Bad Request Error",
 			map[string]interface{}{"error_code": float64(directorApperrors.TenantNotFound)},
 			apperrors.CodeBadRequest,
-			apperrors.TenantNotFound,
+			apperrors.GlobalAccountNotFound,
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, graphql: some error",
 		},
 		{
@@ -580,7 +580,7 @@ func TestDirectorClient_MapDirectorErrors(t *testing.T) {
 			directorClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 			// when
-			_, err := directorClient.CreateRuntime(runtimeInput, tenantValue)
+			_, err := directorClient.CreateRuntime(runtimeInput, globalAccountValue)
 
 			// then
 			require.Error(t, err)

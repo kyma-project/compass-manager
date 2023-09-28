@@ -35,8 +35,8 @@ const (
 )
 
 const (
-	Unknown        CauseCode = 10
-	TenantNotFound CauseCode = 11
+	Unknown               CauseCode = 10
+	GlobalAccountNotFound CauseCode = 11
 )
 
 type AppError interface {
@@ -83,8 +83,8 @@ func BadRequest(format string, a ...interface{}) AppError {
 	return errorf(CodeBadRequest, Unknown, format, a...)
 }
 
-func InvalidTenant(format string, a ...interface{}) AppError {
-	return errorf(CodeBadRequest, TenantNotFound, format, a...)
+func InvalidGlobalAccount(format string, a ...interface{}) AppError {
+	return errorf(CodeBadRequest, GlobalAccountNotFound, format, a...)
 }
 
 func (ae appError) Append(additionalFormat string, a ...interface{}) AppError {

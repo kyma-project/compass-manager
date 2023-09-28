@@ -103,14 +103,20 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	compassMappingLabels, err := cm.getCompassMappingLabels(req.Name)
 	if compassMappingLabels != nil {
-		_, err := cm.Registrator.RefreshCompassToken(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
-		if err != nil {
-			cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaNameLabel])
-			return ctrl.Result{RequeueAfter: requeueTime}, err
-		}
+		// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
+
+		//_, err := cm.Registrator.RefreshCompassToken(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
+		//if err != nil {
+		//	cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaNameLabel])
+		//	return ctrl.Result{RequeueAfter: requeueTime}, err
+		//}
 		// update CRA secret in client cluster
 		cm.Log.Infof("One time token for Kyma Runtime %s refreshed", compassMappingLabels[KymaNameLabel])
 		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		cm.Log.Warnf("Failed to obtain labels from Compass Mapping resource %s: %v.", req.Name, err)
+		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
@@ -192,10 +198,10 @@ func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeI
 	return err
 }
 
-func (cm *CompassManagerReconciler) getCompassMappingLabels(mappingName string) (map[string]string, error) {
+func (cm *CompassManagerReconciler) getCompassMappingLabels(kymaName string) (map[string]string, error) {
 	mappingList := &v1beta1.CompassManagerMappingList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
-		KymaNameLabel: mappingName,
+		KymaNameLabel: kymaName,
 	})
 
 	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
