@@ -3,26 +3,23 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
-
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	ctrl "sigs.k8s.io/controller-runtime"
-
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	//+kubebuilder:scaffold:imports
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
@@ -116,14 +113,13 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
-
 	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "all-good", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "registration-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
 
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
-	//compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
+	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
 	//refreshedToken := graphql.OneTimeTokenForRuntimeExt{
 	//	OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{},
 	//	Raw:                    "rawToken",
@@ -147,8 +143,7 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
-	//r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
+	// r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
 	//c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
 	//r.On("RefreshCompassToken", "id-refresh-token", "globalAccount").Return(refreshedToken, nil).Once()
-
 }

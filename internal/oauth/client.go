@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/internal/apperrors"
-
 	"github.com/kyma-project/compass-manager/internal/util"
 	log "github.com/sirupsen/logrus"
 )

@@ -2,8 +2,9 @@ package controllers
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
@@ -76,7 +77,7 @@ var _ = Describe("Compass Manager controller", func() {
 
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 
-	//Context("After successful runtime registration when user re-enable Application Connector module", func() {
+	// Context("After successful runtime registration when user re-enable Application Connector module", func() {
 	//	DescribeTable("the one-time token for Compass Runtime Agent should be refreshed", func(kymaName string) {
 	//		By("Create secret with credentials")
 	//		secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
@@ -175,7 +176,7 @@ func getCompassMappingLabel(kymaName, labelName, namespace string) (string, erro
 
 // Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 
-//func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
+// func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
 //	var obj kyma.Kyma
 //	key := types.NamespacedName{Name: kymaName, Namespace: kymaNamespace}
 //

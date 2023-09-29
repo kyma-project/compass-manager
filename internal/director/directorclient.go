@@ -4,17 +4,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kyma-project/compass-manager/pkg/gqlschema"
-
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql/graphqlizer"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	gql "github.com/kyma-project/compass-manager/internal/graphql"
 	"github.com/kyma-project/compass-manager/internal/oauth"
+	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 	gcli "github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -27,7 +25,7 @@ type Client interface {
 	CreateRuntime(config *gqlschema.RuntimeInput, globalAccount string) (string, apperrors.AppError)
 	GetRuntime(compassID, globalAccount string) (graphql.RuntimeExt, apperrors.AppError)
 	GetConnectionToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
-	//RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
+	// RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
 	//UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
 	//DeleteRuntime(id, tenant string) apperrors.AppError
 	//SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError

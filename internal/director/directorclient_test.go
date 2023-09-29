@@ -8,9 +8,6 @@ import (
 
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	gql "github.com/kyma-project/compass-manager/internal/graphql"
 	"github.com/kyma-project/compass-manager/internal/oauth"
@@ -18,6 +15,8 @@ import (
 	"github.com/kyma-project/compass-manager/internal/util"
 	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 	gcli "github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (

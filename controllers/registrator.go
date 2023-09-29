@@ -1,14 +1,15 @@
 package controllers
 
 import (
+	"math/rand"
+	"time"
+
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/util"
 	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 	"github.com/sirupsen/logrus"
-	"math/rand"
-	"time"
 )
 
 const nameIDLen = 4

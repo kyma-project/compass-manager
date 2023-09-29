@@ -7,11 +7,9 @@ import (
 	"testing"
 
 	"github.com/kyma-project/compass-manager/internal/apperrors"
-	"github.com/stretchr/testify/require"
-
 	"github.com/sirupsen/logrus/hooks/test"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPresenter_ErrorPresenter(t *testing.T) {

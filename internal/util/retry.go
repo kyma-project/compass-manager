@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/internal/apperrors"
-
 	"github.com/sirupsen/logrus"
 )
 

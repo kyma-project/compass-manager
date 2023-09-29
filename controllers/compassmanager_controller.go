@@ -2,18 +2,16 @@ package controllers
 
 import (
 	"context"
-	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
-	"github.com/pkg/errors"
 	"time"
 
+	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -91,7 +89,6 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 var requeueTime = time.Minute * 5
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
