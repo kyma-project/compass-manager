@@ -121,7 +121,7 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "registration-fails", GlobalAccountIDLabel: "globalAccount"})
 	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
-	
+
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	//compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
 	//refreshedToken := graphql.OneTimeTokenForRuntimeExt{

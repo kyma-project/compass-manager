@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
@@ -12,6 +13,7 @@ import (
 
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	log "github.com/sirupsen/logrus"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -101,31 +103,13 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, nil
 	}
 
-	compassMappingLabels, err := cm.getCompassMappingLabels(req.Name)
-	if compassMappingLabels != nil {
-		// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
-
-		//_, err := cm.Registrator.RefreshCompassToken(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
-		//if err != nil {
-		//	cm.Log.Warnf("Failed to refresh one-time token for Kyma Runtime %s", compassMappingLabels[KymaNameLabel])
-		//	return ctrl.Result{RequeueAfter: requeueTime}, err
-		//}
-		// update CRA secret in client cluster
-		cm.Log.Infof("One time token for Kyma Runtime %s refreshed", compassMappingLabels[KymaNameLabel])
-		return ctrl.Result{}, nil
-	}
-	if err != nil {
-		cm.Log.Warnf("Failed to obtain labels from Compass Mapping resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: requeueTime}, err
-	}
-
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
 	if err != nil {
 		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 
-	compassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+	compassRuntimeID, err := cm.registerRuntimeIfNotExists(req.Name, req.Namespace, kymaLabels)
 	if err != nil {
 		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
@@ -139,7 +123,43 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
-	return ctrl.Result{}, cm.createCompassMappingResource(compassRuntimeID, req.Namespace, kymaLabels)
+	return ctrl.Result{}, nil
+}
+
+func (cm *CompassManagerReconciler) registerRuntimeIfNotExists(kymaName, namespace string, kymaLabels map[string]string) (string, error) {
+	existingCompassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(kymaName, namespace)
+	if err != nil {
+		return "", err
+	}
+
+	if existingCompassRuntimeID != "" {
+		return existingCompassRuntimeID, err
+	}
+
+	newCompassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+	if err != nil {
+		cmerr := cm.markCompassManagerMappingAsFailed(namespace, kymaLabels)
+		if cmerr != nil {
+			return "", errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
+		}
+
+		return "", err
+	}
+
+	cmerr := cm.markCompassManagerMappingAsSucceeded(newCompassRuntimeID, namespace, kymaLabels)
+	if cmerr != nil {
+		return "", errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
+	}
+
+	return newCompassRuntimeID, nil
+}
+
+func (cm *CompassManagerReconciler) markCompassManagerMappingAsSucceeded(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
+	return cm.upsertCompassMappingResource(compassRuntimeID, namespace, kymaLabels)
+}
+
+func (cm *CompassManagerReconciler) markCompassManagerMappingAsFailed(namespace string, kymaLabels map[string]string) error {
+	return cm.upsertCompassMappingResource("", namespace, kymaLabels)
 }
 
 func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
@@ -180,9 +200,10 @@ func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (
 	return l, nil
 }
 
-func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
+func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
+	kymaName := kymaLabels[KymaNameLabel]
 	compassMapping := &v1beta1.CompassManagerMapping{}
-	compassMapping.Name = kymaLabels[KymaNameLabel]
+	compassMapping.Name = kymaName
 	compassMapping.Namespace = namespace
 
 	compassMappingLabels := make(map[string]string)
@@ -194,8 +215,21 @@ func (cm *CompassManagerReconciler) createCompassMappingResource(compassRuntimeI
 
 	compassMapping.SetLabels(compassMappingLabels)
 
-	err := cm.Client.Create(context.Background(), compassMapping)
-	return err
+	key := types.NamespacedName{
+		Name:      kymaName,
+		Namespace: namespace,
+	}
+
+	existingMapping := v1beta1.CompassManagerMapping{}
+	err := cm.Client.Get(context.TODO(), key, &existingMapping)
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return cm.Client.Create(context.Background(), compassMapping)
+		}
+	}
+
+	existingMapping.SetLabels(compassMappingLabels)
+	return cm.Client.Update(context.TODO(), &existingMapping)
 }
 
 func (cm *CompassManagerReconciler) getCompassMappingLabels(kymaName string) (map[string]string, error) {
@@ -219,6 +253,28 @@ func (cm *CompassManagerReconciler) getCompassMappingLabels(kymaName string) (ma
 	mappingLabels := mappingList.Items[0].GetLabels()
 
 	return mappingLabels, nil
+}
+
+func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName string, namespace string) (string, error) {
+	mappingList := &v1beta1.CompassManagerMappingList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		KymaNameLabel: kymaName,
+	})
+
+	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
+		LabelSelector: labelSelector,
+		Namespace:     namespace,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(mappingList.Items) == 0 {
+		return "", nil
+	}
+
+	return mappingList.Items[0].GetLabels()[ComppassIDLabel], nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
