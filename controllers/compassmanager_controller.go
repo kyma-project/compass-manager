@@ -109,12 +109,30 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
 
-	compassRuntimeID, err := cm.registerRuntimeIfNotExists(req.Name, req.Namespace, kymaLabels)
+	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
 	if err != nil {
-		cm.Log.Warnf("Failed to register Runtime for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: requeueTime}, err
 	}
-	cm.Log.Infof("Runtime %s registered for Kyma resource %s.", compassRuntimeID, req.Name)
+
+	if compassRuntimeID == "" {
+		newCompassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+		if err != nil {
+			cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
+			if cmerr != nil {
+				return ctrl.Result{RequeueAfter: requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
+			}
+
+			return ctrl.Result{RequeueAfter: requeueTime}, err
+		}
+
+		cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
+		if cmerr != nil {
+			return ctrl.Result{RequeueAfter: requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
+		}
+
+		compassRuntimeID = newCompassRuntimeID
+		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
+	}
 
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
@@ -124,42 +142,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	return ctrl.Result{}, nil
-}
-
-func (cm *CompassManagerReconciler) registerRuntimeIfNotExists(kymaName, namespace string, kymaLabels map[string]string) (string, error) {
-	existingCompassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(kymaName, namespace)
-	if err != nil {
-		return "", err
-	}
-
-	if existingCompassRuntimeID != "" {
-		return existingCompassRuntimeID, err
-	}
-
-	newCompassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
-	if err != nil {
-		cmerr := cm.markCompassManagerMappingAsFailed(namespace, kymaLabels)
-		if cmerr != nil {
-			return "", errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
-		}
-
-		return "", err
-	}
-
-	cmerr := cm.markCompassManagerMappingAsSucceeded(newCompassRuntimeID, namespace, kymaLabels)
-	if cmerr != nil {
-		return "", errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
-	}
-
-	return newCompassRuntimeID, nil
-}
-
-func (cm *CompassManagerReconciler) markCompassManagerMappingAsSucceeded(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
-	return cm.upsertCompassMappingResource(compassRuntimeID, namespace, kymaLabels)
-}
-
-func (cm *CompassManagerReconciler) markCompassManagerMappingAsFailed(namespace string, kymaLabels map[string]string) error {
-	return cm.upsertCompassMappingResource("", namespace, kymaLabels)
 }
 
 func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
@@ -230,29 +212,6 @@ func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeI
 
 	existingMapping.SetLabels(compassMappingLabels)
 	return cm.Client.Update(context.TODO(), &existingMapping)
-}
-
-func (cm *CompassManagerReconciler) getCompassMappingLabels(kymaName string) (map[string]string, error) {
-	mappingList := &v1beta1.CompassManagerMappingList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{
-		KymaNameLabel: kymaName,
-	})
-
-	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
-		LabelSelector: labelSelector,
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	if len(mappingList.Items) == 0 {
-		return nil, nil
-	}
-
-	mappingLabels := mappingList.Items[0].GetLabels()
-
-	return mappingLabels, nil
 }
 
 func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName string, namespace string) (string, error) {
