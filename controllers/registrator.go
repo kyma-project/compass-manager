@@ -15,6 +15,7 @@ import (
 const (
 	nameIDLen = 4
 	retryTime = 5
+	attempts  = 3
 )
 
 type CompassRegistrator struct {
@@ -36,7 +37,7 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 		return "", err
 	}
 
-	err = util.RetryOnError(retryTime*time.Second, 3, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
+	err = util.RetryOnError(retryTime*time.Second, attempts, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
 		runtimeID, err = r.Client.CreateRuntime(runtimeInput, compassRuntimeLabels["global_account_id"].(string))
 		return
 	})
@@ -50,7 +51,7 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 
 func (r *CompassRegistrator) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
 	var token graphql.OneTimeTokenForRuntimeExt
-	err := util.RetryOnError(retryTime*time.Second, 3, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
+	err := util.RetryOnError(retryTime*time.Second, attempts, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
 		token, err = r.Client.GetConnectionToken(compassID, globalAccount)
 		return
 	})

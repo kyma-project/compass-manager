@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme   = runtime.NewScheme()        //nolint:gochecknoglobals
+	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
 )
 
 type config struct {
@@ -87,7 +87,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Port:                   9443, //nolint:gomnd
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "2647ec81.kyma-project.io",
@@ -108,7 +108,7 @@ func main() {
 
 	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(log)
-	requeueTime := time.Minute * 5
+	requeueTime := time.Minute * 5 //nolint:gomnd
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
@@ -156,7 +156,7 @@ func newHTTPClient(skipCertVerification bool) *http.Client {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipCertVerification},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 30 * time.Second, //nolint:gomnd
 	}
 }
 

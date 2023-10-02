@@ -4,13 +4,12 @@ import (
 	"context"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -108,7 +107,7 @@ var _ = Describe("Compass Manager controller", func() {
 	//	},
 	//		Entry("Token successfully refreshed", "refresh-token"),
 	//	)
-	//})
+	// })
 })
 
 func createNamespace(name string) error {

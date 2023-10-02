@@ -26,14 +26,14 @@ import (
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
 var (
-	cfg              *rest.Config
-	k8sClient        client.Client
-	testEnv          *envtest.Environment
-	cm               *CompassManagerReconciler
-	mockConfigurator *mocks.Configurator
-	mockRegistrator  *mocks.Registrator
-	suiteCtx         context.Context
-	cancelSuiteCtx   context.CancelFunc
+	cfg              *rest.Config              //nolint:gochecknoglobals
+	k8sClient        client.Client             //nolint:gochecknoglobals
+	testEnv          *envtest.Environment      //nolint:gochecknoglobals
+	cm               *CompassManagerReconciler //nolint:gochecknoglobals
+	mockConfigurator *mocks.Configurator       //nolint:gochecknoglobals
+	mockRegistrator  *mocks.Registrator        //nolint:gochecknoglobals
+	suiteCtx         context.Context           //nolint:gochecknoglobals
+	cancelSuiteCtx   context.CancelFunc        //nolint:gochecknoglobals
 )
 
 func TestAPIs(t *testing.T) {
@@ -122,7 +122,7 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
-	//refreshedToken := graphql.OneTimeTokenForRuntimeExt{
+	// refreshedToken := graphql.OneTimeTokenForRuntimeExt{
 	//	OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{},
 	//	Raw:                    "rawToken",
 	//	RawEncoded:             "rawEncodedToken",
@@ -146,6 +146,6 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
-	//c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
-	//r.On("RefreshCompassToken", "id-refresh-token", "globalAccount").Return(refreshedToken, nil).Once()
+	// c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
+	// r.On("RefreshCompassToken", "id-refresh-token", "globalAccount").Return(refreshedToken, nil).Once()
 }

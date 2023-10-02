@@ -45,8 +45,8 @@ const (
 )
 
 var (
-	futureExpirationTime = time.Now().Add(time.Duration(60) * time.Minute).Unix()
-	passedExpirationTime = time.Now().Add(time.Duration(60) * time.Minute * -1).Unix()
+	futureExpirationTime = time.Now().Add(time.Duration(60) * time.Minute).Unix()      //nolint:gochecknoglobals
+	passedExpirationTime = time.Now().Add(time.Duration(60) * time.Minute * -1).Unix() //nolint:gochecknoglobals
 )
 
 func TestDirectorClient_RuntimeRegistering(t *testing.T) {

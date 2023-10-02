@@ -25,7 +25,7 @@ const (
 func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 	t.Run("Should return oauth token", func(t *testing.T) {
 		// given
-		credentials := credentials{
+		credentials := credentials{ //nolint:govet
 			clientID:       "12345",
 			clientSecret:   "some dark and scary secret",
 			tokensEndpoint: "http://hydra:4445",

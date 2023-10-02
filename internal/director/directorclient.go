@@ -26,9 +26,9 @@ type Client interface {
 	GetRuntime(compassID, globalAccount string) (graphql.RuntimeExt, apperrors.AppError)
 	GetConnectionToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
 	// RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
-	//UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
-	//DeleteRuntime(id, tenant string) apperrors.AppError
-	//SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError
+	// UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
+	// DeleteRuntime(id, tenant string) apperrors.AppError
+	// SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError
 }
 
 type directorClient struct {
