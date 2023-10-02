@@ -74,21 +74,21 @@ type CompassManagerReconciler struct {
 	Log          *log.Logger
 	Configurator Configurator
 	Registrator  Registrator
+	requeueTime  time.Duration
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Log:          log,
 		Configurator: c,
 		Registrator:  r,
+		requeueTime:  requeueTime,
 	}
 }
 
-var requeueTime = time.Minute * 5
-
-func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
@@ -97,34 +97,34 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if kubeconfig == "" {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
-		return ctrl.Result{RequeueAfter: requeueTime}, nil
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
 	if err != nil {
 		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: requeueTime}, err
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 	}
 
 	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
 	if err != nil {
-		return ctrl.Result{RequeueAfter: requeueTime}, err
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 	}
 
 	if compassRuntimeID == "" {
-		newCompassRuntimeID, err := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
-		if err != nil {
+		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+		if regErr != nil {
 			cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
 			if cmerr != nil {
-				return ctrl.Result{RequeueAfter: requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
 			}
 
-			return ctrl.Result{RequeueAfter: requeueTime}, err
+			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 		}
 
 		cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
 		if cmerr != nil {
-			return ctrl.Result{RequeueAfter: requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
+			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 		}
 
 		compassRuntimeID = newCompassRuntimeID
@@ -134,7 +134,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: requeueTime}, err
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 	}
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 

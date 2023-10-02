@@ -14,7 +14,7 @@ type presenter struct {
 	Logger *log.Logger
 }
 
-func NewPresenter(logger *log.Logger) *presenter {
+func NewPresenter(logger *log.Logger) *presenter { //nolint:revive
 	return &presenter{Logger: logger}
 }
 

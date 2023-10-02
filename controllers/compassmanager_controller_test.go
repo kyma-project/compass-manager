@@ -188,4 +188,4 @@ func getCompassMappingLabel(kymaName, labelName, namespace string) (string, erro
 //	obj.Spec.Modules = kymaModules
 //
 //	return &obj, nil
-//}
+//  }

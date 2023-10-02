@@ -10,10 +10,10 @@ func NewRuntimeAgentConfigurator(log *logrus.Logger) *RuntimeAgentConfigurator {
 	return &RuntimeAgentConfigurator{Log: log}
 }
 
-func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error {
+func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error { //nolint:revive
 	return nil
 }
 
-func (r *RuntimeAgentConfigurator) UpdateCompassRuntimeAgent(kubeconfig string) error {
+func (r *RuntimeAgentConfigurator) UpdateCompassRuntimeAgent(kubeconfig string) error { //nolint:revive
 	return nil
 }

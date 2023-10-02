@@ -51,7 +51,7 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	requeueTime = time.Second * 10
+
 	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
@@ -74,7 +74,9 @@ var _ = BeforeSuite(func() {
 	mockRegistrator = &mocks.Registrator{}
 	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator)
+	requeueTime := time.Second * 10
+
+	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
