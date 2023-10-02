@@ -200,7 +200,7 @@ func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeI
 	}
 
 	existingMapping := v1beta1.CompassManagerMapping{}
-	// TODO add retry for upsert logic
+	// TODOs add retry for upsert logic
 	err := cm.Client.Get(context.TODO(), key, &existingMapping)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
