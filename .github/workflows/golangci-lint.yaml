@@ -1,9 +1,5 @@
 name: golangci-lint
 on:
-  push:
-    branches:
-      - main
-      - crd-creation
   pull_request:
 
 permissions:
