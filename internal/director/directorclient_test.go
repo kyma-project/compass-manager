@@ -216,14 +216,14 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 	expectedRequest := gcli.NewRequest(expectedDeleteRuntimeQuery)
 	expectedRequest.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", validTokenValue))
-	expectedRequest.Header.Set(TenantHeader, tenantValue)
+	expectedRequest.Header.Set(TenantHeader, globalAccountValue)
 
 	t.Run("Should unregister runtime of given ID and return no error when the Director access token is valid", func(t *testing.T) {
 		// given
 		responseDescription := "runtime description"
 		expectedResponse := &graphql.Runtime{
-			ID:          runtimeTestingID,
-			Name:        runtimeTestingName,
+			ID:          compassTestingID,
+			Name:        compassTestingName,
 			Description: &responseDescription,
 		}
 
@@ -245,7 +245,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.NoError(t, err)
@@ -264,7 +264,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -283,7 +283,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -297,7 +297,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -325,7 +325,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -351,7 +351,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
@@ -363,7 +363,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		responseDescription := "runtime description"
 		expectedResponse := &graphql.Runtime{
 			ID:          "BadId",
-			Name:        runtimeTestingName,
+			Name:        compassTestingName,
 			Description: &responseDescription,
 		}
 
@@ -385,7 +385,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
 
 		// when
-		err := configClient.DeleteRuntime(runtimeTestingID, tenantValue)
+		err := configClient.DeleteRuntime(compassTestingID, globalAccountValue)
 
 		// then
 		assert.Error(t, err)
