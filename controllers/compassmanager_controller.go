@@ -71,6 +71,7 @@ type Client interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
+	Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -98,29 +99,18 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
-	//if err != nil {
-	//	if k8serrors.IsNotFound(err) {
-	//		compassMappingLabels, err := cm.getCompassMappingLabels(req.Name)
-	//		if compassMappingLabels == nil {
-	//			cm.Log.Infof("Runtime was not connected in Compass, nothing to delete")
-	//			return ctrl.Result{}, nil
-	//		}
-	//		if err != nil {
-	//			cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", req.Name, err)
-	//			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
-	//		}
-	//		cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", req.Name)
-	//		err = cm.Registrator.DeregisterFromCompass(compassMappingLabels[ComppassIDLabel], compassMappingLabels[GlobalAccountIDLabel])
-	//		if err != nil {
-	//			cm.Log.Warnf("Failed to deregister Runtime from Compass fro Kyma Resource %s: %v", req.Name, err)
-	//			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
-	//		}
-	//		cm.Log.Infof("Runtime %s deregistered from Compass", req.Name)
-	//		return ctrl.Result{}, nil
-	//	}
-	//	cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v", req.Name, err)
-	//	return ctrl.Result{RequeueAfter: cm.requeueTime}, err
-	//}
+
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
+			if delErr != nil {
+				return ctrl.Result{RequeueAfter: 15}, errors.Wrap(delErr, "failed to unregister Runtime from Compass system")
+			}
+			return ctrl.Result{}, nil
+		}
+		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v", req.Name, err)
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+	}
 
 	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
@@ -276,7 +266,7 @@ func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeI
 	return cm.Client.Update(context.TODO(), &existingMapping)
 }
 
-func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName string, namespace string) (string, error) {
+func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName, namespace string) (string, error) {
 	mappingList := &v1beta1.CompassManagerMappingList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
 		LabelKymaName: kymaName,
@@ -296,6 +286,83 @@ func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName stri
 	}
 
 	return mappingList.Items[0].GetLabels()[LabelComppassID], nil
+}
+
+func (cm *CompassManagerReconciler) getGlobalAccountFromCompassMapping(kymaName, namespace string) (string, error) {
+	mappingList := &v1beta1.CompassManagerMappingList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		KymaNameLabel: kymaName,
+	})
+
+	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
+		LabelSelector: labelSelector,
+		Namespace:     namespace,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(mappingList.Items) == 0 {
+		return "", nil
+	}
+
+	return mappingList.Items[0].GetLabels()[GlobalAccountIDLabel], nil
+}
+
+func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace string) error {
+	runtimeIDFromMapping, err := cm.getRuntimeIDFromCompassMapping(kymaName, namespace)
+	if runtimeIDFromMapping == "" {
+		cm.Log.Infof("Runtime was not connected in Compass, nothing to delete")
+		return nil
+	}
+	if err != nil {
+		cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
+		return err
+	}
+
+	globalAccountFromMapping, err := cm.getGlobalAccountFromCompassMapping(kymaName, namespace)
+	if err != nil {
+		cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
+		return err
+	}
+
+	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", kymaName)
+	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
+	if err != nil {
+		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", kymaName, err)
+		return err
+	}
+
+	err = cm.deleteCompassMapping(kymaName, namespace)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete Compass Mapping")
+		//cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
+	}
+	cm.Log.Infof("Runtime %s deregistered from Compass", kymaName)
+	return nil
+}
+
+func (cm *CompassManagerReconciler) deleteCompassMapping(kymaName, namespace string) error {
+	mapping := &v1beta1.CompassManagerMapping{}
+
+	key := types.NamespacedName{
+		Name:      kymaName,
+		Namespace: namespace,
+	}
+
+	// TODOs add retry for delete logic
+	err := cm.Client.Get(context.Background(), key, mapping)
+	if err != nil {
+		return err
+	}
+
+	err = cm.Client.Delete(context.Background(), mapping)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
