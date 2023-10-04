@@ -1,16 +1,22 @@
 package controllers
 
 import (
+	"math/rand"
+	"time"
+
+	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/util"
 	"github.com/kyma-project/compass-manager/pkg/gqlschema"
 	"github.com/sirupsen/logrus"
-	"math/rand"
-	"time"
 )
 
-const nameIDLen = 4
+const (
+	nameIDLen = 4
+	retryTime = 5
+	attempts  = 3
+)
 
 type CompassRegistrator struct {
 	Client director.Client
@@ -24,28 +30,14 @@ func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *C
 	}
 }
 
-func (r *CompassRegistrator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error {
-	return nil
-}
-
-func (r *CompassRegistrator) ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error) {
-	return true, nil
-}
-
-func (r *CompassRegistrator) UpdateCompassRuntimeAgent(kubeconfig string) error {
-	return nil
-}
-
 func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
-
 	var runtimeID string
-	r.Log.Infof("Compass-Runtime-Labels: %s", compassRuntimeLabels)
 	runtimeInput, err := createRuntimeInput(compassRuntimeLabels)
 	if err != nil {
 		return "", err
 	}
 
-	err = util.RetryOnError(5*time.Second, 3, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
+	err = util.RetryOnError(retryTime*time.Second, attempts, "Error while registering runtime in Director: %s", func() (err apperrors.AppError) {
 		runtimeID, err = r.Client.CreateRuntime(runtimeInput, compassRuntimeLabels["global_account_id"].(string))
 		return
 	})
@@ -57,8 +49,21 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 	return runtimeID, nil
 }
 
-func createRuntimeInput(compassRuntimeLabels map[string]interface{}) (*gqlschema.RuntimeInput, error) {
+func (r *CompassRegistrator) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
+	var token graphql.OneTimeTokenForRuntimeExt
+	err := util.RetryOnError(retryTime*time.Second, attempts, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
+		token, err = r.Client.GetConnectionToken(compassID, globalAccount)
+		return
+	})
 
+	if err != nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, err
+	}
+
+	return token, nil
+}
+
+func createRuntimeInput(compassRuntimeLabels map[string]interface{}) (*gqlschema.RuntimeInput, error) {
 	runtimeInput := &gqlschema.RuntimeInput{}
 	runtimeInput.Name = compassRuntimeLabels["gardenerClusterName"].(string) + "-" + generateRandomText(nameIDLen)
 

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/internal/apperrors"
-
 	"github.com/kyma-project/compass-manager/internal/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -65,8 +64,8 @@ func (c *oauthClient) getAuthorizationToken(credentials credentials) (Token, app
 	defer util.Close(response.Body)
 
 	if response.StatusCode != http.StatusOK {
-		dump, err := httputil.DumpResponse(response, true)
-		if err != nil {
+		dump, dumpErr := httputil.DumpResponse(response, true)
+		if dumpErr != nil {
 			dump = []byte("failed to dump response body")
 		}
 		return Token{}, apperrors.External("Get token call returned unexpected status: %s. Response dump: %s", response.Status, string(dump)).SetComponent(apperrors.ErrMpsOAuth2)

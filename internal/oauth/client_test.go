@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -24,8 +24,8 @@ const (
 
 func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 	t.Run("Should return oauth token", func(t *testing.T) {
-		//given
-		credentials := credentials{
+		// given
+		credentials := credentials{ //nolint:govet
 			clientID:       "12345",
 			clientSecret:   "some dark and scary secret",
 			tokensEndpoint: "http://hydra:4445",
@@ -46,7 +46,7 @@ func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 
 				return &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       ioutil.NopCloser(bytes.NewReader(jsonToken)),
+					Body:       io.NopCloser(bytes.NewReader(jsonToken)),
 				}
 			}
 			return &http.Response{
@@ -61,12 +61,12 @@ func TestOauthClient_GetAuthorizationToken(t *testing.T) {
 
 		oauthClient := NewOauthClient(client, credentials.clientID, credentials.clientSecret, credentials.tokensEndpoint)
 
-		//when
+		// when
 		responseToken, err := oauthClient.GetAuthorizationToken()
 		require.NoError(t, err)
 		token.Expiration += time.Now().Unix()
 
-		//then
+		// then
 		assert.Equal(t, token.AccessToken, responseToken.AccessToken)
 		assert.Equal(t, token.Expiration, responseToken.Expiration)
 	})
@@ -85,7 +85,6 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func createFakeCredentialsSecret(t *testing.T, secrets core.SecretInterface, credentials credentials) {
-
 	secret := &v1.Secret{
 		ObjectMeta: meta.ObjectMeta{
 			Name:      secretName,

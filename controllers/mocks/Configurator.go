@@ -9,30 +9,6 @@ type Configurator struct {
 	mock.Mock
 }
 
-// ConfigurationForRuntimeAgentExists provides a mock function with given fields: kubeconfig
-func (_m *Configurator) ConfigurationForRuntimeAgentExists(kubeconfig string) (bool, error) {
-	ret := _m.Called(kubeconfig)
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (bool, error)); ok {
-		return rf(kubeconfig)
-	}
-	if rf, ok := ret.Get(0).(func(string) bool); ok {
-		r0 = rf(kubeconfig)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(kubeconfig)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // ConfigureCompassRuntimeAgent provides a mock function with given fields: kubeconfig, runtimeID
 func (_m *Configurator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error {
 	ret := _m.Called(kubeconfig, runtimeID)
@@ -45,30 +21,6 @@ func (_m *Configurator) ConfigureCompassRuntimeAgent(kubeconfig string, runtimeI
 	}
 
 	return r0
-}
-
-// RegisterInCompass provides a mock function with given fields: compassRuntimeLabels
-func (_m *Configurator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
-	ret := _m.Called(compassRuntimeLabels)
-
-	var r0 string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(map[string]interface{}) (string, error)); ok {
-		return rf(compassRuntimeLabels)
-	}
-	if rf, ok := ret.Get(0).(func(map[string]interface{}) string); ok {
-		r0 = rf(compassRuntimeLabels)
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	if rf, ok := ret.Get(1).(func(map[string]interface{}) error); ok {
-		r1 = rf(compassRuntimeLabels)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // UpdateCompassRuntimeAgent provides a mock function with given fields: kubeconfig

@@ -3,11 +3,9 @@ package gqlschema
 import (
 	"io"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/kyma-incubator/compass/components/director/pkg/scalar"
-
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type Labels map[string]interface{}

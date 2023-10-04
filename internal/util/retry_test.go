@@ -9,13 +9,13 @@ import (
 
 func TestRetryOnError(t *testing.T) {
 	t.Run("should retry function on error", func(t *testing.T) {
-		//given
+		// given
 		tester := tester{errReturned: false}
 
-		//when
+		// when
 		err := RetryOnError(1, 2, "function call returned error: %s", tester.testFunction)
 
-		//then
+		// then
 		require.NoError(t, err)
 	})
 }

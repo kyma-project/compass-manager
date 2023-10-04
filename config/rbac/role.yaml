@@ -24,11 +24,19 @@ rules:
 - apiGroups:
   - operator.kyma-project.io
   resources:
+  - compassmanagermappings
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
   - kymas
   verbs:
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - operator.kyma-project.io

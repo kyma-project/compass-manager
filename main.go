@@ -4,22 +4,23 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/vrischmann/envconfig"
-	"k8s.io/apimachinery/pkg/util/yaml"
 	"log"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers"
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/graphql"
 	"github.com/kyma-project/compass-manager/internal/oauth"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/vrischmann/envconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,8 +29,8 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme   = runtime.NewScheme()        //nolint:gochecknoglobals
+	setupLog = ctrl.Log.WithName("setup") //nolint:gochecknoglobals
 )
 
 type config struct {
@@ -58,11 +59,11 @@ type DirectorOAuth struct {
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(kyma.AddToScheme(scheme))
+	utilruntime.Must(v1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
-
 	cfg := config{}
 	err := envconfig.InitWithPrefix(&cfg, "APP")
 	exitOnError(err, "Failed to load application config")
@@ -86,7 +87,7 @@ func main() {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
+		Port:                   9443, //nolint:gomnd
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "2647ec81.kyma-project.io",
@@ -106,8 +107,10 @@ func main() {
 	}
 
 	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
+	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(log)
+	requeueTime := time.Minute * 5 //nolint:gomnd
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, compassRegistrator)
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)
@@ -153,7 +156,7 @@ func newHTTPClient(skipCertVerification bool) *http.Client {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipCertVerification},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 30 * time.Second, //nolint:gomnd
 	}
 }
 
