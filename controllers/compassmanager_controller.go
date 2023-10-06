@@ -35,8 +35,7 @@ const (
 	LabelShootName        = "kyma-project.io/shoot-name"
 	LabelSubaccountID     = "kyma-project.io/subaccount-id"
 
-	ApplicationConnectorModuleName = "application-connector-module"
-
+	ApplicationConnectorModuleName = "applicationconnector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
@@ -409,7 +408,6 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 	kymaModules := kymaObj.Spec.Modules
 
 	for _, v := range kymaModules {
-		// Placeholder for App Conn module name, change if the name will be already known
 		if v.Name == ApplicationConnectorModuleName {
 			return true
 		}
