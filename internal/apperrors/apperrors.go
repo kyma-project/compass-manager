@@ -32,11 +32,13 @@ const (
 	CodeExternal   ErrCode = 501
 	CodeForbidden  ErrCode = 403
 	CodeBadRequest ErrCode = 400
+	CodeNotFound   ErrCode = 404
 )
 
 const (
 	Unknown               CauseCode = 10
 	GlobalAccountNotFound CauseCode = 11
+	RuntimeNotFound       CauseCode = 20
 )
 
 type AppError interface {
@@ -85,6 +87,10 @@ func BadRequest(format string, a ...interface{}) AppError {
 
 func InvalidGlobalAccount(format string, a ...interface{}) AppError {
 	return errorf(CodeBadRequest, GlobalAccountNotFound, format, a...)
+}
+
+func NotFound(format string, a ...interface{}) AppError {
+	return errorf(CodeNotFound, RuntimeNotFound, format, a...)
 }
 
 func (ae appError) Append(additionalFormat string, a ...interface{}) AppError {

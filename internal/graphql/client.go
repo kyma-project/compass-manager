@@ -3,6 +3,8 @@ package graphql
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"net/http"
 	"time"
 
@@ -18,7 +20,7 @@ type ClientConstructor func(certificate *tls.Certificate, graphqlEndpoint string
 
 //go:generate mockery --name=Client
 type Client interface {
-	Do(req *graphql.Request, res interface{}) error
+	Do(req *graphql.Request, res interface{}, gracefulUnregistration bool) error
 }
 
 type client struct {
@@ -47,13 +49,38 @@ func NewGraphQLClient(graphqlEndpoint string, enableLogging bool, insecureSkipVe
 	return client
 }
 
-func (c *client) Do(req *graphql.Request, res interface{}) error {
+func (c *client) Do(req *graphql.Request, res interface{}, gracefulUnregistration bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	c.clearLogs()
 	err := c.gqlClient.Run(ctx, req, res)
 	if err != nil {
+		var egErr graphql.ExtendedError
+		if errors.As(err, &egErr) {
+			switch gracefulUnregistration {
+			case true:
+				errorCodeValue, present := egErr.Extensions()["error_code"]
+				if !present {
+					errs := errors.New("failed to read the error code from the error response. Original error: ")
+					return errors.Join(errs, egErr)
+				}
+				errorCode, ok := errorCodeValue.(float64)
+				if !ok {
+					errs := errors.New("failed to cast the error code from the error response. Original error: ")
+					return errors.Join(errs, egErr)
+				}
+
+				switch directorApperrors.ErrorType(errorCode) {
+				case directorApperrors.NotFound:
+					return err
+				default:
+					break
+				}
+			default:
+				break
+			}
+		}
 		for _, l := range c.logs {
 			if l != "" {
 				logrus.Info(l)
