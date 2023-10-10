@@ -97,6 +97,37 @@ var _ = Describe("Compass Manager controller", func() {
 		})
 	})
 
+	Context("After successful runtime registration when user delete Kyma resource", func() {
+		DescribeTable("the runtime should be deregister from Compass System", func(kymaName string) {
+			By("Create secret with credentials")
+			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
+
+			By("Create Kyma Resource")
+			kymaCR := createKymaResource(kymaName)
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
+
+			Eventually(func() bool {
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+
+				return err == nil && label != ""
+			}, clientTimeout, clientInterval).Should(BeTrue())
+
+			By("Delete Kyma resource")
+			Expect(k8sClient.Delete(context.Background(), &kymaCR)).To(Succeed())
+
+			Eventually(func() bool {
+				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+
+				return errors.IsNotFound(err) && label == ""
+			})
+		},
+			Entry("Runtime successfully unregistered", "unregister-runtime"),
+			//Entry("The first attempt to unregister Runtime failed, and retry succeeded", "unregister-runtime"),
+			//Entry("Unregistration of deleted runtime should not return an error", "unregister-runtime"),
+		)
+	})
+
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 
 	// Context("After successful runtime registration when user re-enable Application Connector module", func() {

@@ -151,6 +151,9 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 
+	r.On("RegisterInCompass", compassLabelsDeregistration).Return("id-unregister-runtime", nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime", "id-unregister-runtime").Return(nil)
+	r.On("DeregisterFromCompass", "id-unregister-runtime", "globalAccount").Return(nil)
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
 	// c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
