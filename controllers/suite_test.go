@@ -115,7 +115,6 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
-
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
 	// refreshedToken := graphql.OneTimeTokenForRuntimeExt{
