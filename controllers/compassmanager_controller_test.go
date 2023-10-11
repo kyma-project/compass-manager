@@ -120,11 +120,10 @@ var _ = Describe("Compass Manager controller", func() {
 				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
 
 				return errors.IsNotFound(err) && label == ""
-			})
+			}, clientTimeout, clientInterval).Should(BeTrue())
 		},
 			Entry("Runtime successfully unregistered", "unregister-runtime"),
-			//Entry("The first attempt to unregister Runtime failed, and retry succeeded", "unregister-runtime"),
-			//Entry("Unregistration of deleted runtime should not return an error", "unregister-runtime"),
+			Entry("The first attempt to unregister Runtime failed, and retry succeeded", "unregister-runtime-fails"),
 		)
 	})
 

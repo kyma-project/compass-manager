@@ -103,17 +103,16 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if k8serrors.IsNotFound(err) {
 			delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
 			if delErr != nil {
-				return ctrl.Result{RequeueAfter: 15}, errors.Wrap(delErr, "failed to unregister Runtime from Compass system")
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 			}
 			return ctrl.Result{}, nil
 		}
-		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v", req.Name, err)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
 	}
 
 	kubeconfig, err := cm.getKubeconfig(req.Name)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
 	}
 
 	if kubeconfig == "" {
@@ -145,7 +144,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if err != nil {
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Runtime ID from Kyma resource %s", req.Name)
 	}
 
 	if compassRuntimeID == "" {
@@ -153,10 +152,10 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if regErr != nil {
 			cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
 			if cmerr != nil {
-				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			}
-
-			return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+			cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
+			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 		}
 
 		cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
@@ -336,7 +335,6 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace strin
 	err = cm.deleteCompassMapping(kymaName, namespace)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete Compass Mapping")
-		//cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
 	}
 	cm.Log.Infof("Runtime %s deregistered from Compass", kymaName)
 	return nil

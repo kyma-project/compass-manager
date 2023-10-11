@@ -154,6 +154,11 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	r.On("RegisterInCompass", compassLabelsDeregistration).Return("id-unregister-runtime", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime", "id-unregister-runtime").Return(nil)
 	r.On("DeregisterFromCompass", "id-unregister-runtime", "globalAccount").Return(nil)
+
+	r.On("RegisterInCompass", compassLabelsDeregistrationFails).Return("id-unregister-runtime-fails", nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime-fails", "id-unregister-runtime-fails").Return(nil)
+	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(errors.New("error during unregistration of the runtime")).Once()
+	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(nil).Once()
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
 	// c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()
