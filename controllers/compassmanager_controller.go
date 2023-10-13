@@ -118,7 +118,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
 		}
 		return ctrl.Result{}, nil
-
 	} else if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
 	}

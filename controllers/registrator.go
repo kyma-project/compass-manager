@@ -51,7 +51,7 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 }
 
 func (r *CompassRegistrator) DeregisterFromCompass(compassID, globalAccount string) error {
-	err := util.RetryOnError(extendedRetryTime*time.Second, 3, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
+	err := util.RetryOnError(extendedRetryTime*time.Second, attempts, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
 		err = r.Client.DeleteRuntime(compassID, globalAccount)
 		return
 	})
