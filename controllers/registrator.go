@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	nameIDLen = 4
-	retryTime = 5
-	attempts  = 3
+	nameIDLen         = 4
+	retryTime         = 5
+	extendedRetryTime = 10
+	attempts          = 3
 )
 
 type CompassRegistrator struct {
@@ -50,7 +51,7 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 }
 
 func (r *CompassRegistrator) DeregisterFromCompass(compassID, globalAccount string) error {
-	err := util.RetryOnError(10*time.Second, 3, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
+	err := util.RetryOnError(extendedRetryTime*time.Second, 3, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
 		err = r.Client.DeleteRuntime(compassID, globalAccount)
 		return
 	})

@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"fmt"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +41,14 @@ const (
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
 )
+
+type ErrorFromDirector struct {
+	message string
+}
+
+func (e *ErrorFromDirector) Error() string {
+	return fmt.Sprintf("error from director: %s", e.message)
+}
 
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
@@ -94,7 +103,7 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 	}
 }
 
-func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { //nolint:revive
+func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
@@ -103,7 +112,11 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if k8serrors.IsNotFound(err) {
 			delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
 			if delErr != nil {
-				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+				var directorErr *ErrorFromDirector
+				if errors.As(delErr, &directorErr) {
+					return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+				}
+				return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
 			}
 			return ctrl.Result{}, nil
 		}
@@ -329,7 +342,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace strin
 	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
 	if err != nil {
 		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", kymaName, err)
-		return err
+		return fmt.Errorf("%w", &ErrorFromDirector{message: err.Error()})
 	}
 
 	err = cm.deleteCompassMapping(kymaName, namespace)

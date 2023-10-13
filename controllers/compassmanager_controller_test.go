@@ -214,7 +214,7 @@ func createCredentialsSecret(kymaName, namespace string) corev1.Secret {
 	}
 }
 
-func getCompassMappingCompassID(kymaName string) (string, error) {
+func getCompassMappingCompassID(kymaName string) (string, error) { //nolint:unparam
 	var obj v1beta1.CompassManagerMapping
 	key := types.NamespacedName{Name: kymaName, Namespace: kymaCustomResourceNamespace}
 

@@ -17,7 +17,7 @@ type QueryAssertClient struct {
 
 type ModifyResponseFunc []func(t *testing.T, r interface{})
 
-func (c *QueryAssertClient) Do(req *graphql.Request, res interface{}, gracefulUnregistration bool) error {
+func (c *QueryAssertClient) Do(req *graphql.Request, res interface{}, _ bool) error {
 	if len(c.expectedRequests) == 0 {
 		return errors.New("no more requests were expected")
 	}

@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"net/http"
 	"time"
 
+	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
 	"github.com/sirupsen/logrus"
 )
@@ -55,7 +55,7 @@ func (c *client) Do(req *graphql.Request, res interface{}, gracefulUnregistratio
 
 	c.clearLogs()
 	err := c.gqlClient.Run(ctx, req, res)
-	if err != nil {
+	if err != nil { //nolint:nestif
 		var egErr graphql.ExtendedError
 		if errors.As(err, &egErr) {
 			switch gracefulUnregistration {
