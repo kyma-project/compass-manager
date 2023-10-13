@@ -42,11 +42,11 @@ const (
 	KubeconfigKey = "config"
 )
 
-type ErrorFromDirector struct {
+type DirectorError struct {
 	message string
 }
 
-func (e *ErrorFromDirector) Error() string {
+func (e *DirectorError) Error() string {
 	return fmt.Sprintf("error from director: %s", e.message)
 }
 
@@ -108,18 +108,18 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
 
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
-			if delErr != nil {
-				var directorErr *ErrorFromDirector
-				if errors.As(delErr, &directorErr) {
-					return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
-				}
-				return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
+	if err != nil && k8serrors.IsNotFound(err) {
+		deleteErr := cm.handleKymaDeletion(req.Name, req.Namespace)
+		if deleteErr != nil {
+			var directorErr *DirectorError
+			if errors.As(deleteErr, &directorErr) {
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 			}
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
 		}
+		return ctrl.Result{}, nil
+
+	} else if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
 	}
 
@@ -342,7 +342,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace strin
 	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
 	if err != nil {
 		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", kymaName, err)
-		return fmt.Errorf("%w", &ErrorFromDirector{message: err.Error()})
+		return fmt.Errorf("%w", &DirectorError{message: err.Error()})
 	}
 
 	err = cm.deleteCompassMapping(kymaName, namespace)
