@@ -44,7 +44,7 @@ const (
 
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch;update
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
@@ -107,13 +107,13 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
 	if err != nil {
 		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+		return ctrl.Result{}, err
 	}
 
 	kymaAnnotations, err := cm.getKymaAnnotations(req.NamespacedName)
 	if err != nil {
 		cm.Log.Warnf("Failed to obtain annotations from Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+		return ctrl.Result{}, err
 	}
 
 	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
