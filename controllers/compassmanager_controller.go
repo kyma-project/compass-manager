@@ -106,20 +106,22 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 
-	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
+	kymaCR, err := cm.getKymaCR(req.NamespacedName)
 
-	if err != nil && k8serrors.IsNotFound(err) {
-		deleteErr := cm.handleKymaDeletion(req.Name, req.Namespace)
-		if deleteErr != nil {
-			var directorErr *DirectorError
-			if errors.As(deleteErr, &directorErr) {
-				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
-			}
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
+		}
+
+		delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
+		if errors.As(delErr, &DirectorError{}) {
+			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+		}
+
+		if delErr != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
 		}
 		return ctrl.Result{}, nil
-	} else if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
 	}
 
 	kubeconfig, err := cm.getKubeconfig(req.Name)
@@ -130,18 +132,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if kubeconfig == "" {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
-	}
-
-	kymaLabels, err := cm.getKymaLabels(req.NamespacedName)
-	if err != nil {
-		cm.Log.Warnf("Failed to obtain labels from Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{}, err
-	}
-
-	kymaAnnotations, err := cm.getKymaAnnotations(req.NamespacedName)
-	if err != nil {
-		cm.Log.Warnf("Failed to obtain annotations from Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{}, err
 	}
 
 	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
@@ -158,6 +148,8 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Runtime ID from Kyma resource %s", req.Name)
 	}
+
+	kymaLabels := kymaCR.Labels
 
 	if compassRuntimeID == "" {
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
@@ -211,36 +203,22 @@ func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, erro
 	return string(secret.Data[KubeconfigKey]), nil
 }
 
-func (cm *CompassManagerReconciler) getKymaAnnotations(objKey types.NamespacedName) (map[string]string, error) {
-	instance := &kyma.Kyma{}
+func (cm *CompassManagerReconciler) getKymaCR(objKey types.NamespacedName) (kyma.Kyma, error) {
+	instance := kyma.Kyma{}
 
-	err := cm.Client.Get(context.Background(), objKey, instance)
+	err := cm.Client.Get(context.Background(), objKey, &instance)
 	if err != nil {
-		return nil, err
+		return instance, err
 	}
 
-	a := instance.GetAnnotations()
-	if a == nil {
-		a = make(map[string]string)
+	if instance.Labels == nil {
+		instance.Labels = make(map[string]string)
+	}
+	if instance.Annotations == nil {
+		instance.Labels = make(map[string]string)
 	}
 
-	return a, nil
-}
-
-func (cm *CompassManagerReconciler) getKymaLabels(objKey types.NamespacedName) (map[string]string, error) {
-	instance := &kyma.Kyma{}
-
-	err := cm.Client.Get(context.Background(), objKey, instance)
-	if err != nil {
-		return nil, err
-	}
-
-	l := instance.GetLabels()
-	if l == nil {
-		l = make(map[string]string)
-	}
-
-	return l, nil
+	return instance, nil
 }
 
 func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) error {

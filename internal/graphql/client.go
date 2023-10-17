@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
-	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -55,38 +55,33 @@ func (c *client) Do(req *graphql.Request, res interface{}, gracefulUnregistratio
 
 	c.clearLogs()
 	err := c.gqlClient.Run(ctx, req, res)
-	if err != nil { //nolint:nestif
-		var egErr graphql.ExtendedError
-		if errors.As(err, &egErr) {
-			switch gracefulUnregistration {
-			case true:
-				errorCodeValue, present := egErr.Extensions()["error_code"]
-				if !present {
-					errs := errors.New("failed to read the error code from the error response. Original error: ")
-					return errors.Join(errs, egErr)
-				}
-				errorCode, ok := errorCodeValue.(float64)
-				if !ok {
-					errs := errors.New("failed to cast the error code from the error response. Original error: ")
-					return errors.Join(errs, egErr)
-				}
+	if err == nil {
+		return nil
+	}
 
-				switch directorApperrors.ErrorType(errorCode) {
-				case directorApperrors.NotFound:
-					return err
-				default:
-					break
-				}
-			default:
-				break
-			}
+	var egErr graphql.ExtendedError
+	if errors.As(err, &egErr) && gracefulUnregistration {
+		errorCodeValue, present := egErr.Extensions()["error_code"]
+		if !present {
+			errs := errors.New("failed to read the error code from the error response. Original error: ")
+			return errors.Join(errs, egErr)
 		}
-		for _, l := range c.logs {
-			if l != "" {
-				logrus.Info(l)
-			}
+		errorCode, ok := errorCodeValue.(int64)
+		if !ok {
+			errs := errors.New("failed to cast the error code from the error response. Original error: ")
+			return errors.Join(errs, egErr)
+		}
+
+		if directorApperrors.ErrorType(errorCode) == directorApperrors.NotFound {
+			return err
 		}
 	}
+	for _, l := range c.logs {
+		if l != "" {
+			logrus.Info(l)
+		}
+	}
+
 	return err
 }
 
