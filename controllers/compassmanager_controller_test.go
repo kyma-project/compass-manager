@@ -199,7 +199,7 @@ func createKymaResource(name string) kyma.Kyma {
 	}
 }
 
-func createCredentialsSecret(kymaName, namespace string) corev1.Secret {
+func createCredentialsSecret(kymaName, namespace string) corev1.Secret { //nolint:unparam
 	return corev1.Secret{
 		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{

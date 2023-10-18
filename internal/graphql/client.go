@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
+	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
+	"github.com/sirupsen/logrus"
 )
 
 const (
