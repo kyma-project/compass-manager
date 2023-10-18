@@ -114,7 +114,8 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 
 		delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
-		if errors.As(delErr, &DirectorError{}) {
+		var directorError *DirectorError
+		if errors.As(delErr, &directorError) {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 		}
 
@@ -215,7 +216,7 @@ func (cm *CompassManagerReconciler) getKymaCR(objKey types.NamespacedName) (kyma
 		instance.Labels = make(map[string]string)
 	}
 	if instance.Annotations == nil {
-		instance.Labels = make(map[string]string)
+		instance.Annotations = make(map[string]string)
 	}
 
 	return instance, nil
