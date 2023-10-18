@@ -137,6 +137,9 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
 
+	kymaLabels := kymaCR.Labels
+	kymaAnnotations := kymaCR.Annotations
+
 	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; compassRuntimeID == "" && ok {
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
 		cmerr := cm.upsertCompassMappingResource(migrationCompassRuntimeID, req.Namespace, kymaLabels)
@@ -149,8 +152,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Runtime ID from Kyma resource %s", req.Name)
 	}
-
-	kymaLabels := kymaCR.Labels
 
 	if compassRuntimeID == "" {
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
@@ -280,7 +281,7 @@ func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName, nam
 func (cm *CompassManagerReconciler) getGlobalAccountFromCompassMapping(kymaName, namespace string) (string, error) {
 	mappingList := &v1beta1.CompassManagerMappingList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
-		KymaNameLabel: kymaName,
+		LabelKymaName: kymaName,
 	})
 
 	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
@@ -296,7 +297,7 @@ func (cm *CompassManagerReconciler) getGlobalAccountFromCompassMapping(kymaName,
 		return "", nil
 	}
 
-	return mappingList.Items[0].GetLabels()[GlobalAccountIDLabel], nil
+	return mappingList.Items[0].GetLabels()[LabelGlobalAccountID], nil
 }
 
 func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace string) error {
