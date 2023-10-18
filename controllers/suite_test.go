@@ -115,11 +115,6 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
-	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "all-good", GlobalAccountIDLabel: "globalAccount"})
-	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "configure-fails", GlobalAccountIDLabel: "globalAccount"})
-	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "registration-fails", GlobalAccountIDLabel: "globalAccount"})
-	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "empty-kubeconfig", GlobalAccountIDLabel: "globalAccount"})
-
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
 	// refreshedToken := graphql.OneTimeTokenForRuntimeExt{
@@ -128,19 +123,31 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	//	RawEncoded:             "rawEncodedToken",
 	//}
 
+	// It handles `compass-runtime-id-for-migration`
+	compassLabelsRegistered := createCompassRuntimeLabels(map[string]string{LabelShootName: "preregistered", LabelGlobalAccountID: "globalAccount"})
+	r.On("RegisterInCompass", compassLabelsRegistered).Return("id-preregistered-incorrect", nil)
+	// failing test case
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-preregistered", "id-preregistered-incorrect").Return(nil)
+	// succeeding test case
+	c.On("ConfigureCompassRuntimeAgent", "id-preregistered-incorrect", "preregistered").Return(errors.New("This shouldn't be called"))
+
+	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{LabelShootName: "all-good", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-all-good", "id-all-good").Return(nil)
 
+	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "configure-fails", LabelGlobalAccountID: "globalAccount"})
 	// The first call to ConfigureRuntimeAgent fails, but the second is successful
 	r.On("RegisterInCompass", compassLabelsConfigureFails).Return("id-configure-fails", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails").Return(nil).Once()
 
+	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "registration-fails", LabelGlobalAccountID: "globalAccount"})
 	// The first call to RegisterInCompass fails, but the second is successful.
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("", errors.New("error during registration")).Once()
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("registration-fails", nil).Once()
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails").Return(nil)
 
+	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{LabelShootName: "empty-kubeconfig", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 

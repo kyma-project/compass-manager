@@ -18,8 +18,8 @@ type CompassManagerMapping struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CompassManagerMappingSpec   `json:"spec,omitempty"`
 	Status CompassManagerMappingStatus `json:"status,omitempty"`
+	Spec   CompassManagerMappingSpec   `json:"spec,omitempty"`
 }
 
 //+kubebuilder:object:root=true

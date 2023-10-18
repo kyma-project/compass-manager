@@ -27,6 +27,29 @@ var _ = Describe("Compass Manager controller", func() {
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
 
+	Context("Kyma was already registered, but doesn't have a Compass Mapping", func() {
+		It("creates the compass mapping without registering runtime again", func() {
+			const kymaName = "preregistered"
+			const preRegisteredID = "preregistered-id"
+
+			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
+
+			By("Create Kyma Resource")
+			kymaCR := createKymaResource(kymaName)
+			kymaCR.Annotations["compass-runtime-id-for-migration"] = preRegisteredID
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
+
+			Eventually(func() string {
+				label, err := getCompassMappingCompassID(kymaCR.Name)
+				if err != nil {
+					return err.Error()
+				}
+				return label
+			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
+		})
+	})
+
 	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
 		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string) {
 			By("Create secret with credentials")
@@ -38,7 +61,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingCompassID(kymaCR.Name)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -57,7 +80,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Consistently(func() bool {
-				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingCompassID(kymaCR.Name)
 
 				return errors.IsNotFound(err) && label == ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -67,7 +90,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
+				label, err := getCompassMappingCompassID(kymaCR.Name)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -121,9 +144,9 @@ func createNamespace(name string) error {
 
 func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels := make(map[string]string)
-	kymaCustomResourceLabels[GlobalAccountIDLabel] = "globalAccount"
-	kymaCustomResourceLabels[ShootNameLabel] = name
-	kymaCustomResourceLabels[KymaNameLabel] = name
+	kymaCustomResourceLabels[LabelGlobalAccountID] = "globalAccount"
+	kymaCustomResourceLabels[LabelShootName] = name
+	kymaCustomResourceLabels[LabelKymaName] = name
 
 	kymaModules := make([]kyma.Module, 1)
 	kymaModules[0].Name = ApplicationConnectorModuleName
@@ -134,9 +157,10 @@ func createKymaResource(name string) kyma.Kyma {
 			APIVersion: kymaCustomResourceAPIVersion,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: kymaCustomResourceNamespace,
-			Labels:    kymaCustomResourceLabels,
+			Name:        name,
+			Namespace:   kymaCustomResourceNamespace,
+			Labels:      kymaCustomResourceLabels,
+			Annotations: make(map[string]string),
 		},
 		Spec: kyma.KymaSpec{
 			Channel: "regular",
@@ -160,9 +184,9 @@ func createCredentialsSecret(kymaName, namespace string) corev1.Secret {
 	}
 }
 
-func getCompassMappingLabel(kymaName, labelName, namespace string) (string, error) {
+func getCompassMappingCompassID(kymaName string) (string, error) {
 	var obj v1beta1.CompassManagerMapping
-	key := types.NamespacedName{Name: kymaName, Namespace: namespace}
+	key := types.NamespacedName{Name: kymaName, Namespace: kymaCustomResourceNamespace}
 
 	err := cm.Client.Get(context.Background(), key, &obj)
 	if err != nil {
@@ -170,7 +194,7 @@ func getCompassMappingLabel(kymaName, labelName, namespace string) (string, erro
 	}
 
 	labels := obj.GetLabels()
-	return labels[labelName], nil
+	return labels[LabelComppassID], nil
 }
 
 // Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
