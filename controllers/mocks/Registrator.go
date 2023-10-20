@@ -12,6 +12,20 @@ type Registrator struct {
 	mock.Mock
 }
 
+// DeregisterFromCompass provides a mock function with given fields: compassID, globalAccount
+func (_m *Registrator) DeregisterFromCompass(compassID string, globalAccount string) error {
+	ret := _m.Called(compassID, globalAccount)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string) error); ok {
+		r0 = rf(compassID, globalAccount)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // RefreshCompassToken provides a mock function with given fields: compassID, globalAccount
 func (_m *Registrator) RefreshCompassToken(compassID string, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
 	ret := _m.Called(compassID, globalAccount)

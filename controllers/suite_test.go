@@ -115,6 +115,7 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
+	// compassLabelsDeregistrationNoError := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "unregister-runtime", GlobalAccountIDLabel: "globalAccount"})
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
 	// refreshedToken := graphql.OneTimeTokenForRuntimeExt{
@@ -151,6 +152,16 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig").Return(nil)
 
+	compassLabelsDeregistration := createCompassRuntimeLabels(map[string]string{LabelShootName: "unregister-runtime", LabelGlobalAccountID: "globalAccount"})
+	r.On("RegisterInCompass", compassLabelsDeregistration).Return("id-unregister-runtime", nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime", "id-unregister-runtime").Return(nil)
+	r.On("DeregisterFromCompass", "id-unregister-runtime", "globalAccount").Return(nil)
+
+	compassLabelsDeregistrationFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "unregister-runtime-fails", LabelGlobalAccountID: "globalAccount"})
+	r.On("RegisterInCompass", compassLabelsDeregistrationFails).Return("id-unregister-runtime-fails", nil)
+	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime-fails", "id-unregister-runtime-fails").Return(nil)
+	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(errors.New("error during unregistration of the runtime")).Once()
+	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(nil).Once()
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
 	// c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token").Return(nil).Once()

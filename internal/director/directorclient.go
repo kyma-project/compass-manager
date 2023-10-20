@@ -27,7 +27,7 @@ type Client interface {
 	GetConnectionToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, apperrors.AppError)
 	// RuntimeExists(gardenerClusterName, tenant string) (bool, apperrors.AppError)
 	// UpdateRuntime(id string, config *graphql.RuntimeUpdateInput, tenant string) apperrors.AppError
-	// DeleteRuntime(id, tenant string) apperrors.AppError
+	DeleteRuntime(compassID, globalAccount string) apperrors.AppError
 	// SetRuntimeStatusCondition(id string, statusCondition graphql.RuntimeStatusCondition, tenant string) apperrors.AppError
 }
 
@@ -77,7 +77,7 @@ func (cc *directorClient) CreateRuntime(config *gqlschema.RuntimeInput, globalAc
 	runtimeQuery := cc.queryProvider.createRuntimeMutation(runtimeInput)
 
 	var response CreateRuntimeResponse
-	appErr := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response)
+	appErr := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response, false)
 	if appErr != nil {
 		return "", appErr.Append("Failed to register runtime in Director. Request failed")
 	}
@@ -98,7 +98,7 @@ func (cc *directorClient) GetRuntime(compassID, globalAccount string) (graphql.R
 	runtimeQuery := cc.queryProvider.getRuntimeQuery(compassID)
 
 	var response GetRuntimeResponse
-	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response)
+	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response, false)
 	if err != nil {
 		return graphql.RuntimeExt{}, err.Append("Failed to get runtime %s from Director", compassID)
 	}
@@ -117,7 +117,7 @@ func (cc *directorClient) GetConnectionToken(compassID, globalAccount string) (g
 	runtimeQuery := cc.queryProvider.requestOneTimeTokenMutation(compassID)
 
 	var response OneTimeTokenResponse
-	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response)
+	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response, false)
 	if err != nil {
 		return graphql.OneTimeTokenForRuntimeExt{}, err.Append("Failed to get OneTimeToken for Runtime %s in Director", compassID)
 	}
@@ -129,6 +129,32 @@ func (cc *directorClient) GetConnectionToken(compassID, globalAccount string) (g
 	log.Infof("Received OneTimeToken for Runtime %s in Director for Global Account %s", compassID, globalAccount)
 
 	return *response.Result, nil
+}
+
+func (cc *directorClient) DeleteRuntime(compassID, globalAccount string) apperrors.AppError {
+	runtimeQuery := cc.queryProvider.deleteRuntimeMutation(compassID)
+
+	var response DeleteRuntimeResponse
+	err := cc.executeDirectorGraphQLCall(runtimeQuery, globalAccount, &response, true)
+	if err != nil {
+		if err.Cause() == apperrors.RuntimeNotFound {
+			log.Infof("Runtime %s in Director for tenant %s was previously deleted", compassID, globalAccount)
+			return nil
+		}
+		return err.Append("Failed to unregister runtime %s in Director", compassID)
+	}
+	// Nil check is necessary due to GraphQL client not checking response code
+	if response.Result == nil {
+		return apperrors.Internal("Failed to unregister runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+	}
+
+	if response.Result.ID != compassID {
+		return apperrors.Internal("Failed to unregister runtime %s in Director: received unexpected RuntimeID.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
+	}
+
+	log.Infof("Successfully unregistered Runtime %s in Director for tenant %s", compassID, globalAccount)
+
+	return nil
 }
 
 func (cc *directorClient) getToken() apperrors.AppError {
@@ -145,7 +171,7 @@ func (cc *directorClient) getToken() apperrors.AppError {
 	return nil
 }
 
-func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globalAccount string, response interface{}) apperrors.AppError {
+func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globalAccount string, response interface{}, gracefulUnregistration bool) apperrors.AppError {
 	if cc.token.EmptyOrExpired() {
 		log.Infof("Refreshing token to access Director Service")
 		if err := cc.getToken(); err != nil {
@@ -157,10 +183,10 @@ func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globa
 	req.Header.Set(AuthorizationHeader, fmt.Sprintf("Bearer %s", cc.token.AccessToken))
 	req.Header.Set(TenantHeader, globalAccount)
 
-	if err := cc.gqlClient.Do(req, response); err != nil {
+	if err := cc.gqlClient.Do(req, response, gracefulUnregistration); err != nil {
 		var egErr gcli.ExtendedError
 		if errors.As(err, &egErr) {
-			return mapDirectorErrorToProvisionerError(egErr).Append("Failed to execute GraphQL request to Director")
+			return mapDirectorErrorToProvisionerError(egErr, gracefulUnregistration).Append("Failed to execute GraphQL request to Director")
 		}
 		return apperrors.Internal("Failed to execute GraphQL request to Director: %v", err)
 	}
@@ -168,7 +194,7 @@ func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globa
 	return nil
 }
 
-func mapDirectorErrorToProvisionerError(egErr gcli.ExtendedError) apperrors.AppError {
+func mapDirectorErrorToProvisionerError(egErr gcli.ExtendedError, gracefulUnregistration bool) apperrors.AppError {
 	errorCodeValue, present := egErr.Extensions()["error_code"]
 	if !present {
 		return apperrors.Internal("Failed to read the error code from the error response. Original error: %v", egErr)
@@ -186,7 +212,13 @@ func mapDirectorErrorToProvisionerError(egErr gcli.ExtendedError) apperrors.AppE
 		err = apperrors.Internal(egErr.Error())
 	case directorApperrors.InsufficientScopes, directorApperrors.Unauthorized:
 		err = apperrors.BadGateway(egErr.Error())
-	case directorApperrors.NotFound, directorApperrors.NotUnique, directorApperrors.InvalidData,
+	case directorApperrors.NotFound:
+		if gracefulUnregistration {
+			err = apperrors.NotFound(egErr.Error())
+			return err
+		}
+		err = apperrors.BadRequest(egErr.Error())
+	case directorApperrors.NotUnique, directorApperrors.InvalidData,
 		directorApperrors.InvalidOperation:
 		err = apperrors.BadRequest(egErr.Error())
 	case directorApperrors.TenantRequired, directorApperrors.TenantNotFound:
