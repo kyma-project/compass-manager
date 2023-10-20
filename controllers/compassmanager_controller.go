@@ -43,7 +43,7 @@ const (
 )
 
 type DirectorError struct {
-	message string
+	message error
 }
 
 func (e *DirectorError) Error() string {
@@ -321,7 +321,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace strin
 	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
 	if err != nil {
 		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", kymaName, err)
-		return fmt.Errorf("%w", &DirectorError{message: err.Error()})
+		return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
 	}
 
 	err = cm.deleteCompassMapping(kymaName, namespace)

@@ -32,7 +32,7 @@ var _ = Describe("Compass Manager controller", func() {
 			const kymaName = "preregistered"
 			const preRegisteredID = "preregistered-id"
 
-			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			secret := createCredentialsSecret(kymaName)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
@@ -53,7 +53,7 @@ var _ = Describe("Compass Manager controller", func() {
 	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
 		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string) {
 			By("Create secret with credentials")
-			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			secret := createCredentialsSecret(kymaName)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
@@ -86,7 +86,7 @@ var _ = Describe("Compass Manager controller", func() {
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Create secret with credentials")
-			secret := createCredentialsSecret(kymaCR.Name, kymaCustomResourceNamespace)
+			secret := createCredentialsSecret(kymaCR.Name)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			Eventually(func() bool {
@@ -100,7 +100,7 @@ var _ = Describe("Compass Manager controller", func() {
 	Context("After successful runtime registration when user delete Kyma resource", func() {
 		DescribeTable("the runtime should be deregister from Compass System", func(kymaName string) {
 			By("Create secret with credentials")
-			secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
+			secret := createCredentialsSecret(kymaName)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
@@ -199,12 +199,12 @@ func createKymaResource(name string) kyma.Kyma {
 	}
 }
 
-func createCredentialsSecret(kymaName, namespace string) corev1.Secret { //nolint:unparam
+func createCredentialsSecret(kymaName string) corev1.Secret {
 	return corev1.Secret{
 		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kymaName,
-			Namespace: namespace,
+			Namespace: kymaCustomResourceNamespace,
 			Labels:    map[string]string{"operator.kyma-project.io/kyma-name": kymaName},
 		},
 		Immutable:  nil,
@@ -214,7 +214,7 @@ func createCredentialsSecret(kymaName, namespace string) corev1.Secret { //nolin
 	}
 }
 
-func getCompassMappingCompassID(kymaName string) (string, error) { //nolint:unparam
+func getCompassMappingCompassID(kymaName string) (string, error) {
 	var obj v1beta1.CompassManagerMapping
 	key := types.NamespacedName{Name: kymaName, Namespace: kymaCustomResourceNamespace}
 
