@@ -2,17 +2,19 @@
 
 # Compass Manager
 
-> Modify the title and insert the name of your project. Use Heading 1 (H1).
-
 ## Overview
+Compass Manager **will be** a new Control Plane component. Build using [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) framework. 
 
-> Provide a description of the project's functionality.
->
-> If it is an example README.md, describe what the example illustrates.
+It's main responsibilities **will be**:
+- registering Kyma runtimes in the Compass Director
+- creating secret on client cluster with the Compass Runtime configuration
 
 ## Prerequisites
 
-> List the requirements to run the project or example.
+- Access to a k8s cluster.
+- [k3d](https://k3d.io) to get a local cluster for testing, or run against a remote cluster.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [kubebuilder](https://book.kubebuilder.io/)
 
 ## Installation
 
