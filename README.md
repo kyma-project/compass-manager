@@ -11,19 +11,74 @@ It's main responsibilities **will be**:
 
 ## Prerequisites
 
+- Golang - minimum version is 1.20.
 - Access to a k8s cluster.
+- Kyma Custom Resource Definition is present on cluster.
 - [k3d](https://k3d.io) to get a local cluster for testing, or run against a remote cluster.
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [kubebuilder](https://book.kubebuilder.io/)
 
 ## Installation
 
-> Explain the steps to install your project. Create an ordered list for each installation task.
->
-> If it is an example README.md, describe how to build, run locally, and deploy the example. Format the example as code blocks and specify the language, highlighting where possible. Explain how you can validate that the example ran successfully. For example, define the expected output or commands to run which check a successful deployment.
->
-> Add subsections (H3) for better readability.
+## Installation
 
+1. Clone the project.
+
+```bash
+git clone https://github.com/kyma-project/compass-manager.git && cd compass-manager/
+```
+
+2. Set the `compass-manager` image name. Add prefix `your-docker-hub-user/` if needed
+
+```bash
+export IMG=custom-compass-manager:local
+```
+
+3. Build the project.
+
+```bash
+make build
+```
+
+4. Build the image.
+
+```bash
+make docker-build
+```
+
+5. Push the image to the external DockerHub registry. 
+
+```bash
+make docker-push
+```
+
+6. Create a YAML file containing Compass Director authorization data and encode entire YAML in Base64 format:
+
+```yaml
+data:
+  client_id: some-id
+  client_secret: some-secret
+  tokens_endpoint: some-endpoint
+```
+
+7. Provide previously encoded file in `director.yaml` field and apply the secret on cluster where you want to run Compass Manager
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kcp-provisioner-credentials-file
+  namespace: kcp-system
+type: Opaque
+data:
+  director.yaml: base64-encoded-yaml
+```
+
+8. Deploy.
+
+```bash
+make deploy
+```
 ## Usage
 
 > Explain how to use the project. You can create multiple subsections (H3). Include the instructions or provide links to the related documentation.
