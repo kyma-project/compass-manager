@@ -80,6 +80,7 @@ type Client interface {
 	Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
 	List(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) error
 	Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
+	Status() client.SubResourceWriter
 }
 
 // CompassManagerReconciler reconciles a CompassManager object
@@ -142,10 +143,11 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; compassRuntimeID == "" && ok {
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
-		cmerr := cm.upsertCompassMappingResource(migrationCompassRuntimeID, req.Namespace, kymaLabels)
+		mapping, cmerr := cm.upsertCompassMappingResource(migrationCompassRuntimeID, req.Namespace, kymaLabels)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
 		}
+		cm.setCompassMappingStatus("", "", true, true, mapping)
 		return ctrl.Result{}, nil
 	}
 
@@ -156,18 +158,22 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if compassRuntimeID == "" {
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
 		if regErr != nil {
-			cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
+			_, cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
 			if cmerr != nil {
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			}
+
+			cm.setCompassMappingStatus(req.Namespace, req.Name, false, false, nil)
 			cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 		}
 
-		cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
+		_, cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 		}
+
+		cm.setCompassMappingStatus(req.Namespace, req.Name, true, false, nil)
 
 		compassRuntimeID = newCompassRuntimeID
 		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
@@ -175,9 +181,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
 	if err != nil {
+		cm.setCompassMappingStatus(req.Namespace, req.Name, true, false, nil)
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 	}
+
+	cm.setCompassMappingStatus(req.Namespace, req.Name, true, true, nil)
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	return ctrl.Result{}, nil
@@ -223,11 +232,12 @@ func (cm *CompassManagerReconciler) getKymaCR(objKey types.NamespacedName) (kyma
 	return instance, nil
 }
 
-func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) error {
+func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) (*v1beta1.CompassManagerMapping, error) {
 	kymaName := kymaLabels[LabelKymaName]
 	compassMapping := &v1beta1.CompassManagerMapping{}
 	compassMapping.Name = kymaName
 	compassMapping.Namespace = namespace
+	compassMapping.Status.Registered = true
 
 	compassMappingLabels := make(map[string]string)
 	compassMappingLabels[LabelKymaName] = kymaLabels[LabelKymaName]
@@ -244,16 +254,13 @@ func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeI
 	}
 
 	existingMapping := v1beta1.CompassManagerMapping{}
-	// TODOs add retry for upsert logic
 	err := cm.Client.Get(context.TODO(), key, &existingMapping)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return cm.Client.Create(context.Background(), compassMapping)
-		}
+	if k8serrors.IsNotFound(err) {
+		return compassMapping, cm.Client.Create(context.Background(), compassMapping)
 	}
 
 	existingMapping.SetLabels(compassMappingLabels)
-	return cm.Client.Update(context.TODO(), &existingMapping)
+	return compassMapping, cm.Client.Update(context.TODO(), &existingMapping)
 }
 
 func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName, namespace string) (string, error) {
@@ -276,6 +283,42 @@ func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName, nam
 	}
 
 	return mappingList.Items[0].GetLabels()[LabelComppassID], nil
+}
+
+// setCompassMappingStatus sets the status of specified compass mapping.
+// If `existingMapping` is non-nil, it ignores namespace and kymaName and uses provided mapping
+// Otherwise it tries to fetch the mapping based on `namespace` and `kymaName`
+func (cm *CompassManagerReconciler) setCompassMappingStatus(namespace, kymaName string, registered, configured bool, existingMapping *v1beta1.CompassManagerMapping) {
+	if existingMapping == nil {
+		mappingList := v1beta1.CompassManagerMappingList{}
+		labelSelector := labels.SelectorFromSet(map[string]string{
+			LabelKymaName: kymaName,
+		})
+
+		err := cm.Client.List(context.Background(), &mappingList, &client.ListOptions{
+			LabelSelector: labelSelector,
+			Namespace:     namespace,
+		})
+		if err != nil {
+			cm.Log.Warnf("Tried to update Compass Mapping Status, but couldn't read the resource %s: %v", kymaName, err)
+			return
+		}
+
+		if len(mappingList.Items) == 0 {
+			cm.Log.Warnf("Tried to update Compass Mapping Status, but couldn't - the mapping doesn't exist for %s", kymaName)
+			return
+		}
+
+		existingMapping = &mappingList.Items[0]
+	}
+	existingMapping.Status.Registered = registered
+	existingMapping.Status.Configured = configured
+	err := cm.Client.Status().Update(context.TODO(), existingMapping)
+	if err != nil {
+		cm.Log.Warnf("Failed to update Compass Mapping Status for %s: %v", kymaName, err)
+	} else {
+		cm.Log.Debugf("Updated Compass Mapping Status for %s to r%v c%v", kymaName, registered, configured)
+	}
 }
 
 func (cm *CompassManagerReconciler) getGlobalAccountFromCompassMapping(kymaName, namespace string) (string, error) {
