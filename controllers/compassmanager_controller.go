@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
@@ -10,7 +11,6 @@ import (
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +29,7 @@ const (
 	LabelBrokerInstanceID = "kyma-project.io/instance-id"
 	LabelBrokerPlanID     = "kyma-project.io/broker-plan-id"
 	LabelBrokerPlanName   = "kyma-project.io/broker-plan-name"
-	LabelComppassID       = "kyma-project.io/compass-runtime-id"
+	LabelCompassID        = "kyma-project.io/compass-runtime-id"
 	LabelGlobalAccountID  = "kyma-project.io/global-account-id"
 	LabelKymaName         = "operator.kyma-project.io/kyma-name"
 	LabelManagedBy        = "operator.kyma-project.io/managed-by"
@@ -65,7 +65,7 @@ type Configurator interface {
 }
 
 //go:generate mockery --name=Registrator
-type Registrator interface {
+type Registrant interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
 	// RefreshCompassToken gets new connection token for Compass requests
@@ -89,17 +89,17 @@ type CompassManagerReconciler struct {
 	Scheme       *runtime.Scheme
 	Log          *log.Logger
 	Configurator Configurator
-	Registrator  Registrator
+	Registrant   Registrant
 	requeueTime  time.Duration
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrant, requeueTime time.Duration) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Log:          log,
 		Configurator: c,
-		Registrator:  r,
+		Registrant:   r,
 		requeueTime:  requeueTime,
 	}
 }
@@ -107,14 +107,12 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 
-	kymaCR, err := cm.getKymaCR(req.NamespacedName)
+	cluster := NewClusterInterface(cm.Client, cm.Log)
 
-	if err != nil {
-		if !k8serrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
-		}
+	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
-		delErr := cm.handleKymaDeletion(req.Name, req.Namespace)
+	if k8serrors.IsNotFound(err) {
+		delErr := cm.handleKymaDeletion(cluster, req.NamespacedName)
 		var directorError *DirectorError
 		if errors.As(delErr, &directorError) {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
@@ -126,274 +124,111 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	kubeconfig, err := cm.getKubeconfig(req.Name)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
+	}
+
+	kubeconfig, err := cluster.GetKubeconfig(req.NamespacedName)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
 	}
 
-	if kubeconfig == "" {
+	if len(kubeconfig) == 0 {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
 
-	compassRuntimeID, err := cm.getRuntimeIDFromCompassMapping(req.Name, req.Namespace)
+	compassRuntimeID, err := cluster.GetCompassRuntimeID(req.NamespacedName)
 
-	kymaLabels := kymaCR.Labels
-	kymaAnnotations := kymaCR.Annotations
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Mapping for Kyma resource %s", req.Name)
+	}
 
-	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; compassRuntimeID == "" && ok {
+	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && compassRuntimeID == "" {
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
-		mapping, cmerr := cm.upsertCompassMappingResource(migrationCompassRuntimeID, req.Namespace, kymaLabels)
+		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
 		}
-		cm.setCompassMappingStatus("", "", true, true, mapping)
+		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
+
 		return ctrl.Result{}, nil
 	}
 
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Runtime ID from Kyma resource %s", req.Name)
-	}
-
 	if compassRuntimeID == "" {
-		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+		newCompassRuntimeID, regErr := cm.Registrant.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 		if regErr != nil {
-			_, cmerr := cm.upsertCompassMappingResource("", req.Namespace, kymaLabels)
+			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "")
 			if cmerr != nil {
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			}
-
-			cm.setCompassMappingStatus(req.Namespace, req.Name, false, false, nil)
+			_ = cluster.SetCompassMappingStatus(req.NamespacedName, false, false)
 			cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 		}
 
-		_, cmerr := cm.upsertCompassMappingResource(newCompassRuntimeID, req.Namespace, kymaLabels)
+		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, newCompassRuntimeID)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 		}
 
-		cm.setCompassMappingStatus(req.Namespace, req.Name, true, false, nil)
+		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
 
 		compassRuntimeID = newCompassRuntimeID
 		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
 	}
 
-	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID)
+	err = cm.Configurator.ConfigureCompassRuntimeAgent(string(kubeconfig), compassRuntimeID)
 	if err != nil {
-		cm.setCompassMappingStatus(req.Namespace, req.Name, true, false, nil)
+		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
 	}
 
-	cm.setCompassMappingStatus(req.Namespace, req.Name, true, true, nil)
+	_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
+
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	return ctrl.Result{}, nil
 }
 
-func (cm *CompassManagerReconciler) getKubeconfig(kymaName string) (string, error) {
-	secretList := &corev1.SecretList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{
-		LabelKymaName: kymaName,
-	})
-
-	err := cm.Client.List(context.Background(), secretList, &client.ListOptions{
-		LabelSelector: labelSelector,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	if len(secretList.Items) == 0 {
-		return "", nil
-	}
-	secret := &secretList.Items[0]
-
-	return string(secret.Data[KubeconfigKey]), nil
-}
-
-func (cm *CompassManagerReconciler) getKymaCR(objKey types.NamespacedName) (kyma.Kyma, error) {
-	instance := kyma.Kyma{}
-
-	err := cm.Client.Get(context.Background(), objKey, &instance)
-	if err != nil {
-		return instance, err
-	}
-
-	if instance.Labels == nil {
-		instance.Labels = make(map[string]string)
-	}
-	if instance.Annotations == nil {
-		instance.Annotations = make(map[string]string)
-	}
-
-	return instance, nil
-}
-
-func (cm *CompassManagerReconciler) upsertCompassMappingResource(compassRuntimeID, namespace string, kymaLabels map[string]string) (*v1beta1.CompassManagerMapping, error) {
-	kymaName := kymaLabels[LabelKymaName]
-	compassMapping := &v1beta1.CompassManagerMapping{}
-	compassMapping.Name = kymaName
-	compassMapping.Namespace = namespace
-	compassMapping.Status.Registered = true
-
-	compassMappingLabels := make(map[string]string)
-	compassMappingLabels[LabelKymaName] = kymaLabels[LabelKymaName]
-	compassMappingLabels[LabelComppassID] = compassRuntimeID
-	compassMappingLabels[LabelGlobalAccountID] = kymaLabels[LabelGlobalAccountID]
-	compassMappingLabels[LabelSubaccountID] = kymaLabels[LabelSubaccountID]
-	compassMappingLabels[LabelManagedBy] = "compass-manager"
-
-	compassMapping.SetLabels(compassMappingLabels)
-
-	key := types.NamespacedName{
-		Name:      kymaName,
-		Namespace: namespace,
-	}
-
-	existingMapping := v1beta1.CompassManagerMapping{}
-	err := cm.Client.Get(context.TODO(), key, &existingMapping)
-	if k8serrors.IsNotFound(err) {
-		return compassMapping, cm.Client.Create(context.Background(), compassMapping)
-	}
-
-	existingMapping.SetLabels(compassMappingLabels)
-	return compassMapping, cm.Client.Update(context.TODO(), &existingMapping)
-}
-
-func (cm *CompassManagerReconciler) getRuntimeIDFromCompassMapping(kymaName, namespace string) (string, error) {
-	mappingList := &v1beta1.CompassManagerMappingList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{
-		LabelKymaName: kymaName,
-	})
-
-	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
-		LabelSelector: labelSelector,
-		Namespace:     namespace,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	if len(mappingList.Items) == 0 {
-		return "", nil
-	}
-
-	return mappingList.Items[0].GetLabels()[LabelComppassID], nil
-}
-
 // setCompassMappingStatus sets the status of specified compass mapping.
 // If `existingMapping` is non-nil, it ignores namespace and kymaName and uses provided mapping
 // Otherwise it tries to fetch the mapping based on `namespace` and `kymaName`
-func (cm *CompassManagerReconciler) setCompassMappingStatus(namespace, kymaName string, registered, configured bool, existingMapping *v1beta1.CompassManagerMapping) {
-	if existingMapping == nil {
-		mappingList := v1beta1.CompassManagerMappingList{}
-		labelSelector := labels.SelectorFromSet(map[string]string{
-			LabelKymaName: kymaName,
-		})
 
-		err := cm.Client.List(context.Background(), &mappingList, &client.ListOptions{
-			LabelSelector: labelSelector,
-			Namespace:     namespace,
-		})
-		if err != nil {
-			cm.Log.Warnf("Tried to update Compass Mapping Status, but couldn't read the resource %s: %v", kymaName, err)
-			return
-		}
-
-		if len(mappingList.Items) == 0 {
-			cm.Log.Warnf("Tried to update Compass Mapping Status, but couldn't - the mapping doesn't exist for %s", kymaName)
-			return
-		}
-
-		existingMapping = &mappingList.Items[0]
-	}
-	existingMapping.Status.Registered = registered
-	existingMapping.Status.Configured = configured
-	err := cm.Client.Status().Update(context.TODO(), existingMapping)
-	if err != nil {
-		cm.Log.Warnf("Failed to update Compass Mapping Status for %s: %v", kymaName, err)
-	} else {
-		cm.Log.Debugf("Updated Compass Mapping Status for %s to r%v c%v", kymaName, registered, configured)
-	}
-}
-
-func (cm *CompassManagerReconciler) getGlobalAccountFromCompassMapping(kymaName, namespace string) (string, error) {
-	mappingList := &v1beta1.CompassManagerMappingList{}
-	labelSelector := labels.SelectorFromSet(map[string]string{
-		LabelKymaName: kymaName,
-	})
-
-	err := cm.Client.List(context.Background(), mappingList, &client.ListOptions{
-		LabelSelector: labelSelector,
-		Namespace:     namespace,
-	})
+func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ClusterInterface, name types.NamespacedName) error {
+	compass, err := cluster.GetCompassMapping(name)
 
 	if err != nil {
-		return "", err
+		cm.Log.Warnf("Failed to obtain Compass Mapping for Kyma %s: %v", name.Name, err)
+		return err
 	}
 
-	if len(mappingList.Items) == 0 {
-		return "", nil
-	}
+	runtimeIDFromMapping, ok := compass.Labels[LabelCompassID]
 
-	return mappingList.Items[0].GetLabels()[LabelGlobalAccountID], nil
-}
-
-func (cm *CompassManagerReconciler) handleKymaDeletion(kymaName, namespace string) error {
-	runtimeIDFromMapping, err := cm.getRuntimeIDFromCompassMapping(kymaName, namespace)
-	if runtimeIDFromMapping == "" {
+	if !ok || runtimeIDFromMapping == "" {
 		cm.Log.Infof("Runtime was not connected in Compass, nothing to delete")
 		return nil
 	}
+
+	globalAccountFromMapping, ok := compass.Labels[LabelGlobalAccountID]
 	if err != nil {
-		cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
+		cm.Log.Warnf("Compass Mapping for %s has no Global Account", name.Name)
 		return err
 	}
 
-	globalAccountFromMapping, err := cm.getGlobalAccountFromCompassMapping(kymaName, namespace)
+	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", name.Name)
+	err = cm.Registrant.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
 	if err != nil {
-		cm.Log.Warnf("Failed to obtain labels from Compass Mapping %s: %v", kymaName, err)
-		return err
-	}
-
-	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", kymaName)
-	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
-	if err != nil {
-		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", kymaName, err)
+		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
 		return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
 	}
 
-	err = cm.deleteCompassMapping(kymaName, namespace)
+	err = cluster.DeleteCompassMapping(name)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete Compass Mapping")
 	}
-	cm.Log.Infof("Runtime %s deregistered from Compass", kymaName)
-	return nil
-}
-
-func (cm *CompassManagerReconciler) deleteCompassMapping(kymaName, namespace string) error {
-	mapping := &v1beta1.CompassManagerMapping{}
-
-	key := types.NamespacedName{
-		Name:      kymaName,
-		Namespace: namespace,
-	}
-
-	// TODOs add retry for delete logic
-	err := cm.Client.Get(context.Background(), key, mapping)
-	if err != nil {
-		return err
-	}
-
-	err = cm.Client.Delete(context.Background(), mapping)
-	if err != nil {
-		return err
-	}
-
+	cm.Log.Infof("Runtime %s deregistered from Compass", name.Name)
 	return nil
 }
 
@@ -470,4 +305,198 @@ func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interfa
 	runtimeLabels["broker_plan_name"] = kymaLabels[LabelBrokerPlanName]
 
 	return runtimeLabels
+}
+
+type ClusterInterface struct {
+	log     *log.Logger
+	kubectl Client
+	cache   clusterCache
+}
+
+type clusterCache struct {
+	kymaCR         *kyma.Kyma
+	compassMapping *v1beta1.CompassManagerMapping
+	kubecfg        *corev1.Secret
+}
+
+func NewClusterInterface(kubectl Client, log *log.Logger) *ClusterInterface {
+	return &ClusterInterface{
+		log:     log,
+		cache:   clusterCache{},
+		kubectl: kubectl,
+	}
+}
+
+func (c *ClusterInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, error) {
+	if c.cache.kymaCR != nil && c.cache.kymaCR.Name == name.Name && c.cache.kymaCR.Namespace == name.Namespace {
+		return c.cache.kymaCR, nil
+	}
+
+	c.cache.compassMapping = nil
+	kymaCR := kyma.Kyma{}
+
+	err := c.kubectl.Get(context.TODO(), name, &kymaCR)
+	if err != nil {
+		return c.cache.kymaCR, err
+	}
+
+	if kymaCR.Labels == nil {
+		kymaCR.Labels = make(map[string]string)
+	}
+	if kymaCR.Annotations == nil {
+		kymaCR.Annotations = make(map[string]string)
+	}
+
+	c.cache.kymaCR = &kymaCR
+
+	return c.cache.kymaCR, nil
+}
+
+// GetCompassMapping return nil, nil if it doesn't exist
+func (c *ClusterInterface) GetCompassMapping(name types.NamespacedName) (*v1beta1.CompassManagerMapping, error) {
+	if c.cache.compassMapping != nil && c.cache.compassMapping.Labels[LabelKymaName] == name.Name {
+		return c.cache.compassMapping, nil
+	}
+
+	mappingList := &v1beta1.CompassManagerMappingList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		LabelKymaName: name.Name,
+	})
+
+	err := c.kubectl.List(context.TODO(), mappingList, &client.ListOptions{
+		LabelSelector: labelSelector,
+		Namespace:     name.Namespace,
+	})
+
+	if err != nil || len(mappingList.Items) == 0 {
+		return nil, err
+	}
+
+	c.cache.compassMapping = &mappingList.Items[0]
+
+	if c.cache.compassMapping.Labels == nil {
+		c.cache.compassMapping.Labels = make(map[string]string)
+	}
+	if c.cache.compassMapping.Annotations == nil {
+		c.cache.compassMapping.Annotations = make(map[string]string)
+	}
+
+	return c.cache.compassMapping, nil
+}
+
+func (c *ClusterInterface) DeleteCompassMapping(name types.NamespacedName) error {
+	mapping, err := c.GetCompassMapping(name)
+	if err != nil {
+		return err
+	}
+	return c.kubectl.Delete(context.TODO(), mapping)
+}
+
+// GetKubeconfig return nil, nil if it doesn't exist
+func (c *ClusterInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
+	if c.cache.kubecfg != nil && c.cache.kubecfg.Labels[LabelKymaName] == name.Name {
+		return c.cache.kubecfg.Data[KubeconfigKey], nil
+	}
+
+	secretList := &corev1.SecretList{}
+	labelSelector := labels.SelectorFromSet(map[string]string{
+		LabelKymaName: name.Name,
+	})
+
+	err := c.kubectl.List(context.TODO(), secretList, &client.ListOptions{
+		LabelSelector: labelSelector,
+		Namespace:     name.Namespace, // TODO: Is this the same namespace?
+	})
+
+	if err != nil || len(secretList.Items) == 0 {
+		return nil, err
+	}
+
+	_, ok := secretList.Items[0].Data[KubeconfigKey]
+	if !ok {
+		return nil, nil
+	}
+
+	c.cache.kubecfg = &secretList.Items[0]
+
+	return c.cache.kubecfg.Data[KubeconfigKey], nil
+}
+
+func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
+	kyma, err := c.GetKyma(name)
+	if err != nil {
+		return err
+	}
+
+	compassMapping := &v1beta1.CompassManagerMapping{}
+
+	compassMapping.Name = name.Name
+	compassMapping.Namespace = name.Namespace
+
+	labels := make(map[string]string)
+	labels[LabelKymaName] = kyma.Labels[LabelKymaName]
+	labels[LabelCompassID] = compassRuntimeID
+	labels[LabelGlobalAccountID] = kyma.Labels[LabelGlobalAccountID]
+	labels[LabelSubaccountID] = kyma.Labels[LabelSubaccountID]
+	labels[LabelManagedBy] = "compass-manager"
+
+	compassMapping.Labels = labels
+
+	// TODOs add retry for upsert logic
+	existingMapping, err := c.GetCompassMapping(name)
+	if err != nil {
+		return err
+	}
+
+	if existingMapping == nil {
+		c.cache.compassMapping = nil
+
+		err := c.kubectl.Create(context.TODO(), compassMapping)
+		if err != nil {
+			return err
+		}
+		c.cache.compassMapping = compassMapping
+		return nil
+	}
+
+	existingMapping.SetLabels(labels)
+	err = c.kubectl.Update(context.TODO(), existingMapping)
+	if err != nil {
+		return err
+	}
+	c.cache.compassMapping = compassMapping
+	return nil
+}
+
+func (c *ClusterInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
+	mapping, err := c.GetCompassMapping(name)
+	if err != nil || mapping == nil {
+		return "", err
+	}
+	return mapping.Labels[LabelCompassID], nil
+}
+
+// SetCompassMappingStatus sets the registered and configured on an existing CompassManagerMapping
+// If error occurs - logs it and returns
+func (c *ClusterInterface) SetCompassMappingStatus(name types.NamespacedName, registered, configured bool) error {
+	mapping, err := c.GetCompassMapping(name)
+	if err != nil {
+		return err
+	}
+
+	mapping.Status.Registered = registered
+	mapping.Status.Configured = configured
+
+	err = c.kubectl.Status().Update(context.TODO(), mapping)
+	if err != nil {
+		c.log.Warnf("Failed to update Compass Mapping Status for %s: %v", name.Name, err)
+	}
+	return err
+}
+
+func (c *ClusterInterface) ClearCache() {
+	c.cache = clusterCache{
+		kymaCR:         nil,
+		compassMapping: nil,
+	}
 }
