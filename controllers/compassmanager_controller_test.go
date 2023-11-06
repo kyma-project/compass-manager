@@ -49,8 +49,6 @@ var _ = Describe("Compass Manager controller", func() {
 				return label
 			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
 
-			//time.Sleep(10 * time.Second)
-
 			By("Verify status")
 			cmm, err := getCompassMapping(kymaCR.Name)
 			Expect(err).To(BeNil())

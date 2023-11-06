@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
@@ -11,6 +10,7 @@ import (
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -451,9 +451,9 @@ func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compa
 	if existingMapping == nil {
 		c.cache.compassMapping = nil
 
-		err := c.kubectl.Create(context.TODO(), compassMapping)
-		if err != nil {
-			return err
+		cerr := c.kubectl.Create(context.TODO(), compassMapping)
+		if cerr != nil {
+			return cerr
 		}
 		c.cache.compassMapping = compassMapping
 		return nil
@@ -468,6 +468,7 @@ func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compa
 	return nil
 }
 
+// GetCompassRuntimeID returns ("", nil) if the mapping doesn't exist, or doesn't have the label
 func (c *ClusterInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil || mapping == nil {
