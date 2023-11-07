@@ -19,19 +19,19 @@ const (
 	attempts          = 3
 )
 
-type CompassRegistrator struct {
+type CompassRegistrant struct {
 	Client director.Client
 	Log    *logrus.Logger
 }
 
-func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *CompassRegistrator {
-	return &CompassRegistrator{
+func NewCompassRegistrant(directorClient director.Client, log *logrus.Logger) *CompassRegistrant {
+	return &CompassRegistrant{
 		Client: directorClient,
 		Log:    log,
 	}
 }
 
-func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
+func (r *CompassRegistrant) RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error) {
 	var runtimeID string
 	runtimeInput, err := createRuntimeInput(compassRuntimeLabels)
 	if err != nil {
@@ -50,7 +50,7 @@ func (r *CompassRegistrator) RegisterInCompass(compassRuntimeLabels map[string]i
 	return runtimeID, nil
 }
 
-func (r *CompassRegistrator) DeregisterFromCompass(compassID, globalAccount string) error {
+func (r *CompassRegistrant) DeregisterFromCompass(compassID, globalAccount string) error {
 	err := util.RetryOnError(extendedRetryTime*time.Second, attempts, "Error while unregistering runtime in Director: %s", func() (err apperrors.AppError) {
 		err = r.Client.DeleteRuntime(compassID, globalAccount)
 		return
@@ -61,7 +61,7 @@ func (r *CompassRegistrator) DeregisterFromCompass(compassID, globalAccount stri
 	return nil
 }
 
-func (r *CompassRegistrator) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
+func (r *CompassRegistrant) RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error) {
 	var token graphql.OneTimeTokenForRuntimeExt
 	err := util.RetryOnError(retryTime*time.Second, attempts, "Error while refreshing OneTime token in Director: %s", func() (err apperrors.AppError) {
 		token, err = r.Client.GetConnectionToken(compassID, globalAccount)
