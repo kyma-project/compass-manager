@@ -64,8 +64,8 @@ type Configurator interface {
 	UpdateCompassRuntimeAgent(kubeconfig string) error
 }
 
-//go:generate mockery --name=Registrant
-type Registrant interface {
+//go:generate mockery --name=Registrator
+type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
 	// RefreshCompassToken gets new connection token for Compass requests
@@ -89,17 +89,17 @@ type CompassManagerReconciler struct {
 	Scheme       *runtime.Scheme
 	Log          *log.Logger
 	Configurator Configurator
-	Registrant   Registrant
+	Registrator  Registrator
 	requeueTime  time.Duration
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrant, requeueTime time.Duration) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		Log:          log,
 		Configurator: c,
-		Registrant:   r,
+		Registrator:  r,
 		requeueTime:  requeueTime,
 	}
 }
@@ -156,7 +156,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if compassRuntimeID == "" {
-		newCompassRuntimeID, regErr := cm.Registrant.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
+		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 		if regErr != nil {
 			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "")
 			if cmerr != nil {
@@ -218,7 +218,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ControlPlaneInte
 	}
 
 	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", name.Name)
-	err = cm.Registrant.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
+	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
 	if err != nil {
 		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
 		return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")

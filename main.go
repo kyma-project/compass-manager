@@ -106,11 +106,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	compassRegistrant := controllers.NewCompassRegistrant(directorClient, log)
+	compassRegistrator := controllers.NewCompassRegistrator(directorClient, log)
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(log)
 	requeueTime := time.Minute * 5 //nolint:gomnd
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrant, requeueTime)
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

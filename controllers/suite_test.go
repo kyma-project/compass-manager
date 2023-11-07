@@ -31,7 +31,7 @@ var (
 	testEnv          *envtest.Environment      //nolint:gochecknoglobals
 	cm               *CompassManagerReconciler //nolint:gochecknoglobals
 	mockConfigurator *mocks.Configurator       //nolint:gochecknoglobals
-	mockRegistrant   *mocks.Registrant         //nolint:gochecknoglobals
+	mockRegistrator  *mocks.Registrator        //nolint:gochecknoglobals
 	suiteCtx         context.Context           //nolint:gochecknoglobals
 	cancelSuiteCtx   context.CancelFunc        //nolint:gochecknoglobals
 )
@@ -71,12 +71,12 @@ var _ = BeforeSuite(func() {
 	log.SetLevel(logrus.InfoLevel)
 
 	mockConfigurator = &mocks.Configurator{}
-	mockRegistrant = &mocks.Registrant{}
-	prepareMockFunctions(mockConfigurator, mockRegistrant)
+	mockRegistrator = &mocks.Registrator{}
+	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
 	requeueTime := time.Second * 10
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrant, requeueTime)
+	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -114,7 +114,7 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrant) {
+func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	// compassLabelsDeregistrationNoError := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "unregister-runtime", GlobalAccountIDLabel: "globalAccount"})
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
