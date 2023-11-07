@@ -11,8 +11,6 @@ type CompassManagerMappingSpec struct{}
 type CompassManagerMappingStatus struct {
 	Registered bool `json:"registered,omitempty"`
 	Configured bool `json:"configured,omitempty"`
-
-	// TODO: maybe add conditions?
 }
 
 //+kubebuilder:object:root=true

@@ -64,7 +64,7 @@ type Configurator interface {
 	UpdateCompassRuntimeAgent(kubeconfig string) error
 }
 
-//go:generate mockery --name=Registrator
+//go:generate mockery --name=Registrant
 type Registrant interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
@@ -107,7 +107,7 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 
-	cluster := NewClusterInterface(cm.Client, cm.Log)
+	cluster := NewControlPlaneInterface(cm.Client, cm.Log)
 
 	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
@@ -196,7 +196,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 // If `existingMapping` is non-nil, it ignores namespace and kymaName and uses provided mapping
 // Otherwise it tries to fetch the mapping based on `namespace` and `kymaName`
 
-func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ClusterInterface, name types.NamespacedName) error {
+func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ControlPlaneInterface, name types.NamespacedName) error {
 	compass, err := cluster.GetCompassMapping(name)
 
 	if err != nil {
@@ -307,7 +307,7 @@ func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interfa
 	return runtimeLabels
 }
 
-type ClusterInterface struct {
+type ControlPlaneInterface struct {
 	log     *log.Logger
 	kubectl Client
 	cache   clusterCache
@@ -319,15 +319,15 @@ type clusterCache struct {
 	kubecfg        *corev1.Secret
 }
 
-func NewClusterInterface(kubectl Client, log *log.Logger) *ClusterInterface {
-	return &ClusterInterface{
+func NewControlPlaneInterface(kubectl Client, log *log.Logger) *ControlPlaneInterface {
+	return &ControlPlaneInterface{
 		log:     log,
 		cache:   clusterCache{},
 		kubectl: kubectl,
 	}
 }
 
-func (c *ClusterInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, error) {
+func (c *ControlPlaneInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, error) {
 	if c.cache.kymaCR != nil && c.cache.kymaCR.Name == name.Name && c.cache.kymaCR.Namespace == name.Namespace {
 		return c.cache.kymaCR, nil
 	}
@@ -353,7 +353,7 @@ func (c *ClusterInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, error
 }
 
 // GetCompassMapping return nil, nil if it doesn't exist
-func (c *ClusterInterface) GetCompassMapping(name types.NamespacedName) (*v1beta1.CompassManagerMapping, error) {
+func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v1beta1.CompassManagerMapping, error) {
 	if c.cache.compassMapping != nil && c.cache.compassMapping.Labels[LabelKymaName] == name.Name {
 		return c.cache.compassMapping, nil
 	}
@@ -384,7 +384,7 @@ func (c *ClusterInterface) GetCompassMapping(name types.NamespacedName) (*v1beta
 	return c.cache.compassMapping, nil
 }
 
-func (c *ClusterInterface) DeleteCompassMapping(name types.NamespacedName) error {
+func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) error {
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil {
 		return err
@@ -393,7 +393,7 @@ func (c *ClusterInterface) DeleteCompassMapping(name types.NamespacedName) error
 }
 
 // GetKubeconfig return nil, nil if it doesn't exist
-func (c *ClusterInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
+func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
 	if c.cache.kubecfg != nil && c.cache.kubecfg.Labels[LabelKymaName] == name.Name {
 		return c.cache.kubecfg.Data[KubeconfigKey], nil
 	}
@@ -405,7 +405,7 @@ func (c *ClusterInterface) GetKubeconfig(name types.NamespacedName) ([]byte, err
 
 	err := c.kubectl.List(context.TODO(), secretList, &client.ListOptions{
 		LabelSelector: labelSelector,
-		Namespace:     name.Namespace, // TODO: Is this the same namespace?
+		Namespace:     name.Namespace,
 	})
 
 	if err != nil || len(secretList.Items) == 0 {
@@ -422,7 +422,7 @@ func (c *ClusterInterface) GetKubeconfig(name types.NamespacedName) ([]byte, err
 	return c.cache.kubecfg.Data[KubeconfigKey], nil
 }
 
-func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
+func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
 	kyma, err := c.GetKyma(name)
 	if err != nil {
 		return err
@@ -442,7 +442,6 @@ func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compa
 
 	compassMapping.Labels = labels
 
-	// TODOs add retry for upsert logic
 	existingMapping, err := c.GetCompassMapping(name)
 	if err != nil {
 		return err
@@ -469,7 +468,7 @@ func (c *ClusterInterface) UpsertCompassMapping(name types.NamespacedName, compa
 }
 
 // GetCompassRuntimeID returns ("", nil) if the mapping doesn't exist, or doesn't have the label
-func (c *ClusterInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
+func (c *ControlPlaneInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil || mapping == nil {
 		return "", err
@@ -479,7 +478,7 @@ func (c *ClusterInterface) GetCompassRuntimeID(name types.NamespacedName) (strin
 
 // SetCompassMappingStatus sets the registered and configured on an existing CompassManagerMapping
 // If error occurs - logs it and returns
-func (c *ClusterInterface) SetCompassMappingStatus(name types.NamespacedName, registered, configured bool) error {
+func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedName, registered, configured bool) error {
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil {
 		return err
@@ -495,7 +494,7 @@ func (c *ClusterInterface) SetCompassMappingStatus(name types.NamespacedName, re
 	return err
 }
 
-func (c *ClusterInterface) ClearCache() {
+func (c *ControlPlaneInterface) ClearCache() {
 	c.cache = clusterCache{
 		kymaCR:         nil,
 		compassMapping: nil,

@@ -31,7 +31,7 @@ var (
 	testEnv          *envtest.Environment      //nolint:gochecknoglobals
 	cm               *CompassManagerReconciler //nolint:gochecknoglobals
 	mockConfigurator *mocks.Configurator       //nolint:gochecknoglobals
-	mockRegistrator  *mocks.Registrator        //nolint:gochecknoglobals
+	mockRegistrant   *mocks.Registrant         //nolint:gochecknoglobals
 	suiteCtx         context.Context           //nolint:gochecknoglobals
 	cancelSuiteCtx   context.CancelFunc        //nolint:gochecknoglobals
 )
@@ -71,12 +71,12 @@ var _ = BeforeSuite(func() {
 	log.SetLevel(logrus.InfoLevel)
 
 	mockConfigurator = &mocks.Configurator{}
-	mockRegistrator = &mocks.Registrator{}
-	prepareMockFunctions(mockConfigurator, mockRegistrator)
+	mockRegistrant = &mocks.Registrant{}
+	prepareMockFunctions(mockConfigurator, mockRegistrant)
 
 	requeueTime := time.Second * 10
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime)
+	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrant, requeueTime)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
@@ -114,7 +114,7 @@ var _ = AfterSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
+func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrant) {
 	// compassLabelsDeregistrationNoError := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "unregister-runtime", GlobalAccountIDLabel: "globalAccount"})
 	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
 	// compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{ShootNameLabel: "refresh-token", GlobalAccountIDLabel: "globalAccount"})
@@ -130,7 +130,7 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	// failing test case
 	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-preregistered", "id-preregistered-incorrect").Return(nil)
 	// succeeding test case
-	c.On("ConfigureCompassRuntimeAgent", "id-preregistered-incorrect", "preregistered").Return(errors.New("This shouldn't be called"))
+	c.On("ConfigureCompassRuntimeAgent", "id-preregistered-incorrect", "preregistered").Return(errors.New("this shouldn't be called"))
 
 	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{LabelShootName: "all-good", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
