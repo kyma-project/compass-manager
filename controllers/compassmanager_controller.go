@@ -212,9 +212,9 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ControlPlaneInte
 	}
 
 	globalAccountFromMapping, ok := compass.Labels[LabelGlobalAccountID]
-	if err != nil {
+	if !ok {
 		cm.Log.Warnf("Compass Mapping for %s has no Global Account", name.Name)
-		return err
+		return errors.Errorf("Compass Mapping for %s has no Global Account", name.Name)
 	}
 
 	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", name.Name)
