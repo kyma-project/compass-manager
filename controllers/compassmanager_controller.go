@@ -42,7 +42,7 @@ const (
 	KubeconfigKey = "config"
 )
 
-var notFoundErr = errors.New("resource not found")
+var errNotFound = errors.New("resource not found")
 
 type DirectorError struct {
 	message error
@@ -379,7 +379,7 @@ func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v
 	}
 
 	if len(mappingList.Items) == 0 {
-		return nil, notFoundErr
+		return nil, errNotFound
 	}
 
 	c.cache.compassMapping = &mappingList.Items[0]
@@ -423,7 +423,7 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 
 	_, ok := secretList.Items[0].Data[KubeconfigKey]
 	if !ok {
-		return nil, notFoundErr
+		return nil, errNotFound
 	}
 
 	c.cache.kubecfg = &secretList.Items[0]
@@ -477,14 +477,14 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	return nil
 }
 
-// GetCompassRuntimeID returns `notFoundErr` if the mapping exists, but doesn't have the label
+// GetCompassRuntimeID returns `errNotFound` if the mapping exists, but doesn't have the label
 func (c *ControlPlaneInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil {
 		return "", err
 	}
 	if mapping.Labels[LabelCompassID] == "" {
-		return "", notFoundErr
+		return "", errNotFound
 	}
 	return mapping.Labels[LabelCompassID], nil
 }
@@ -515,5 +515,5 @@ func (c *ControlPlaneInterface) ClearCache() {
 }
 
 func isNotFound(err error) bool {
-	return k8serrors.IsNotFound(err) || errors.Is(err, notFoundErr)
+	return k8serrors.IsNotFound(err) || errors.Is(err, errNotFound)
 }
