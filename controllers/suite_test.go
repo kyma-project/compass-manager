@@ -115,7 +115,6 @@ var _ = AfterSuite(func() {
 })
 
 func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
-
 	// It handles `compass-runtime-id-for-migration`
 	compassLabelsRegistered := createCompassRuntimeLabels(map[string]string{LabelShootName: "preregistered", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsRegistered).Return("id-preregistered-incorrect", nil)

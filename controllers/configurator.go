@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"time"
+
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	"github.com/kyma-project/compass-manager/internal/director"
@@ -12,7 +14,6 @@ import (
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"time"
 )
 
 const (
@@ -39,6 +40,9 @@ func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig strin
 	}
 
 	token, err := r.fetchCompassToken(compassRuntimeID, globalAccount)
+	if err != nil {
+		return err
+	}
 
 	err = r.upsertCompassRuntimeAgentSecret(kubeClient, token, compassRuntimeID, globalAccount)
 	if err != nil {
@@ -48,7 +52,6 @@ func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig strin
 }
 
 func (r *RuntimeAgentConfigurator) upsertCompassRuntimeAgentSecret(kubeClient kubernetes.Interface, token graphql.OneTimeTokenForRuntimeExt, runtimeID, globalAccount string) error {
-
 	configurationData := map[string]string{
 		"CONNECTOR_URL": token.ConnectorURL,
 		"RUNTIME_ID":    runtimeID,
@@ -78,7 +81,6 @@ func (r *RuntimeAgentConfigurator) upsertCompassRuntimeAgentSecret(kubeClient ku
 }
 
 func (r *RuntimeAgentConfigurator) prepareKubeClient(kubeconfig string) (kubernetes.Interface, error) {
-
 	config, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
 	if err != nil {
 		return nil, err
