@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
@@ -61,17 +60,13 @@ func (e *DirectorError) Error() string {
 //go:generate mockery --name=Configurator
 type Configurator interface {
 	// ConfigureCompassRuntimeAgent creates a secret in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
-	// UpdateCompassRuntimeAgent updates the secret in the Runtime that is used by the Compass Runtime Agent
-	UpdateCompassRuntimeAgent(kubeconfig string) error
+	ConfigureCompassRuntimeAgent(kubeconfig string, compassRuntimeID, globalAccount string) error
 }
 
 //go:generate mockery --name=Registrator
 type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
-	// RefreshCompassToken gets new connection token for Compass requests
-	RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
 	// DeregisterFromCompass deletes Runtime from Compass system
 	DeregisterFromCompass(compassID, globalAccount string) error
 }
@@ -187,6 +182,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Mapping exists and is registered, we need to configure the CRA
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(string(kubeconfig), compassRuntimeID)
+	globalAccount, ok := kymaLabels[LabelGlobalAccountID]
+	if !ok {
+		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
+	}
+
+	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
 	if err != nil {
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
