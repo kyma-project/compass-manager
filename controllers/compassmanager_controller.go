@@ -42,6 +42,8 @@ const (
 	KubeconfigKey = "config"
 )
 
+var notFoundErr = errors.New("resource not found")
+
 type DirectorError struct {
 	message error
 }
@@ -53,7 +55,7 @@ func (e *DirectorError) Error() string {
 //+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch;update
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas/status,verbs=get
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
 //go:generate mockery --name=Configurator
@@ -111,7 +113,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
-	if k8serrors.IsNotFound(err) {
+	if isNotFound(err) {
 		delErr := cm.handleKymaDeletion(cluster, req.NamespacedName)
 		var directorError *DirectorError
 		if errors.As(delErr, &directorError) {
@@ -125,26 +127,26 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain labels from Kyma resource %s", req.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Kyma resource %s", req.Name)
 	}
 
 	kubeconfig, err := cluster.GetKubeconfig(req.NamespacedName)
-	if err != nil {
+	if err != nil && !isNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
 	}
 
-	if len(kubeconfig) == 0 {
+	if isNotFound(err) || len(kubeconfig) == 0 {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
 
-	compassRuntimeID, err := cluster.GetCompassRuntimeID(req.NamespacedName)
+	compassRuntimeID, runtimeIDErr := cluster.GetCompassRuntimeID(req.NamespacedName)
 
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Compass Mapping for Kyma resource %s", req.Name)
+	if runtimeIDErr != nil && !isNotFound(runtimeIDErr) {
+		return ctrl.Result{}, errors.Wrapf(runtimeIDErr, "failed to obtain Compass Mapping for Kyma resource %s", req.Name)
 	}
 
-	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && compassRuntimeID == "" {
+	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
 		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
 		if cmerr != nil {
@@ -155,7 +157,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	if compassRuntimeID == "" {
+	if isNotFound(runtimeIDErr) {
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 		if regErr != nil {
 			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "")
@@ -198,6 +200,11 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ControlPlaneInterface, name types.NamespacedName) error {
 	compass, err := cluster.GetCompassMapping(name)
+
+	if isNotFound(err) {
+		cm.Log.Warnf("Runtime %s has no compass mapping, nothing to delete", name)
+		return nil
+	}
 
 	if err != nil {
 		cm.Log.Warnf("Failed to obtain Compass Mapping for Kyma %s: %v", name.Name, err)
@@ -352,7 +359,6 @@ func (c *ControlPlaneInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, 
 	return c.cache.kymaCR, nil
 }
 
-// GetCompassMapping return nil, nil if it doesn't exist
 func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v1beta1.CompassManagerMapping, error) {
 	if c.cache.compassMapping != nil && c.cache.compassMapping.Labels[LabelKymaName] == name.Name {
 		return c.cache.compassMapping, nil
@@ -368,8 +374,12 @@ func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v
 		Namespace:     name.Namespace,
 	})
 
-	if err != nil || len(mappingList.Items) == 0 {
+	if err != nil {
 		return nil, err
+	}
+
+	if len(mappingList.Items) == 0 {
+		return nil, notFoundErr
 	}
 
 	c.cache.compassMapping = &mappingList.Items[0]
@@ -392,7 +402,6 @@ func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) 
 	return c.kubectl.Delete(context.TODO(), mapping)
 }
 
-// GetKubeconfig return nil, nil if it doesn't exist
 func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
 	if c.cache.kubecfg != nil && c.cache.kubecfg.Labels[LabelKymaName] == name.Name {
 		return c.cache.kubecfg.Data[KubeconfigKey], nil
@@ -414,7 +423,7 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 
 	_, ok := secretList.Items[0].Data[KubeconfigKey]
 	if !ok {
-		return nil, nil
+		return nil, notFoundErr
 	}
 
 	c.cache.kubecfg = &secretList.Items[0]
@@ -443,11 +452,8 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	compassMapping.Labels = labels
 
 	existingMapping, err := c.GetCompassMapping(name)
-	if err != nil {
-		return err
-	}
 
-	if existingMapping == nil {
+	if isNotFound(err) {
 		c.cache.compassMapping = nil
 
 		cerr := c.kubectl.Create(context.TODO(), compassMapping)
@@ -456,6 +462,10 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		}
 		c.cache.compassMapping = compassMapping
 		return nil
+	}
+
+	if err != nil {
+		return err
 	}
 
 	existingMapping.SetLabels(labels)
@@ -467,11 +477,14 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	return nil
 }
 
-// GetCompassRuntimeID returns ("", nil) if the mapping doesn't exist, or doesn't have the label
+// GetCompassRuntimeID returns `notFoundErr` if the mapping exists, but doesn't have the label
 func (c *ControlPlaneInterface) GetCompassRuntimeID(name types.NamespacedName) (string, error) {
 	mapping, err := c.GetCompassMapping(name)
-	if err != nil || mapping == nil {
+	if err != nil {
 		return "", err
+	}
+	if mapping.Labels[LabelCompassID] == "" {
+		return "", notFoundErr
 	}
 	return mapping.Labels[LabelCompassID], nil
 }
@@ -499,4 +512,8 @@ func (c *ControlPlaneInterface) ClearCache() {
 		kymaCR:         nil,
 		compassMapping: nil,
 	}
+}
+
+func isNotFound(err error) bool {
+	return k8serrors.IsNotFound(err) || errors.Is(err, notFoundErr)
 }
