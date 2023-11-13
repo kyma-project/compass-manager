@@ -440,35 +440,33 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 }
 
 func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
-	kyma, err := c.GetKyma(name)
+	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
 	}
 
-	compassMapping := &v1beta1.CompassManagerMapping{}
-
-	compassMapping.Name = name.Name
-	compassMapping.Namespace = name.Namespace
-
 	labels := make(map[string]string)
-	labels[LabelKymaName] = kyma.Labels[LabelKymaName]
+	labels[LabelKymaName] = kymaCR.Labels[LabelKymaName]
 	labels[LabelCompassID] = compassRuntimeID
-	labels[LabelGlobalAccountID] = kyma.Labels[LabelGlobalAccountID]
-	labels[LabelSubaccountID] = kyma.Labels[LabelSubaccountID]
+	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
+	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = "compass-manager"
-
-	compassMapping.Labels = labels
 
 	existingMapping, err := c.GetCompassMapping(name)
 
 	if isNotFound(err) {
 		c.cache.compassMapping = nil
 
-		cerr := c.kubectl.Create(context.TODO(), compassMapping)
+		newMapping := &v1beta1.CompassManagerMapping{}
+		newMapping.Name = name.Name
+		newMapping.Namespace = name.Namespace
+		newMapping.Labels = labels
+
+		cerr := c.kubectl.Create(context.TODO(), newMapping)
 		if cerr != nil {
 			return cerr
 		}
-		c.cache.compassMapping = compassMapping
+		c.cache.compassMapping = newMapping
 		return nil
 	}
 
@@ -481,7 +479,7 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	if err != nil {
 		return err
 	}
-	c.cache.compassMapping = compassMapping
+	c.cache.compassMapping = existingMapping
 	return nil
 }
 
