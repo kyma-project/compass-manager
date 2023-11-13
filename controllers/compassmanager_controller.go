@@ -108,11 +108,11 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
-
 	cluster := NewControlPlaneInterface(cm.Client, cm.Log)
 
 	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
+	// KymaCR doesn't exist - reconcile was triggered by deletion
 	if isNotFound(err) {
 		delErr := cm.handleKymaDeletion(cluster, req.NamespacedName)
 		var directorError *DirectorError
@@ -130,15 +130,20 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrapf(err, "failed to obtain Kyma resource %s", req.Name)
 	}
 
+	// KymaCR exists, get its kubeconfig
 	kubeconfig, err := cluster.GetKubeconfig(req.NamespacedName)
-	if err != nil && !isNotFound(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
-	}
 
+	// Kubeconfig doesn't exist / is empty
 	if isNotFound(err) || len(kubeconfig) == 0 {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
+
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
+	}
+
+	// Kyma exists and has a kubeconfig, get the compass mapping
 
 	compassRuntimeID, runtimeIDErr := cluster.GetCompassRuntimeID(req.NamespacedName)
 
@@ -147,6 +152,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
+		// Mapping doesn't exist or is not registered, but we have the ID provided by KEB
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
 		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
 		if cmerr != nil {
@@ -158,6 +164,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if isNotFound(runtimeIDErr) {
+		// Mapping doesn't exist or is not registered, we need to register the Kyma
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 		if regErr != nil {
 			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "")
@@ -180,6 +187,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
 	}
 
+	// Mapping exists and is registered, we need to configure the CRA
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(string(kubeconfig), compassRuntimeID)
 	if err != nil {
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
