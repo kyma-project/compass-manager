@@ -502,7 +502,6 @@ func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedNam
 	if configured && registered {
 		mapping.Status.State = "Ready"
 	} else {
-
 		mapping.Status.State = "Failed"
 	}
 
