@@ -57,7 +57,7 @@ var _ = Describe("Compass Manager controller", func() {
 	})
 
 	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
-		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string, registered, configured bool) {
+		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string) {
 			By("Create secret with credentials")
 			secret := createCredentialsSecret(kymaName)
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
@@ -76,13 +76,13 @@ var _ = Describe("Compass Manager controller", func() {
 			By("Verify status")
 			cmm, err := getCompassMapping(kymaCR.Name)
 			Expect(err).To(BeNil())
-			Expect(cmm.Status.Registered).To(Equal(registered))
-			Expect(cmm.Status.Configured).To(Equal(configured))
+			Expect(cmm.Status.Registered).To(BeTrue())
+			Expect(cmm.Status.Configured).To(BeTrue())
 
 		},
-			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good", true, true),
-			Entry("The first attempt to register Runtime failed, and retry succeeded", "registration-fails", false, false),
-			Entry("Runtime successfully registered, the first attempt to configure Compass Runtime Agent failed, and retry succeeded", "configure-fails", true, true),
+			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good"),
+			Entry("The first attempt to register Runtime failed, and retry succeeded", "registration-fails"),
+			Entry("Runtime successfully registered, the first attempt to configure Compass Runtime Agent failed, and retry succeeded", "configure-fails"),
 		)
 	})
 
