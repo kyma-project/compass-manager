@@ -44,6 +44,11 @@ spec:
                 type: boolean
               registered:
                 type: boolean
+              state:
+                type: string
+            required:
+            - configured
+            - registered
             type: object
         type: object
     served: true

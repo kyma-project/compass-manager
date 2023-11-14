@@ -181,8 +181,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 		}
 
-		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
-
 		compassRuntimeID = newCompassRuntimeID
 		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
 	}
@@ -201,10 +199,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	return ctrl.Result{}, nil
 }
-
-// setCompassMappingStatus sets the status of specified compass mapping.
-// If `existingMapping` is non-nil, it ignores namespace and kymaName and uses provided mapping
-// Otherwise it tries to fetch the mapping based on `namespace` and `kymaName`
 
 func (cm *CompassManagerReconciler) handleKymaDeletion(cluster *ControlPlaneInterface, name types.NamespacedName) error {
 	compass, err := cluster.GetCompassMapping(name)
@@ -505,6 +499,12 @@ func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedNam
 
 	mapping.Status.Registered = registered
 	mapping.Status.Configured = configured
+	if configured && registered {
+		mapping.Status.State = "Ready"
+	} else {
+
+		mapping.Status.State = "Failed"
+	}
 
 	err = c.kubectl.Status().Update(context.TODO(), mapping)
 	if err != nil {
