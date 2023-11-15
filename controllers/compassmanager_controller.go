@@ -405,9 +405,16 @@ func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) 
 		return err
 	}
 	mapping, err := c.GetCompassMapping(name)
+	c.cache.compassMapping = nil
+
 	if err != nil {
 		return err
 	}
+
+	if mapping.DeletionTimestamp != nil {
+		return nil
+	}
+
 	return c.kubectl.Delete(context.TODO(), mapping)
 }
 
