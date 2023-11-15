@@ -118,43 +118,43 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	// It handles `compass-runtime-id-for-migration`
 	compassLabelsRegistered := createCompassRuntimeLabels(map[string]string{LabelShootName: "preregistered", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsRegistered).Return("id-preregistered-incorrect", nil)
-	// failing test case
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-preregistered", "id-preregistered-incorrect", "globalAccount").Return(nil)
 	// succeeding test case
-	c.On("ConfigureCompassRuntimeAgent", "id-preregistered-incorrect", "preregistered", "globalAccount").Return(errors.New("this shouldn't be called"))
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "id-preregistered-incorrect", "globalAccount").Return(nil)
+	// failing test case
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "preregistered", "globalAccount").Return(errors.New("this shouldn't be called"))
 
 	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{LabelShootName: "all-good", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-all-good", "id-all-good", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-all-good"), "id-all-good", "globalAccount").Return(nil)
 
 	compassLabelsConfigureFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "configure-fails", LabelGlobalAccountID: "globalAccount"})
 	// The first call to ConfigureRuntimeAgent fails, but the second is successful
 	r.On("RegisterInCompass", compassLabelsConfigureFails).Return("id-configure-fails", nil)
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails", "globalAccount").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-configure-fails", "id-configure-fails", "globalAccount").Return(nil).Once()
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-configure-fails"), "id-configure-fails", "globalAccount").Return(errors.New("error during configuration of Compass Runtime Agent CR")).Once()
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-configure-fails"), "id-configure-fails", "globalAccount").Return(nil).Once()
 
 	compassLabelsRegistrationFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "registration-fails", LabelGlobalAccountID: "globalAccount"})
 	// The first call to RegisterInCompass fails, but the second is successful.
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("", errors.New("error during registration")).Once()
 	r.On("RegisterInCompass", compassLabelsRegistrationFails).Return("registration-fails", nil).Once()
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-registration-fails", "registration-fails", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-registration-fails"), "registration-fails", "globalAccount").Return(nil)
 
 	compassLabelsEmptyKubeconfig := createCompassRuntimeLabels(map[string]string{LabelShootName: "empty-kubeconfig", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsEmptyKubeconfig).Return("id-empty-kubeconfig", nil)
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-empty-kubeconfig", "id-empty-kubeconfig", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-empty-kubeconfig"), "id-empty-kubeconfig", "globalAccount").Return(nil)
 
 	compassLabelsDeregistration := createCompassRuntimeLabels(map[string]string{LabelShootName: "unregister-runtime", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsDeregistration).Return("id-unregister-runtime", nil)
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime", "id-unregister-runtime", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-unregister-runtime"), "id-unregister-runtime", "globalAccount").Return(nil)
 	r.On("DeregisterFromCompass", "id-unregister-runtime", "globalAccount").Return(nil)
 
 	compassLabelsDeregistrationFails := createCompassRuntimeLabels(map[string]string{LabelShootName: "unregister-runtime-fails", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsDeregistrationFails).Return("id-unregister-runtime-fails", nil)
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-unregister-runtime-fails", "id-unregister-runtime-fails", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-unregister-runtime-fails"), "id-unregister-runtime-fails", "globalAccount").Return(nil)
 	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(errors.New("error during unregistration of the runtime")).Once()
 	r.On("DeregisterFromCompass", "id-unregister-runtime-fails", "globalAccount").Return(nil).Once()
 
 	compassLabelsRefreshToken := createCompassRuntimeLabels(map[string]string{LabelShootName: "refresh-token", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsRefreshToken).Return("id-refresh-token", nil).Once()
-	c.On("ConfigureCompassRuntimeAgent", "kubeconfig-data-refresh-token", "id-refresh-token", "globalAccount").Return(nil).Twice()
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-refresh-token"), "id-refresh-token", "globalAccount").Return(nil).Twice()
 }

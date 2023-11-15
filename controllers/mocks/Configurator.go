@@ -10,11 +10,11 @@ type Configurator struct {
 }
 
 // ConfigureCompassRuntimeAgent provides a mock function with given fields: kubeconfig, compassRuntimeID, globalAccount
-func (_m *Configurator) ConfigureCompassRuntimeAgent(kubeconfig string, compassRuntimeID string, globalAccount string) error {
+func (_m *Configurator) ConfigureCompassRuntimeAgent(kubeconfig []byte, compassRuntimeID string, globalAccount string) error {
 	ret := _m.Called(kubeconfig, compassRuntimeID, globalAccount)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
+	if rf, ok := ret.Get(0).(func([]byte, string, string) error); ok {
 		r0 = rf(kubeconfig, compassRuntimeID, globalAccount)
 	} else {
 		r0 = ret.Error(0)

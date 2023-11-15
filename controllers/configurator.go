@@ -33,7 +33,7 @@ func NewRuntimeAgentConfigurator(directorClient director.Client, log *logrus.Log
 	}
 }
 
-func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig string, compassRuntimeID, globalAccount string) error {
+func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig []byte, compassRuntimeID, globalAccount string) error {
 	kubeClient, err := r.prepareKubeClient(kubeconfig)
 	if err != nil {
 		return err
@@ -80,8 +80,8 @@ func (r *RuntimeAgentConfigurator) upsertCompassRuntimeAgentSecret(kubeClient ku
 	return err
 }
 
-func (r *RuntimeAgentConfigurator) prepareKubeClient(kubeconfig string) (kubernetes.Interface, error) {
-	config, err := clientcmd.RESTConfigFromKubeConfig([]byte(kubeconfig))
+func (r *RuntimeAgentConfigurator) prepareKubeClient(kubeconfig []byte) (kubernetes.Interface, error) {
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
 		return nil, err
 	}

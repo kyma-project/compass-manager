@@ -60,7 +60,7 @@ func (e *DirectorError) Error() string {
 //go:generate mockery --name=Configurator
 type Configurator interface {
 	// ConfigureCompassRuntimeAgent creates a secret in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureCompassRuntimeAgent(kubeconfig string, compassRuntimeID, globalAccount string) error
+	ConfigureCompassRuntimeAgent(kubeconfig []byte, compassRuntimeID, globalAccount string) error
 }
 
 //go:generate mockery --name=Registrator
@@ -181,8 +181,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Mapping exists and is registered, we need to configure the CRA
-	err = cm.Configurator.ConfigureCompassRuntimeAgent(string(kubeconfig), compassRuntimeID)
-	globalAccount, ok := kymaLabels[LabelGlobalAccountID]
+	globalAccount, ok := kymaCR.Labels[LabelGlobalAccountID]
 	if !ok {
 		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
 	}
