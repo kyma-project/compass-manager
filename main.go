@@ -106,7 +106,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
+	compassRegistrator := controllers.NewCompassRegistrator(directorClient, log)
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(log)
 	requeueTime := time.Minute * 5 //nolint:gomnd
 

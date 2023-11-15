@@ -40,6 +40,7 @@ var _ = Describe("Compass Manager controller", func() {
 			kymaCR.Annotations["compass-runtime-id-for-migration"] = preRegisteredID
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
+			By("Wait for mapping")
 			Eventually(func() string {
 				label, err := getCompassMappingCompassID(kymaCR.Name)
 				if err != nil {
@@ -47,6 +48,11 @@ var _ = Describe("Compass Manager controller", func() {
 				}
 				return label
 			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
+
+			By("Verify status")
+			cmm, err := getCompassMapping(kymaCR.Name)
+			Expect(err).To(BeNil())
+			Expect(cmm.Status.Registered && cmm.Status.Configured).To(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
 		})
 	})
 
@@ -60,11 +66,19 @@ var _ = Describe("Compass Manager controller", func() {
 			kymaCR := createKymaResource(kymaName)
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
+			By("Wait for mapping")
 			Eventually(func() bool {
 				label, err := getCompassMappingCompassID(kymaCR.Name)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
+
+			By("Verify status")
+			cmm, err := getCompassMapping(kymaCR.Name)
+			Expect(err).To(BeNil())
+			Expect(cmm.Status.Registered).To(BeTrue())
+			Expect(cmm.Status.Configured).To(BeTrue())
+
 		},
 			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good"),
 			Entry("The first attempt to register Runtime failed, and retry succeeded", "registration-fails"),
@@ -215,16 +229,21 @@ func createCredentialsSecret(kymaName string) corev1.Secret {
 }
 
 func getCompassMappingCompassID(kymaName string) (string, error) {
-	var obj v1beta1.CompassManagerMapping
-	key := types.NamespacedName{Name: kymaName, Namespace: kymaCustomResourceNamespace}
-
-	err := cm.Client.Get(context.Background(), key, &obj)
+	obj, err := getCompassMapping(kymaName)
 	if err != nil {
 		return "", err
 	}
 
 	labels := obj.GetLabels()
-	return labels[LabelComppassID], nil
+	return labels[LabelCompassID], nil
+}
+
+func getCompassMapping(kymaName string) (v1beta1.CompassManagerMapping, error) {
+	var obj v1beta1.CompassManagerMapping
+	key := types.NamespacedName{Name: kymaName, Namespace: kymaCustomResourceNamespace}
+
+	err := cm.Client.Get(context.Background(), key, &obj)
+	return obj, err
 }
 
 // Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR

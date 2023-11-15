@@ -35,14 +35,16 @@ rules:
 - apiGroups:
   - operator.kyma-project.io
   resources:
+  - compassmanagermappings/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - operator.kyma-project.io
+  resources:
   - kymas
   verbs:
   - get
   - list
   - watch
-- apiGroups:
-  - operator.kyma-project.io
-  resources:
-  - kymas/status
-  verbs:
-  - get
