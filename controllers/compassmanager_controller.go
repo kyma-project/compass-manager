@@ -26,6 +26,7 @@ import (
 const (
 	AnnotationIDForMigration = "compass-runtime-id-for-migration"
 
+	Finalizer             = "kyma-project.io/cm-protection"
 	LabelBrokerInstanceID = "kyma-project.io/instance-id"
 	LabelBrokerPlanID     = "kyma-project.io/broker-plan-id"
 	LabelBrokerPlanName   = "kyma-project.io/broker-plan-name"
@@ -56,6 +57,7 @@ func (e *DirectorError) Error() string {
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch;update
 //+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/finalizers,verbs=update;get
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 
 //go:generate mockery --name=Configurator
@@ -397,11 +399,32 @@ func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v
 }
 
 func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) error {
+	err := c.RemoveCMFinalizer(name)
+	if err != nil {
+		c.log.Warnf("Couldn't remove finalizer for %s", name)
+		return err
+	}
 	mapping, err := c.GetCompassMapping(name)
 	if err != nil {
 		return err
 	}
 	return c.kubectl.Delete(context.TODO(), mapping)
+}
+
+func (c *ControlPlaneInterface) RemoveCMFinalizer(name types.NamespacedName) error {
+	mapping, err := c.GetCompassMapping(name)
+	if err != nil {
+		return err
+	}
+
+	for i, finalizer := range mapping.Finalizers {
+		if finalizer == Finalizer {
+			mapping.Finalizers = append(mapping.Finalizers[:i], mapping.Finalizers[i+1:]...)
+			break
+		}
+	}
+
+	return c.kubectl.Update(context.TODO(), mapping)
 }
 
 func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
@@ -455,6 +478,7 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		newMapping.Name = name.Name
 		newMapping.Namespace = name.Namespace
 		newMapping.Labels = labels
+		newMapping.Finalizers = []string{Finalizer}
 
 		cerr := c.kubectl.Create(context.TODO(), newMapping)
 		if cerr != nil {
