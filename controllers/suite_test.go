@@ -119,9 +119,9 @@ func prepareMockFunctions(c *mocks.Configurator, r *mocks.Registrator) {
 	compassLabelsRegistered := createCompassRuntimeLabels(map[string]string{LabelShootName: "preregistered", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsRegistered).Return("id-preregistered-incorrect", nil)
 	// succeeding test case
-	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "id-preregistered-incorrect", "globalAccount").Return(nil)
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "preregistered-id", "globalAccount").Return(nil)
 	// failing test case
-	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "preregistered", "globalAccount").Return(errors.New("this shouldn't be called"))
+	c.On("ConfigureCompassRuntimeAgent", []byte("kubeconfig-data-preregistered"), "preregistered-id", "globalAccount").Return(errors.New("this shouldn't be called"))
 
 	compassLabelsAllGood := createCompassRuntimeLabels(map[string]string{LabelShootName: "all-good", LabelGlobalAccountID: "globalAccount"})
 	r.On("RegisterInCompass", compassLabelsAllGood).Return("id-all-good", nil)
