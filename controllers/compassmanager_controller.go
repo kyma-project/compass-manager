@@ -146,14 +146,27 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrapf(runtimeIDErr, "failed to obtain Compass Mapping for Kyma resource %s", req.Name)
 	}
 
+	globalAccount, ok := kymaCR.Labels[LabelGlobalAccountID]
+	if !ok {
+		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
+	}
+
 	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
-		// Mapping doesn't exist or is not registered, but we have the ID provided by KEB
+		// Mapping doesn't exist, runtime was registered by Provisioner, but we have the Compass ID provided by KEB, need to refresh CRA token on SKR
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
 		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
 		}
+
+		cfgerr := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, migrationCompassRuntimeID, globalAccount)
+		if cfgerr != nil {
+			_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
+			return ctrl.Result{}, errors.Wrap(cfgerr, "failed to configure secret for Compass Runtime Agent")
+		}
+
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
+		cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", migrationCompassRuntimeID)
 
 		return ctrl.Result{}, nil
 	}
@@ -181,11 +194,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Mapping exists and is registered, we need to configure the CRA
-	globalAccount, ok := kymaCR.Labels[LabelGlobalAccountID]
-	if !ok {
-		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
-	}
-
 	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
 	if err != nil {
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
