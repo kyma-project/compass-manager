@@ -51,10 +51,10 @@ func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig []byt
 	return nil
 }
 
-func (r *RuntimeAgentConfigurator) upsertCompassRuntimeAgentSecret(kubeClient kubernetes.Interface, token graphql.OneTimeTokenForRuntimeExt, runtimeID, globalAccount string) error {
+func (r *RuntimeAgentConfigurator) upsertCompassRuntimeAgentSecret(kubeClient kubernetes.Interface, token graphql.OneTimeTokenForRuntimeExt, compassRuntimeID, globalAccount string) error {
 	configurationData := map[string]string{
 		"CONNECTOR_URL": token.ConnectorURL,
-		"RUNTIME_ID":    runtimeID,
+		"RUNTIME_ID":    compassRuntimeID,
 		"TENANT":        globalAccount,
 		"TOKEN":         token.Token,
 	}
