@@ -41,7 +41,7 @@ spec:
           - name: APP_DIRECTOR_OAUTH_PATH
             value: /director-secret/director.yaml
           - name : APP_ENABLED_REGISTRATION
-            value: "true"
+            value: "false"
         volumeMounts:
           - name: director-oauth
             mountPath: /director-secret/
