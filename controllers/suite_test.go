@@ -76,7 +76,7 @@ var _ = BeforeSuite(func() {
 
 	requeueTime := time.Second * 10
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime)
+	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime, true)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
