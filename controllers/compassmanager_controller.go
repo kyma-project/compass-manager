@@ -173,7 +173,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 
-	if isNotFound(runtimeIDErr) {
+	if isNotFound(runtimeIDErr) { //nolint:nestif
 		if cm.enabledRegistration {
 			// Mapping doesn't exist or is not registered, we need to register the Kyma
 			newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
