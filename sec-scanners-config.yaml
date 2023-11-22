@@ -1,6 +1,6 @@
 module-name: compass-manager
 protecode:
-  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:v20231025-d94a34b6
+  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:v20231122-e4b4fa5b
 whitesource:
   language: golang-mod
   subprojects: false
