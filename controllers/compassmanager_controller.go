@@ -111,7 +111,6 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 	cluster := NewControlPlaneInterface(cm.Client, cm.Log)
-
 	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
 	// KymaCR doesn't exist - reconcile was triggered by deletion
@@ -169,7 +168,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// Mapping doesn't exist or is not registered, we need to register the Kyma
 		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 		if regErr != nil {
-			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "")
+			cmerr := cluster.CreateCompassMapping(req.NamespacedName, "", false, false)
 			if cmerr != nil {
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 			}
@@ -178,7 +177,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 		}
 
-		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, newCompassRuntimeID)
+		cmerr := cluster.CreateCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 		}
@@ -321,34 +320,21 @@ func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interfa
 type ControlPlaneInterface struct {
 	log     *log.Logger
 	kubectl Client
-	cache   clusterCache
-}
-
-type clusterCache struct {
-	kymaCR         *kyma.Kyma
-	compassMapping *v1beta1.CompassManagerMapping
-	kubecfg        *corev1.Secret
 }
 
 func NewControlPlaneInterface(kubectl Client, log *log.Logger) *ControlPlaneInterface {
 	return &ControlPlaneInterface{
 		log:     log,
-		cache:   clusterCache{},
 		kubectl: kubectl,
 	}
 }
 
-func (c *ControlPlaneInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, error) {
-	if c.cache.kymaCR != nil && c.cache.kymaCR.Name == name.Name && c.cache.kymaCR.Namespace == name.Namespace {
-		return c.cache.kymaCR, nil
-	}
-
-	c.cache.compassMapping = nil
+func (c *ControlPlaneInterface) GetKyma(name types.NamespacedName) (kyma.Kyma, error) {
 	kymaCR := kyma.Kyma{}
 
 	err := c.kubectl.Get(context.TODO(), name, &kymaCR)
 	if err != nil {
-		return c.cache.kymaCR, err
+		return kymaCR, err
 	}
 
 	if kymaCR.Labels == nil {
@@ -358,15 +344,11 @@ func (c *ControlPlaneInterface) GetKyma(name types.NamespacedName) (*kyma.Kyma, 
 		kymaCR.Annotations = make(map[string]string)
 	}
 
-	c.cache.kymaCR = &kymaCR
-
-	return c.cache.kymaCR, nil
+	return kymaCR, nil
 }
 
-func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v1beta1.CompassManagerMapping, error) {
-	if c.cache.compassMapping != nil && c.cache.compassMapping.Labels[LabelKymaName] == name.Name {
-		return c.cache.compassMapping, nil
-	}
+func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (v1beta1.CompassManagerMapping, error) {
+	mapping := v1beta1.CompassManagerMapping{}
 
 	mappingList := &v1beta1.CompassManagerMappingList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
@@ -379,35 +361,34 @@ func (c *ControlPlaneInterface) GetCompassMapping(name types.NamespacedName) (*v
 	})
 
 	if err != nil {
-		return nil, err
+		return mapping, err
 	}
 
 	if len(mappingList.Items) == 0 {
-		return nil, errNotFound
+		return mapping, errNotFound
 	}
 
-	c.cache.compassMapping = &mappingList.Items[0]
+	mapping = mappingList.Items[0]
 
-	if c.cache.compassMapping.Labels == nil {
-		c.cache.compassMapping.Labels = make(map[string]string)
+	if mapping.Labels == nil {
+		mapping.Labels = make(map[string]string)
 	}
-	if c.cache.compassMapping.Annotations == nil {
-		c.cache.compassMapping.Annotations = make(map[string]string)
+	if mapping.Annotations == nil {
+		mapping.Annotations = make(map[string]string)
 	}
 
-	return c.cache.compassMapping, nil
+	return mapping, nil
 }
 
 func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) error {
-	err := c.RemoveCMFinalizer(name)
+	mapping, err := c.GetCompassMapping(name)
 	if err != nil {
-		c.log.Warnf("Couldn't remove finalizer for %s", name)
 		return err
 	}
-	mapping, err := c.GetCompassMapping(name)
-	c.cache.compassMapping = nil
 
+	err = c.RemoveCMFinalizer(name)
 	if err != nil {
+		c.log.Warnf("Couldn't remove finalizer for %s", name)
 		return err
 	}
 
@@ -415,7 +396,7 @@ func (c *ControlPlaneInterface) DeleteCompassMapping(name types.NamespacedName) 
 		return nil
 	}
 
-	return c.kubectl.Delete(context.TODO(), mapping)
+	return c.kubectl.Delete(context.TODO(), &mapping)
 }
 
 func (c *ControlPlaneInterface) RemoveCMFinalizer(name types.NamespacedName) error {
@@ -431,14 +412,10 @@ func (c *ControlPlaneInterface) RemoveCMFinalizer(name types.NamespacedName) err
 		}
 	}
 
-	return c.kubectl.Update(context.TODO(), mapping)
+	return c.kubectl.Update(context.TODO(), &mapping)
 }
 
 func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte, error) {
-	if c.cache.kubecfg != nil && c.cache.kubecfg.Labels[LabelKymaName] == name.Name {
-		return c.cache.kubecfg.Data[KubeconfigKey], nil
-	}
-
 	secretList := &corev1.SecretList{}
 	labelSelector := labels.SelectorFromSet(map[string]string{
 		LabelKymaName: name.Name,
@@ -458,9 +435,9 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 		return nil, errNotFound
 	}
 
-	c.cache.kubecfg = &secretList.Items[0]
+	kubecfg := &secretList.Items[0]
 
-	return c.cache.kubecfg.Data[KubeconfigKey], nil
+	return kubecfg.Data[KubeconfigKey], nil
 }
 
 func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
@@ -479,8 +456,6 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	existingMapping, err := c.GetCompassMapping(name)
 
 	if isNotFound(err) {
-		c.cache.compassMapping = nil
-
 		newMapping := &v1beta1.CompassManagerMapping{}
 		newMapping.Name = name.Name
 		newMapping.Namespace = name.Namespace
@@ -491,7 +466,6 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		if cerr != nil {
 			return cerr
 		}
-		c.cache.compassMapping = newMapping
 		return nil
 	}
 
@@ -499,13 +473,38 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		return err
 	}
 
-	existingMapping.SetLabels(labels)
-	err = c.kubectl.Update(context.TODO(), existingMapping)
+	existingMapping.Labels = labels
+	err = c.kubectl.Update(context.TODO(), &existingMapping)
+	return err
+}
+
+func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string, registered, configured bool) error {
+	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
 	}
-	c.cache.compassMapping = existingMapping
-	return nil
+
+	labels := make(map[string]string)
+	labels[LabelKymaName] = kymaCR.Labels[LabelKymaName]
+	labels[LabelCompassID] = compassRuntimeID
+	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
+	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
+	labels[LabelManagedBy] = "compass-manager"
+
+	newMapping := v1beta1.CompassManagerMapping{}
+	newMapping.Name = name.Name
+	newMapping.Namespace = name.Namespace
+	newMapping.Labels = labels
+	newMapping.Finalizers = []string{Finalizer}
+
+	newMapping.Status = v1beta1.CompassManagerMappingStatus{
+		Registered: registered,
+		Configured: configured,
+		State:      "",
+	}
+
+	err = c.kubectl.Create(context.TODO(), &newMapping)
+	return err
 }
 
 // GetCompassRuntimeID returns `errNotFound` if the mapping exists, but doesn't have the label
@@ -530,26 +529,23 @@ func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedNam
 
 	mapping.Status.Registered = registered
 	mapping.Status.Configured = configured
-	if configured && registered {
-		mapping.Status.State = "Ready"
-	} else {
-		mapping.Status.State = "Failed"
-	}
 
-	err = c.kubectl.Status().Update(context.TODO(), mapping)
+	err = c.kubectl.Status().Update(context.TODO(), &mapping)
 	if err != nil {
 		c.log.Warnf("Failed to update Compass Mapping Status for %s: %v", name.Name, err)
+	} else {
+		c.log.Infof("Updated Compass Mapping Status for %s: %v, %v", name.Name, registered, configured)
 	}
 	return err
 }
 
-func (c *ControlPlaneInterface) ClearCache() {
-	c.cache = clusterCache{
-		kymaCR:         nil,
-		compassMapping: nil,
-	}
-}
-
 func isNotFound(err error) bool {
 	return k8serrors.IsNotFound(err) || errors.Is(err, errNotFound)
+}
+
+func statusText(registered, configured bool) string {
+	if configured && registered {
+		return "Ready"
+	}
+	return "Failed"
 }
