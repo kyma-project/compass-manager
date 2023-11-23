@@ -334,8 +334,8 @@ github.com/mandelsoft/logging v0.0.0-20221114215048-ab754b164dd6/go.mod h1:vxGpz
 github.com/mandelsoft/spiff v1.7.0-beta-3 h1:AvZldpnctpyfQqtAA5uxokD5rlCK52mGAXxg7tnW5Ag=
 github.com/mandelsoft/spiff v1.7.0-beta-3/go.mod h1:3Kg6qrggWO4oc1k++acd6xhcWisJ2YkzxpVZpuYONGg=
 github.com/mandelsoft/vfs v0.0.0-20201002080026-d03d33d5889a/go.mod h1:74aV7kulg9C434HiI3zNALN79QHc9IZMN+SI4UdLn14=
-github.com/mandelsoft/vfs v0.0.0-20220805210647-bf14a11bfe31 h1:5gmUtnP0NYOODvS/gTeQOJKSu4W8bOUImDiKdAb/j1A=
-github.com/mandelsoft/vfs v0.0.0-20220805210647-bf14a11bfe31/go.mod h1:74aV7kulg9C434HiI3zNALN79QHc9IZMN+SI4UdLn14=
+github.com/mandelsoft/vfs v0.4.0 h1:BUx3XIQUhHYOVT/voRudLrYE1VLa+t35jBn6572d7fM=
+github.com/mandelsoft/vfs v0.4.0/go.mod h1:k83vb5I4cqRGJh3TUUVbf2oTF8FrYhvixQ+FwIAgP1Y=
 github.com/marstr/guid v1.1.0 h1:/M4H/1G4avsieL6BbUwCOBzulmoeKVP5ux/3mQNnbyI=
 github.com/marstr/guid v1.1.0/go.mod h1:74gB1z2wpxxInTG6yaqA7KrtM0NZ+RbrcqDvYHefzho=
 github.com/matryer/is v1.4.0 h1:sosSmIWwkYITGrxZ25ULNDeKiMNzFSr4V/eqBQP0PeE=

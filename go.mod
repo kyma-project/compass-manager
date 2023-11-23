@@ -71,7 +71,7 @@ require (
 	github.com/mandelsoft/filepath v0.0.0-20220503095057-4432a2285b68 // indirect
 	github.com/mandelsoft/logging v0.0.0-20221114215048-ab754b164dd6 // indirect
 	github.com/mandelsoft/spiff v1.7.0-beta-3 // indirect
-	github.com/mandelsoft/vfs v0.0.0-20220805210647-bf14a11bfe31 // indirect
+	github.com/mandelsoft/vfs v0.4.0 // indirect
 	github.com/marstr/guid v1.1.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
