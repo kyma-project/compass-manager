@@ -23,6 +23,8 @@ import (
 )
 
 const (
+	ManagedBy = "compass-manager"
+
 	AnnotationIDForMigration = "compass-runtime-id-for-migration"
 
 	Finalizer             = "kyma-project.io/cm-protection"
@@ -317,7 +319,7 @@ func (cm *CompassManagerReconciler) needsToBeDeleted(obj runtime.Object) bool {
 
 func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interface{} {
 	runtimeLabels := make(map[string]interface{})
-	runtimeLabels["director_connection_managed_by"] = "compass-manager"
+	runtimeLabels["director_connection_managed_by"] = ManagedBy
 	runtimeLabels["broker_instance_id"] = kymaLabels[LabelBrokerInstanceID]
 	runtimeLabels["gardenerClusterName"] = kymaLabels[LabelShootName]
 	runtimeLabels["subaccount_id"] = kymaLabels[LabelSubaccountID]
@@ -462,7 +464,7 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	labels[LabelCompassID] = compassRuntimeID
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
-	labels[LabelManagedBy] = "compass-manager"
+	labels[LabelManagedBy] = ManagedBy
 
 	existingMapping, err := c.GetCompassMapping(name)
 
@@ -500,7 +502,7 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 	labels[LabelCompassID] = compassRuntimeID
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
-	labels[LabelManagedBy] = "compass-manager"
+	labels[LabelManagedBy] = ManagedBy
 
 	newMapping := v1beta1.CompassManagerMapping{}
 	newMapping.Name = name.Name
@@ -511,7 +513,7 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 	newMapping.Status = v1beta1.CompassManagerMappingStatus{
 		Registered: registered,
 		Configured: configured,
-		State:      "",
+		State:      statusText(registered, configured),
 	}
 
 	err = c.kubectl.Create(context.TODO(), &newMapping)
@@ -538,8 +540,11 @@ func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedNam
 		return err
 	}
 
-	mapping.Status.Registered = registered
-	mapping.Status.Configured = configured
+	mapping.Status = v1beta1.CompassManagerMappingStatus{
+		Registered: registered,
+		Configured: configured,
+		State:      statusText(registered, configured),
+	}
 
 	err = c.kubectl.Status().Update(context.TODO(), &mapping)
 	if err != nil {
