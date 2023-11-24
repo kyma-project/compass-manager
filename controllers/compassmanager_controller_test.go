@@ -141,40 +141,38 @@ var _ = Describe("Compass Manager controller", func() {
 		)
 	})
 
-	// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
+	Context("After successful runtime registration when user re-enable Application Connector module", func() {
+		DescribeTable("the one-time token for Compass Runtime Agent should be refreshed", func(kymaName string) {
+			By("Create secret with credentials")
+			secret := createCredentialsSecret(kymaName)
+			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
-	// Context("After successful runtime registration when user re-enable Application Connector module", func() {
-	//	DescribeTable("the one-time token for Compass Runtime Agent should be refreshed", func(kymaName string) {
-	//		By("Create secret with credentials")
-	//		secret := createCredentialsSecret(kymaName, kymaCustomResourceNamespace)
-	//		Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
-	//
-	//		By("Create Kyma Resource")
-	//		kymaCR := createKymaResource(kymaName)
-	//		Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
-	//
-	//		Eventually(func() bool {
-	//			label, err := getCompassMappingLabel(kymaCR.Name, ComppassIDLabel, kymaCustomResourceNamespace)
-	//
-	//			return err == nil && label != ""
-	//		}, clientTimeout, clientInterval).Should(BeTrue())
-	//
-	//		By("Disable the Application Connector module")
-	//		modifiedKyma, err := modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, nil)
-	//		Expect(err).NotTo(HaveOccurred())
-	//		Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
-	//
-	//		By("Re-enable the Application Connector module")
-	//		kymaModules := make([]kyma.Module, 2)
-	//		kymaModules[0].Name = ApplicationConnectorModuleName
-	//		kymaModules[1].Name = "test-module"
-	//		modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
-	//		Expect(err).NotTo(HaveOccurred())
-	//		Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
-	//	},
-	//		Entry("Token successfully refreshed", "refresh-token"),
-	//	)
-	// })
+			By("Create Kyma Resource")
+			kymaCR := createKymaResource(kymaName)
+			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
+
+			Eventually(func() bool {
+				label, err := getCompassMappingCompassID(kymaCR.Name)
+
+				return err == nil && label != ""
+			}, clientTimeout, clientInterval).Should(BeTrue())
+
+			By("Disable the Application Connector module")
+			modifiedKyma, err := modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
+
+			By("Re-enable the Application Connector module")
+			kymaModules := make([]kyma.Module, 2)
+			kymaModules[0].Name = ApplicationConnectorModuleName
+			kymaModules[1].Name = "test-module"
+			modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
+		},
+			Entry("Token successfully refreshed", "refresh-token"),
+		)
+	})
 })
 
 func createNamespace(name string) error {
@@ -246,18 +244,16 @@ func getCompassMapping(kymaName string) (v1beta1.CompassManagerMapping, error) {
 	return obj, err
 }
 
-// Feature (refreshing token) is implemented but according to our discussions, it will be a part of another PR
+func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
+	var obj kyma.Kyma
+	key := types.NamespacedName{Name: kymaName, Namespace: kymaNamespace}
 
-// func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
-//	var obj kyma.Kyma
-//	key := types.NamespacedName{Name: kymaName, Namespace: kymaNamespace}
-//
-//	err := cm.Client.Get(context.Background(), key, &obj)
-//	if err != nil {
-//		return &kyma.Kyma{}, err
-//	}
-//
-//	obj.Spec.Modules = kymaModules
-//
-//	return &obj, nil
-//  }
+	err := cm.Client.Get(context.Background(), key, &obj)
+	if err != nil {
+		return &kyma.Kyma{}, err
+	}
+
+	obj.Spec.Modules = kymaModules
+
+	return &obj, nil
+}

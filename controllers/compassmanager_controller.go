@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
@@ -63,17 +62,13 @@ func (e *DirectorError) Error() string {
 //go:generate mockery --name=Configurator
 type Configurator interface {
 	// ConfigureCompassRuntimeAgent creates a secret in the Runtime that is used by the Compass Runtime Agent. It must be idempotent.
-	ConfigureCompassRuntimeAgent(kubeconfig string, runtimeID string) error
-	// UpdateCompassRuntimeAgent updates the secret in the Runtime that is used by the Compass Runtime Agent
-	UpdateCompassRuntimeAgent(kubeconfig string) error
+	ConfigureCompassRuntimeAgent(kubeconfig []byte, compassRuntimeID, globalAccount string) error
 }
 
 //go:generate mockery --name=Registrator
 type Registrator interface {
 	// RegisterInCompass creates Runtime in the Compass system. It must be idempotent.
 	RegisterInCompass(compassRuntimeLabels map[string]interface{}) (string, error)
-	// RefreshCompassToken gets new connection token for Compass requests
-	RefreshCompassToken(compassID, globalAccount string) (graphql.OneTimeTokenForRuntimeExt, error)
 	// DeregisterFromCompass deletes Runtime from Compass system
 	DeregisterFromCompass(compassID, globalAccount string) error
 }
@@ -89,22 +84,24 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	Client       Client
-	Scheme       *runtime.Scheme
-	Log          *log.Logger
-	Configurator Configurator
-	Registrator  Registrator
-	requeueTime  time.Duration
+	Client              Client
+	Scheme              *runtime.Scheme
+	Log                 *log.Logger
+	Configurator        Configurator
+	Registrator         Registrator
+	requeueTime         time.Duration
+	enabledRegistration bool
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration, enabledRegistration bool) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		Log:          log,
-		Configurator: c,
-		Registrator:  r,
-		requeueTime:  requeueTime,
+		Client:              mgr.GetClient(),
+		Scheme:              mgr.GetScheme(),
+		Log:                 log,
+		Configurator:        c,
+		Registrator:         r,
+		requeueTime:         requeueTime,
+		enabledRegistration: enabledRegistration,
 	}
 }
 
@@ -152,42 +149,56 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrapf(runtimeIDErr, "failed to obtain Compass Mapping for Kyma resource %s", req.Name)
 	}
 
+	globalAccount, ok := kymaCR.Labels[LabelGlobalAccountID]
+	if !ok {
+		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
+	}
+
 	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
-		// Mapping doesn't exist or is not registered, but we have the ID provided by KEB
+		// Mapping doesn't exist, runtime was registered by Provisioner, but we have the Compass ID provided by KEB, need to refresh CRA token on SKR
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
 		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
 		}
+
+		cfgerr := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, migrationCompassRuntimeID, globalAccount)
+		if cfgerr != nil {
+			_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
+			return ctrl.Result{}, errors.Wrap(cfgerr, "failed to configure secret for Compass Runtime Agent")
+		}
+
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
+		cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", migrationCompassRuntimeID)
 
 		return ctrl.Result{}, nil
 	}
 
-	if isNotFound(runtimeIDErr) {
-		// Mapping doesn't exist or is not registered, we need to register the Kyma
-		newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
-		if regErr != nil {
-			cmerr := cluster.CreateCompassMapping(req.NamespacedName, "", false, false)
-			if cmerr != nil {
-				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
+	if isNotFound(runtimeIDErr) { //nolint:nestif
+		if cm.enabledRegistration {
+			// Mapping doesn't exist or is not registered, we need to register the Kyma
+			newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
+			if regErr != nil {
+				cmerr := cluster.CreateCompassMapping(req.NamespacedName, "", false, false)
+				if cmerr != nil {
+					return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
+				}
+				cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 			}
-			_ = cluster.SetCompassMappingStatus(req.NamespacedName, false, false)
-			cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
-			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
-		}
 
-		cmerr := cluster.CreateCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
-		if cmerr != nil {
-			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
-		}
+			cmerr := cluster.CreateCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
+			if cmerr != nil {
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
+			}
 
-		compassRuntimeID = newCompassRuntimeID
-		cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
+			compassRuntimeID = newCompassRuntimeID
+			cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
+		}
 	}
 
 	// Mapping exists and is registered, we need to configure the CRA
-	err = cm.Configurator.ConfigureCompassRuntimeAgent(string(kubeconfig), compassRuntimeID)
+	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
 	if err != nil {
 		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
