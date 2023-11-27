@@ -159,7 +159,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
 		// Mapping doesn't exist, runtime was registered by Provisioner, but we have the Compass ID provided by KEB, need to refresh CRA token on SKR
 		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
-		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID)
+		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID, true, false)
 		if cmerr != nil {
 			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
 		}
@@ -181,7 +181,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			// Mapping doesn't exist or is not registered, we need to register the Kyma
 			newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
 			if regErr != nil {
-				cmerr := cluster.CreateCompassMapping(req.NamespacedName, "", false, false)
+				cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "", false, false)
 				if cmerr != nil {
 					return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 				}
@@ -189,7 +189,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 			}
 
-			cmerr := cluster.CreateCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
+			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
 			if cmerr != nil {
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
 			}
@@ -453,7 +453,7 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 	return kubecfg.Data[KubeconfigKey], nil
 }
 
-func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
+func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string, registered, configured bool) error {
 	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
@@ -475,6 +475,11 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		newMapping.Labels = labels
 		newMapping.Finalizers = []string{Finalizer}
 
+		newMapping.Status = v1beta1.CompassManagerMappingStatus{
+			Registered: registered,
+			Configured: configured,
+			State:      statusText(registered, configured),
+		}
 		cerr := c.kubectl.Create(context.TODO(), newMapping)
 		if cerr != nil {
 			return cerr
@@ -488,7 +493,10 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 
 	existingMapping.Labels = labels
 	err = c.kubectl.Update(context.TODO(), &existingMapping)
-	return err
+	if err != nil {
+		return err
+	}
+	return c.SetCompassMappingStatus(name, registered, configured)
 }
 
 func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string, registered, configured bool) error {

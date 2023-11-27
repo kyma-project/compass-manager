@@ -67,17 +67,18 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			By("Wait for mapping")
+			var mapping v1beta1.CompassManagerMapping
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				var err error
+				mapping, err = getCompassMapping(kymaCR.Name)
+				label, ok := mapping.Labels[LabelCompassID]
 
-				return err == nil && label != ""
+				return err == nil && ok && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Verify status")
-			cmm, err := getCompassMapping(kymaCR.Name)
-			Expect(err).To(BeNil())
-			Expect(cmm.Status.Registered).To(BeTrue())
-			Expect(cmm.Status.Configured).To(BeTrue())
+			Expect(mapping.Status.Registered).To(BeTrue())
+			Expect(mapping.Status.Configured).To(BeTrue())
 
 		},
 			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good"),
@@ -166,8 +167,10 @@ var _ = Describe("Compass Manager controller", func() {
 			kymaModules := make([]kyma.Module, 2)
 			kymaModules[0].Name = ApplicationConnectorModuleName
 			kymaModules[1].Name = "test-module"
-			modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
-			Expect(err).NotTo(HaveOccurred())
+			Eventually(func() error {
+				modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
+				return err
+			}, clientTimeout, clientInterval).ShouldNot(HaveOccurred())
 			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
 		},
 			Entry("Token successfully refreshed", "refresh-token"),
