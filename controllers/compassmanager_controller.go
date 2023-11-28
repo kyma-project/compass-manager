@@ -110,6 +110,7 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) { // nolint:revive
 	cm.Log.Infof("Reconciliation triggered for Kyma Resource %s", req.Name)
 	cluster := NewControlPlaneInterface(cm.Client, cm.Log)
+
 	kymaCR, err := cluster.GetKyma(req.NamespacedName)
 
 	// KymaCR doesn't exist - reconcile was triggered by deletion
@@ -144,7 +145,6 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Kyma exists and has a kubeconfig, get the compass mapping
-
 	compassRuntimeID, runtimeIDErr := cluster.GetCompassRuntimeID(req.NamespacedName)
 
 	if runtimeIDErr != nil && !isNotFound(runtimeIDErr) {
@@ -156,61 +156,55 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
 	}
 
-	if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok && isNotFound(runtimeIDErr) {
-		// Mapping doesn't exist, runtime was registered by Provisioner, but we have the Compass ID provided by KEB, need to refresh CRA token on SKR
-		cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
-		cmerr := cluster.UpsertCompassMapping(req.NamespacedName, migrationCompassRuntimeID, true, false)
-		if cmerr != nil {
-			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping for an already registered Kyma")
+	registered := false
+
+	// maybe if len (compassRuntimeID)
+	if isNotFound(runtimeIDErr) {
+		// no mapping found or runtime ID empty
+		if migrationCompassRuntimeID, ok := kymaCR.Annotations[AnnotationIDForMigration]; ok {
+			// Mapping doesn't exist, runtime was registered by Provisioner, but we have the Compass ID provided by KEB,
+			// need to refresh CRA token on SKR
+			cm.Log.Infof("Configuring compass for already registered Kyma resource %s.", req.Name)
+			compassRuntimeID = migrationCompassRuntimeID
+			registered = true
 		}
 
-		cfgerr := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, migrationCompassRuntimeID, globalAccount)
-		if cfgerr != nil {
-			_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
-			return ctrl.Result{}, errors.Wrap(cfgerr, "failed to configure secret for Compass Runtime Agent")
-		}
-
-		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
-		cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", migrationCompassRuntimeID)
-
-		return ctrl.Result{}, nil
-	}
-
-	if isNotFound(runtimeIDErr) { //nolint:nestif
-		if cm.enabledRegistration {
+		if !registered && cm.enabledRegistration {
 			// Mapping doesn't exist or is not registered, we need to register the Kyma
-			newCompassRuntimeID, regErr := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
-			if regErr != nil {
-				cmerr := cluster.UpsertCompassMapping(req.NamespacedName, "", false, false)
+			// Module was enabled
+			cm.Log.Infof("Registering runtime in compass for Kyma resource %s.", req.Name)
+			var regError error // to avoid shadowing compassRuntimeID
+			compassRuntimeID, regError = cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaCR.Labels))
+
+			if regError != nil {
+				cm.Log.Warnf("failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regError)
+				cmerr := cluster.CreateCompassMapping(req.NamespacedName, compassRuntimeID, registered, false)
 				if cmerr != nil {
-					return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
+					return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to register runtime")
 				}
-				cm.Log.Warnf("compass manager mapping created after failed attempt to register runtime for Kyma resource: %s: %v", req.Name, regErr)
 				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 			}
-
-			cmerr := cluster.UpsertCompassMapping(req.NamespacedName, newCompassRuntimeID, true, false) // FIXME: Compass will have "FAILED" between this and finished configureation
-			if cmerr != nil {
-				return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register runtime")
-			}
-
-			compassRuntimeID = newCompassRuntimeID
-			cm.Log.Infof("Runtime %s registered for Kyma resource %s.", newCompassRuntimeID, req.Name)
+			registered = true
 		}
 	}
 
-	// Mapping exists and is registered, we need to configure the CRA
-	err = cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
-	if err != nil {
-		_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, false)
+	// We need to configure the CRA
+	cfgError := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
+	if cfgError != nil {
 		cm.Log.Warnf("Failed to configure Compass Runtime Agent for Kyma resource %s: %v.", req.Name, err)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, err
+		cmerr := cluster.CreateCompassMapping(req.NamespacedName, compassRuntimeID, registered, false)
+		if cmerr != nil {
+			return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after failed attempt to configure runtime")
+		}
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
 
-	_ = cluster.SetCompassMappingStatus(req.NamespacedName, true, true)
+	cmerr := cluster.UpsertCompassMapping(req.NamespacedName, compassRuntimeID, registered, true)
+	if cmerr != nil {
+		return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(cmerr, "failed to create Compass Manager Mapping after successful attempt to register and configure runtime")
+	}
 
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
-
 	return ctrl.Result{}, nil
 }
 

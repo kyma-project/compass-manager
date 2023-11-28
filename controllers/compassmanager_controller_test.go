@@ -50,9 +50,13 @@ var _ = Describe("Compass Manager controller", func() {
 			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
 
 			By("Verify status")
-			cmm, err := getCompassMapping(kymaCR.Name)
-			Expect(err).To(BeNil())
-			Expect(cmm.Status.Registered && cmm.Status.Configured).To(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
+			var cmm v1beta1.CompassManagerMapping
+			Eventually(func() bool {
+				var err error
+				cmm, err = getCompassMapping(kymaCR.Name)
+
+				return err == nil && cmm.Status.Registered && cmm.Status.Configured
+			}, clientTimeout, clientInterval).Should(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
 		})
 	})
 
