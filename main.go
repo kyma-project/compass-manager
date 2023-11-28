@@ -41,6 +41,7 @@ type config struct {
 	SkipDirectorCertVerification bool   `envconfig:"default=false"`
 	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
 	EnabledRegistration          bool   `envconfig:"APP_ENABLED_REGISTRATION,default=false"`
+	EnabledDeregistration        bool   `envconfig:"APP_ENABLED_DEREGISTRATION,default=false"`
 }
 
 func (c *config) String() string {
@@ -111,7 +112,7 @@ func main() {
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(directorClient, log)
 	requeueTime := time.Minute * 5 //nolint:gomnd
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime, cfg.EnabledRegistration)
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime, cfg.EnabledRegistration, cfg.EnabledDeregistration)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

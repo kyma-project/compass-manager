@@ -82,24 +82,26 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	Client              Client
-	Scheme              *runtime.Scheme
-	Log                 *log.Logger
-	Configurator        Configurator
-	Registrator         Registrator
-	requeueTime         time.Duration
-	enabledRegistration bool
+	Client                Client
+	Scheme                *runtime.Scheme
+	Log                   *log.Logger
+	Configurator          Configurator
+	Registrator           Registrator
+	requeueTime           time.Duration
+	enabledRegistration   bool
+	enabledDeregistration bool
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration, enabledRegistration bool) *CompassManagerReconciler {
+func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration, enabledRegistration, enabledDeregistration bool) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Log:                 log,
-		Configurator:        c,
-		Registrator:         r,
-		requeueTime:         requeueTime,
-		enabledRegistration: enabledRegistration,
+		Client:                mgr.GetClient(),
+		Scheme:                mgr.GetScheme(),
+		Log:                   log,
+		Configurator:          c,
+		Registrator:           r,
+		requeueTime:           requeueTime,
+		enabledRegistration:   enabledRegistration,
+		enabledDeregistration: enabledDeregistration,
 	}
 }
 
@@ -111,15 +113,19 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// KymaCR doesn't exist - reconcile was triggered by deletion
 	if isNotFound(err) {
-		delErr := cm.handleKymaDeletion(cluster, req.NamespacedName)
-		var directorError *DirectorError
-		if errors.As(delErr, &directorError) {
-			return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
-		}
+		if cm.enabledDeregistration {
+			delErr := cm.handleKymaDeletion(cluster, req.NamespacedName)
+			var directorError *DirectorError
+			if errors.As(delErr, &directorError) {
+				return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+			}
 
-		if delErr != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
+			if delErr != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to perform unregistration stage for Kyma %s", req.Name)
+			}
+			return ctrl.Result{}, nil
 		}
+		cm.Log.Infof("Runtime deregistration is turned off. Provisioner will deregister runtime %s from Compass", req.Name)
 		return ctrl.Result{}, nil
 	}
 
