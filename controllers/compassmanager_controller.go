@@ -159,12 +159,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	_, errMapping := cm.cluster.GetCompassMapping(req.NamespacedName)
 
-	/// Part 1- If compass mapping doesn't exist let's create it
+	/// Step 1- If compass mapping doesn't exist let's create it and requeue
 	if errMapping != nil && isNotFound(errMapping) {
 		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName, kymaCR.Annotations)
 	}
-	// From that moment we will have always Compass Manager Mapping for KymaCR
-	// Part 2 - If compass mapping doesn't contain valid runtime ID - register runtime
+	// From that moment we will always deal with Compass Manager Mapping for KymaCR
+	// Part 2 - If compass mapping doesn't contain valid runtime ID - register runtime and requeue
 	if len(compassRuntimeID) == 0 && cm.enabledRegistration {
 		return cm.registerRuntimeInCompassAndRequeue(req.NamespacedName, kymaCR.Labels)
 	}
@@ -174,6 +174,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 }
 
 func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName types.NamespacedName, kubeconfig []byte, compassRuntimeID, globalAccount string) (ctrl.Result, error) {
+	cm.Log.Infof("Attempting to configure Compass Runtime Agent for Runtime %s", compassRuntimeID)
 
 	cfgError := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
 	if cfgError != nil {
@@ -197,11 +198,9 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 }
 
 func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName types.NamespacedName, kymaLabels map[string]string) (ctrl.Result, error) {
-
-	cm.Log.Infof("Registering runtime in compass for Kyma resource %s.", kymaName.Name)
+	cm.Log.Infof("Attempting to register runtime in compass for Kyma resource %s.", kymaName.Name)
 
 	newCompassRuntimeID, regError := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
-
 	if regError != nil {
 		cm.Log.Warnf("Failed attempt to register runtime for Kyma resource: %s: %v", kymaName.Name, regError)
 		statErr := cm.cluster.SetCompassMappingStatus(kymaName, false, false)
@@ -214,7 +213,7 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 	}
 
 	cm.Log.Infof("Runtime %s registered in Compass", newCompassRuntimeID)
-	cmerr := cm.cluster.UpsertCompassMapping(kymaName, newCompassRuntimeID, false, false)
+	cmerr := cm.cluster.UpsertCompassMapping(kymaName, newCompassRuntimeID)
 	if cmerr != nil {
 		return ctrl.Result{Requeue: true}, errors.Wrap(cmerr, "failed to update Compass Manager Mapping with RuntimeID after registration of runtime")
 	}
@@ -222,24 +221,23 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 }
 
 func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName, kymaAnnotations map[string]string) (ctrl.Result, error) {
+	var runtimeID string
 
+	// default mode - application-connector module is enabled for the first time in Kyma, we create Compass Manager Mapping
+	runtimeRegistrationType := "newly provisioned Kyma runtime"
+
+	// remove below after migration is completed
 	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; ok && len(migrationCompassRuntimeID) > 0 {
-		//Runtime registered previously by Provisioner, but we have the Compass ID provided by KEB,
-		cmerr := cm.cluster.CreateCompassMapping(kymaName, migrationCompassRuntimeID, false, false)
-		if cmerr != nil {
-			return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for already registered Kyma resource %s", kymaName.Name)
-		}
-		cm.Log.Infof("Created Compass Manager Mapping for already registered Kyma resource %s.", kymaName.Name)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+		// Runtime registered previously by Provisioner, but we have the Compass ID provided by KEB
+		runtimeRegistrationType = "already registered Kyma runtime"
+		runtimeID = migrationCompassRuntimeID
 	}
 
-	// new registration - application-connector module is enabled in new Kyma normally
-	cmerr := cm.cluster.CreateCompassMapping(kymaName, "", false, false)
+	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
+	cmerr := cm.cluster.CreateCompassMapping(kymaName, runtimeID)
 	if cmerr != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for Kyma resource %s after enabling application-connector module", kymaName.Name)
+		return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for %s for Kyma resource ID %s", runtimeRegistrationType, kymaName.Name)
 	}
-	cm.Log.Infof("Created Compass Manager Mapping for new Kyma resource %s after enabling application-connector module", kymaName.Name)
-
 	return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 }
 
@@ -482,7 +480,7 @@ func (c *ControlPlaneInterface) GetKubeconfig(name types.NamespacedName) ([]byte
 	return kubecfg.Data[KubeconfigKey], nil
 }
 
-func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string, registered, configured bool) error {
+func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
 	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
@@ -521,36 +519,10 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 		return err
 	}
 
-	return err // c.SetCompassMappingStatus(name, registered, configured)
+	return err
 }
 
-/*
-func (controller *GardenerClusterController) persistStatusChange(ctx context.Context, cluster *imv1.GardenerCluster) error {
-	key := types.NamespacedName{
-		Name:      cluster.Name,
-		Namespace: cluster.Namespace,
-	}
-	var clusterToUpdate imv1.GardenerCluster
-
-	err := controller.Client.Get(ctx, key, &clusterToUpdate)
-	if err != nil {
-		return err
-	}
-
-	clusterToUpdate.Status = cluster.Status
-
-	statusErr := controller.Client.Status().Update(ctx, &clusterToUpdate)
-	if statusErr != nil {
-		controller.log.Error(statusErr, "Failed to set state for GardenerCluster")
-	}
-
-	return statusErr
-}
-
-
-*/
-
-func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string, registered, configured bool) error {
+func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
 	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
