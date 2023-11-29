@@ -159,14 +159,17 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	_, errMapping := cm.cluster.GetCompassMapping(req.NamespacedName)
 
+	/// Part 1- If compass mapping doesn't exist let's create it
 	if errMapping != nil && isNotFound(errMapping) {
 		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName, kymaCR.Annotations)
 	}
-
+	// From that moment we will have always Compass Manager Mapping for KymaCR
+	// Part 2 - If compass mapping doesn't contain valid runtime ID - register runtime
 	if len(compassRuntimeID) == 0 && cm.enabledRegistration {
 		return cm.registerRuntimeInCompassAndRequeue(req.NamespacedName, kymaCR.Labels)
 	}
-
+	// From that moment we will always deal with Compass Manager Mapping with ID of registered Runtime, or feature flag is disabled
+	// Part 3 configure the CRA
 	return cm.configureRuntimeAndSetMappingStatus(req.NamespacedName, kubeconfig, compassRuntimeID, globalAccount)
 }
 
