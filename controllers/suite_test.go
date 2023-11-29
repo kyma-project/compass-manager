@@ -74,7 +74,7 @@ var _ = BeforeSuite(func() {
 	mockRegistrator = &mocks.Registrator{}
 	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
-	requeueTime := time.Second * 10
+	requeueTime := time.Second * 5
 
 	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime, true)
 	k8sClient = k8sManager.GetClient()
