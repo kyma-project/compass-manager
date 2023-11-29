@@ -165,7 +165,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	// From that moment we will always deal with Compass Manager Mapping for KymaCR
 	// Part 2 - If compass mapping doesn't contain valid runtime ID - register runtime and requeue
-	if len(compassRuntimeID) == 0 && cm.enabledRegistration {
+	if len(compassRuntimeID) == 0 {
 		return cm.registerRuntimeInCompassAndRequeue(req.NamespacedName, kymaCR.Labels)
 	}
 	// From that moment we will always deal with Compass Manager Mapping with ID of registered Runtime, or feature flag is disabled
@@ -200,7 +200,15 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName types.NamespacedName, kymaLabels map[string]string) (ctrl.Result, error) {
 	cm.Log.Infof("Attempting to register runtime in compass for Kyma resource %s.", kymaName.Name)
 
-	newCompassRuntimeID, regError := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+	var regError error
+	var newCompassRuntimeID string
+
+	if cm.enabledRegistration {
+		newCompassRuntimeID, regError = cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
+	} else {
+		newCompassRuntimeID = generateRandomText(20)
+	}
+
 	if regError != nil {
 		cm.Log.Warnf("Failed attempt to register runtime for Kyma resource: %s: %v", kymaName.Name, regError)
 		statErr := cm.cluster.SetCompassMappingStatus(kymaName, false, false)
@@ -208,7 +216,6 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 		if statErr != nil {
 			return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt to register runtime")
 		}
-
 		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 	}
 
