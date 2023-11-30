@@ -17,6 +17,8 @@ import (
 const (
 	kymaCustomResourceNamespace  = "kcp-system"
 	kymaCustomResourceKind       = "Kyma"
+	mappingCRReadyState          = "Ready"
+	mappingCRFailedState         = "Failed"
 	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta2"
 	clientTimeout                = time.Second * 30
 	clientInterval               = time.Second * 3
@@ -55,7 +57,7 @@ var _ = Describe("Compass Manager controller", func() {
 				var err error
 				cmm, err = getCompassMapping(kymaCR.Name)
 
-				stateIsReady := cmm.Status.State == "Failed" || cmm.Status.State == "Ready"
+				stateIsReady := cmm.Status.State == mappingCRFailedState || cmm.Status.State == mappingCRReadyState
 
 				return err == nil && cmm.Status.Registered && cmm.Status.Configured && stateIsReady
 			}, clientTimeout, clientInterval).Should(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
@@ -79,7 +81,7 @@ var _ = Describe("Compass Manager controller", func() {
 				mapping, err = getCompassMapping(kymaCR.Name)
 				label, ok := mapping.Labels[LabelCompassID]
 
-				return err == nil && ok && label != "" && mapping.Status.State == "Ready"
+				return err == nil && ok && label != "" && mapping.Status.State == mappingCRReadyState
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Verify status")
@@ -113,7 +115,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Eventually(func() bool {
 				label, state, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
-				stateIsReady := state == "Failed" || state == "Ready"
+				stateIsReady := state == mappingCRFailedState || state == mappingCRReadyState
 
 				return err == nil && label != "" && stateIsReady
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -163,7 +165,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Eventually(func() bool {
 				label, state, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
-				return err == nil && label != "" && state == "Ready"
+				return err == nil && label != "" && state == mappingCRReadyState
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Disable the Application Connector module")
