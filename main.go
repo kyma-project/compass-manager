@@ -109,7 +109,7 @@ func main() {
 
 	compassRegistrator := controllers.NewCompassRegistrator(directorClient, log)
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(directorClient, log)
-	requeueTime := time.Minute * 5 //nolint:gomnd
+	requeueTime := time.Second * 5 //nolint:gomnd
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime, cfg.EnabledRegistration)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
