@@ -6,8 +6,8 @@ import (
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
+	. "github.com/onsi/gomega" //nolint:revive
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -10,8 +10,8 @@ import (
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2" //nolint:revive
+	. "github.com/onsi/gomega"    //nolint:revive
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
