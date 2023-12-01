@@ -50,7 +50,7 @@ const (
 	Registered Status = 1 << iota
 	Configured
 	Processing
-	Failed = 0
+	Failed
 )
 
 var errNotFound = errors.New("resource not found")
@@ -175,10 +175,9 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Compass Manager Mapping for status checks")
 	}
-
 	status := statusNumber(mapping.Status)
 
-	if status&Processing == 0 {
+	if mapping.Status.State == "" || status&(Failed) == 1 {
 		return cm.setStatusAndRequeue(req.NamespacedName, Processing)
 	}
 
@@ -188,12 +187,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return cm.registerRuntimeInCompassAndRequeue(req.NamespacedName, kymaCR.Labels)
 	}
 
-	if status&(Registered|Processing) == 0 {
-		return cm.setStatusAndRequeue(req.NamespacedName, Registered|Processing)
-	}
+	// Uncomment it if you want explicitly have "Registered|Processing" state for a while
+	//if status&(Registered|Processing) == 0 {
+	//	return cm.setStatusAndRequeue(req.NamespacedName, Registered|Processing)
+	//}
 
 	// From that moment we will always deal with Compass Manager Mapping with ID of registered Runtime, or feature flag is disabled
-	// Part 3 configure the CRA
 	return cm.configureRuntimeAndSetMappingStatus(req.NamespacedName, kubeconfig, compassRuntimeID, globalAccount)
 }
 
@@ -265,13 +264,14 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 	newCompassRuntimeID, regError := cm.Registrator.RegisterInCompass(createCompassRuntimeLabels(kymaLabels))
 
 	if regError != nil {
-		cm.Log.Warnf("Failed attempt to register runtime for Kyma resource: %s: %v", kymaName.Name, regError)
+		cm.Log.Errorf("Failed attempt to register runtime for Kyma resource: %s: %v", kymaName.Name, regError)
 		statErr := cm.cluster.SetCompassMappingStatus(kymaName, Failed)
 
 		if statErr != nil {
 			return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt to register runtime")
 		}
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+
+		return ctrl.Result{Requeue: true}, errors.Wrapf(regError, "failed attempt to register runtime for Kyma resource: %s", kymaName.Name)
 	}
 
 	cm.Log.Infof("Runtime %s registered in Compass", newCompassRuntimeID)
@@ -288,13 +288,14 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 
 	cfgError := cm.Configurator.ConfigureCompassRuntimeAgent(kubeconfig, compassRuntimeID, globalAccount)
 	if cfgError != nil {
-		cm.Log.Warnf("Failed attempt to configure Compass Runtime Agent for Kyma resource %s: %v.", kymaName.Name, cfgError)
+		cm.Log.Errorf("Failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
 
-		statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered)
+		statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered|Failed)
 		if statErr != nil {
 			return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt configuration Compass Runtime Agent ")
 		}
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, errors.Wrap(statErr, "failed attempt to configure Compass Runtime Agent for Kyma resource")
+
+		return ctrl.Result{Requeue: true}, errors.Wrapf(cfgError, "failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
 	}
 
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
@@ -609,7 +610,7 @@ func (c *ControlPlaneInterface) SetCompassMappingStatus(name types.NamespacedNam
 	if err != nil {
 		c.log.Warnf("Failed to update Compass Mapping Status for %s: %v", name.Name, err)
 	} else {
-		c.log.Infof("Updated Compass Mapping Status for %s: %v, %v", name.Name, registered, configured)
+		c.log.Infof("Updated Compass Mapping Status for %s: registered=%v, configured=%v, state=%s", name.Name, registered, configured, state)
 	}
 	return err
 }
@@ -622,6 +623,11 @@ func stateText(status Status) string {
 	if status&Processing != 0 {
 		return "Processing"
 	}
+
+	if status&Failed != 0 {
+		return "Failed"
+	}
+
 	if status&(Registered|Configured) == (Registered | Configured) {
 		return "Ready"
 	}
@@ -634,6 +640,10 @@ func statusNumber(status v1beta1.CompassManagerMappingStatus) Status {
 	if status.State == "Processing" {
 		out |= Processing
 	}
+	if status.State == "Failed" {
+		out |= Failed
+	}
+
 	if status.Registered {
 		out |= Registered
 	}
