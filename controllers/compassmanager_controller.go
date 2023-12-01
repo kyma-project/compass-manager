@@ -198,7 +198,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
-	statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered&Configured)
+	statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered|Configured)
 	if statErr != nil {
 		return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after successful configuration Compass Runtime Agent ")
 	}
@@ -227,10 +227,6 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 		return ctrl.Result{Requeue: true}, errors.Wrap(cmerr, "failed to update Compass Manager Mapping with RuntimeID after registration of runtime")
 	}
 
-	statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered&Processing)
-	if statErr != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after registering runtime")
-	}
 	return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 }
 
