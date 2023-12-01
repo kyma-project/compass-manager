@@ -179,9 +179,12 @@ var _ = Describe("Compass Manager controller", func() {
 			kymaModules[1].Name = "test-module"
 			Eventually(func() error {
 				modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
+				if err != nil {
+					return err
+				}
+				err = k8sClient.Update(context.Background(), modifiedKyma)
 				return err
 			}, clientTimeout, clientInterval).ShouldNot(HaveOccurred())
-			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
 		},
 			Entry("Token successfully refreshed", "refresh-token"),
 		)
