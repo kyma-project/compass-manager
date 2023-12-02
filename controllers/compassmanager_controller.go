@@ -202,22 +202,21 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 
 	runtimeIDFromMapping, ok := compass.Labels[LabelCompassID]
 
-	if !ok || runtimeIDFromMapping == "" {
-		cm.Log.Infof("Runtime was not connected in Compass, nothing to delete")
-		return nil
-	}
+	if ok && runtimeIDFromMapping != "" {
+		globalAccountFromMapping, ok := compass.Labels[LabelGlobalAccountID]
+		if !ok {
+			cm.Log.Warnf("Compass Mapping for %s has no Global Account", name.Name)
+			return errors.Errorf("Compass Mapping for %s has no Global Account", name.Name)
+		}
 
-	globalAccountFromMapping, ok := compass.Labels[LabelGlobalAccountID]
-	if !ok {
-		cm.Log.Warnf("Compass Mapping for %s has no Global Account", name.Name)
-		return errors.Errorf("Compass Mapping for %s has no Global Account", name.Name)
-	}
-
-	cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", name.Name)
-	err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
-	if err != nil {
-		cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
-		return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
+		cm.Log.Infof("Runtime deregistration in Compass for Kyma Resource %s", name.Name)
+		err = cm.Registrator.DeregisterFromCompass(runtimeIDFromMapping, globalAccountFromMapping)
+		if err != nil {
+			cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
+			return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
+		}
+	} else {
+		cm.Log.Infof("Runtime was not connected in Compass, deleting without deregistering")
 	}
 
 	err = cm.cluster.DeleteCompassMapping(name)
