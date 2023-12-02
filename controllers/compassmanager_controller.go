@@ -179,7 +179,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Uncomment it if you want explicitly have "Registered|Processing" state for a while
-	//if status&(Registered|Processing) == 0 {
+	// if status&(Registered|Processing) == 0 {
 	//	return cm.setStatusAndRequeue(req.NamespacedName, Registered|Processing)
 	//}
 

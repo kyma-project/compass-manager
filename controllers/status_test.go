@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"testing"
+
+	"github.com/kyma-project/compass-manager/api/v1beta1"
 )
 
 func Test_stateText(t *testing.T) {

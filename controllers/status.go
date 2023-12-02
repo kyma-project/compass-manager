@@ -1,6 +1,8 @@
 package controllers
 
-import "github.com/kyma-project/compass-manager/api/v1beta1"
+import (
+	"github.com/kyma-project/compass-manager/api/v1beta1"
+)
 
 type Status = int
 
@@ -12,28 +14,34 @@ const (
 	Empty = 0
 )
 
+const (
+	ReadyState      = "Ready"
+	ProcessingState = "Processing"
+	FailedState     = "Failed"
+)
+
 func stateText(status Status) string {
 	if status&Failed != 0 {
-		return "Failed"
+		return FailedState
 	}
 
 	if status&Processing != 0 {
-		return "Processing"
+		return ProcessingState
 	}
 
 	if status&(Registered|Configured) == (Registered | Configured) {
-		return "Ready"
+		return ReadyState
 	}
-	return "Failed"
+	return FailedState
 }
 
 func statusNumber(status v1beta1.CompassManagerMappingStatus) Status {
 	out := Status(0)
 
-	if status.State == "Processing" {
+	if status.State == ProcessingState {
 		out |= Processing
 	}
-	if status.State == "Failed" {
+	if status.State == FailedState {
 		out |= Failed
 	}
 
