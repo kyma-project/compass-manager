@@ -168,7 +168,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	status := statusNumber(mapping.Status)
 
-	if mapping.Status.State == "" || status&(Failed) == 1 {
+	if status == Empty || status&(Failed) == 1 {
 		return cm.setStatusAndRequeue(req.NamespacedName, Processing)
 	}
 

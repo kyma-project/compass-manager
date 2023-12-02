@@ -9,6 +9,7 @@ const (
 	Configured
 	Processing
 	Failed
+	Empty = 0
 )
 
 func stateText(status Status) string {
