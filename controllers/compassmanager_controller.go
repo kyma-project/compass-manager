@@ -168,7 +168,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	status := statusNumber(mapping.Status)
 
-	if status == Empty || status&(Failed) == 1 {
+	if status == Empty || status&(Failed) != 0 {
 		return cm.setStatusAndRequeue(req.NamespacedName, Processing)
 	}
 
@@ -178,10 +178,9 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return cm.registerRuntimeInCompassAndRequeue(req.NamespacedName, kymaCR.Labels)
 	}
 
-	// Uncomment it if you want explicitly have "Registered|Processing" state for a while
-	// if status&(Registered|Processing) == 0 {
-	//	return cm.setStatusAndRequeue(req.NamespacedName, Registered|Processing)
-	//}
+	if status&(Registered|Processing) != Registered|Processing {
+		return cm.setStatusAndRequeue(req.NamespacedName, Registered|Processing)
+	}
 
 	// From that moment we will always deal with Compass Manager Mapping with ID of registered Runtime, or feature flag is disabled
 	return cm.configureRuntimeAndSetMappingStatus(req.NamespacedName, kubeconfig, compassRuntimeID, globalAccount)
