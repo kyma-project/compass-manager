@@ -214,6 +214,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 			cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
 			return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
 		}
+		cm.Log.Infof("Runtime %s deregistered from Compass", name.Name)
 	} else {
 		cm.Log.Infof("Runtime was not connected in Compass, deleting without deregistering")
 	}
@@ -222,7 +223,6 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 	if err != nil {
 		return errors.Wrap(err, "failed to delete Compass Mapping")
 	}
-	cm.Log.Infof("Runtime %s deregistered from Compass", name.Name)
 	return nil
 }
 
