@@ -168,8 +168,13 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	status := statusNumber(mapping.Status)
 
-	if status == Empty || status&(Failed) != 0 {
+	if status == Empty {
 		return cm.setStatusAndRequeue(req.NamespacedName, Processing)
+	}
+
+	if status&(Failed) != 0 {
+		status &= ^Failed
+		return cm.setStatusAndRequeue(req.NamespacedName, status|Processing)
 	}
 
 	// From this point we will always deal with Compass Manager Mapping for KymaCR
