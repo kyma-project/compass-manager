@@ -20,7 +20,7 @@ const (
 	mappingCRReadyState          = "Ready"
 	mappingCRFailedState         = "Failed"
 	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta2"
-	clientTimeout                = time.Second * 30
+	clientTimeout                = time.Second * 45
 	clientInterval               = time.Second * 3
 )
 
