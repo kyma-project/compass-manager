@@ -17,8 +17,10 @@ import (
 const (
 	kymaCustomResourceNamespace  = "kcp-system"
 	kymaCustomResourceKind       = "Kyma"
+	mappingCRReadyState          = "Ready"
+	mappingCRFailedState         = "Failed"
 	kymaCustomResourceAPIVersion = "operator.kyma-project.io/v1beta2"
-	clientTimeout                = time.Second * 30
+	clientTimeout                = time.Second * 45
 	clientInterval               = time.Second * 3
 )
 
@@ -42,7 +44,7 @@ var _ = Describe("Compass Manager controller", func() {
 
 			By("Wait for mapping")
 			Eventually(func() string {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, _, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 				if err != nil {
 					return err.Error()
 				}
@@ -50,9 +52,15 @@ var _ = Describe("Compass Manager controller", func() {
 			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
 
 			By("Verify status")
-			cmm, err := getCompassMapping(kymaCR.Name)
-			Expect(err).To(BeNil())
-			Expect(cmm.Status.Registered && cmm.Status.Configured).To(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
+			var cmm v1beta1.CompassManagerMapping
+			Eventually(func() bool {
+				var err error
+				cmm, err = getCompassMapping(kymaCR.Name)
+
+				stateIsReady := cmm.Status.State == mappingCRFailedState || cmm.Status.State == mappingCRReadyState
+
+				return err == nil && cmm.Status.Registered && cmm.Status.Configured && stateIsReady
+			}, clientTimeout, clientInterval).Should(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
 		})
 	})
 
@@ -67,17 +75,18 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			By("Wait for mapping")
+			var mapping v1beta1.CompassManagerMapping
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				var err error
+				mapping, err = getCompassMapping(kymaCR.Name)
+				label, ok := mapping.Labels[LabelCompassID]
 
-				return err == nil && label != ""
+				return err == nil && ok && label != "" && mapping.Status.State == mappingCRReadyState
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Verify status")
-			cmm, err := getCompassMapping(kymaCR.Name)
-			Expect(err).To(BeNil())
-			Expect(cmm.Status.Registered).To(BeTrue())
-			Expect(cmm.Status.Configured).To(BeTrue())
+			Expect(mapping.Status.Registered).To(BeTrue())
+			Expect(mapping.Status.Configured).To(BeTrue())
 
 		},
 			Entry("Runtime successfully registered, and Compass Runtime Agent's configuration created", "all-good"),
@@ -94,7 +103,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Consistently(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, _, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
 				return errors.IsNotFound(err) && label == ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -104,9 +113,11 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, state, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
-				return err == nil && label != ""
+				stateIsReady := state == mappingCRFailedState || state == mappingCRReadyState
+
+				return err == nil && label != "" && stateIsReady
 			}, clientTimeout, clientInterval).Should(BeTrue())
 		})
 	})
@@ -122,7 +133,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, _, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
 				return err == nil && label != ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -131,7 +142,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Delete(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, _, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
 				return errors.IsNotFound(err) && label == ""
 			}, clientTimeout, clientInterval).Should(BeTrue())
@@ -152,9 +163,9 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
-				label, err := getCompassMappingCompassID(kymaCR.Name)
+				label, state, err := getCompassMappingCompassIDAndState(kymaCR.Name)
 
-				return err == nil && label != ""
+				return err == nil && label != "" && state == mappingCRReadyState
 			}, clientTimeout, clientInterval).Should(BeTrue())
 
 			By("Disable the Application Connector module")
@@ -166,9 +177,14 @@ var _ = Describe("Compass Manager controller", func() {
 			kymaModules := make([]kyma.Module, 2)
 			kymaModules[0].Name = ApplicationConnectorModuleName
 			kymaModules[1].Name = "test-module"
-			modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
+			Eventually(func() error {
+				modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
+				if err != nil {
+					return err
+				}
+				err = k8sClient.Update(context.Background(), modifiedKyma)
+				return err
+			}, clientTimeout, clientInterval).ShouldNot(HaveOccurred())
 		},
 			Entry("Token successfully refreshed", "refresh-token"),
 		)
@@ -226,14 +242,14 @@ func createCredentialsSecret(kymaName string) corev1.Secret {
 	}
 }
 
-func getCompassMappingCompassID(kymaName string) (string, error) {
+func getCompassMappingCompassIDAndState(kymaName string) (string, string, error) {
 	obj, err := getCompassMapping(kymaName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	labels := obj.GetLabels()
-	return labels[LabelCompassID], nil
+	return labels[LabelCompassID], obj.Status.State, nil
 }
 
 func getCompassMapping(kymaName string) (v1beta1.CompassManagerMapping, error) {
