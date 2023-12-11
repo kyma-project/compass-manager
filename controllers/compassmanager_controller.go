@@ -38,7 +38,7 @@ const (
 	LabelShootName        = "kyma-project.io/shoot-name"
 	LabelSubaccountID     = "kyma-project.io/subaccount-id"
 
-	ApplicationConnectorModuleName = "applicationconnector"
+	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
 	KubeconfigKey = "config"
