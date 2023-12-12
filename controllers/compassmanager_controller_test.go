@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/lifecycle-manager/api/shared"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2" //nolint:revive
 	. "github.com/onsi/gomega"    //nolint:revive
@@ -174,9 +175,11 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Update(context.Background(), modifiedKyma)).To(Succeed())
 
 			By("Re-enable the Application Connector module")
-			kymaModules := make([]kyma.Module, 2)
+			kymaModules := make([]kyma.ModuleStatus, 2)
 			kymaModules[0].Name = ApplicationConnectorModuleName
+			kymaModules[0].State = shared.StateProcessing
 			kymaModules[1].Name = "test-module"
+			kymaModules[1].State = shared.StateProcessing
 			Eventually(func() error {
 				modifiedKyma, err = modifyKymaModules(kymaCR.Name, kymaCustomResourceNamespace, kymaModules)
 				if err != nil {
@@ -206,8 +209,9 @@ func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels[LabelShootName] = name
 	kymaCustomResourceLabels[LabelKymaName] = name
 
-	kymaModules := make([]kyma.Module, 1)
+	kymaModules := make([]kyma.ModuleStatus, 1)
 	kymaModules[0].Name = ApplicationConnectorModuleName
+	kymaModules[0].State = shared.StateProcessing
 
 	return kyma.Kyma{
 		TypeMeta: metav1.TypeMeta{
@@ -222,8 +226,8 @@ func createKymaResource(name string) kyma.Kyma {
 		},
 		Spec: kyma.KymaSpec{
 			Channel: "regular",
-			Modules: kymaModules,
 		},
+		Status: kyma.KymaStatus{Modules: kymaModules},
 	}
 }
 
@@ -260,7 +264,7 @@ func getCompassMapping(kymaName string) (v1beta1.CompassManagerMapping, error) {
 	return obj, err
 }
 
-func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module) (*kyma.Kyma, error) {
+func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.ModuleStatus) (*kyma.Kyma, error) {
 	var obj kyma.Kyma
 	key := types.NamespacedName{Name: kymaName, Namespace: kymaNamespace}
 
@@ -269,7 +273,7 @@ func modifyKymaModules(kymaName, kymaNamespace string, kymaModules []kyma.Module
 		return &kyma.Kyma{}, err
 	}
 
-	obj.Spec.Modules = kymaModules
+	obj.Status.Modules = kymaModules
 
 	return &obj, nil
 }

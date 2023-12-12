@@ -351,7 +351,7 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 		return false
 	}
 
-	kymaModules := kymaObj.Spec.Modules
+	kymaModules := kymaObj.Status.Modules
 
 	for _, v := range kymaModules {
 		if v.Name == ApplicationConnectorModuleName {
