@@ -39,7 +39,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
-			kymaCR := createKymaResource(kymaName, shared.StateProcessing)
+			kymaCR := createKymaResource(kymaName)
 			kymaCR.Annotations["compass-runtime-id-for-migration"] = preRegisteredID
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
@@ -72,7 +72,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
-			kymaCR := createKymaResource(kymaName, shared.StateProcessing)
+			kymaCR := createKymaResource(kymaName)
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			By("Wait for mapping")
@@ -100,7 +100,7 @@ var _ = Describe("Compass Manager controller", func() {
 		It("requeue the request if and succeeded when user add the secret", func() {
 
 			By("Create Kyma Resource")
-			kymaCR := createKymaResource("empty-kubeconfig", shared.StateProcessing)
+			kymaCR := createKymaResource("empty-kubeconfig")
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Consistently(func() bool {
@@ -130,7 +130,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
-			kymaCR := createKymaResource(kymaName, shared.StateProcessing)
+			kymaCR := createKymaResource(kymaName)
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
@@ -160,7 +160,7 @@ var _ = Describe("Compass Manager controller", func() {
 			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
 
 			By("Create Kyma Resource")
-			kymaCR := createKymaResource(kymaName, shared.StateProcessing)
+			kymaCR := createKymaResource(kymaName)
 			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
 
 			Eventually(func() bool {
@@ -203,7 +203,7 @@ func createNamespace(name string) error {
 	return k8sClient.Create(context.Background(), &namespace)
 }
 
-func createKymaResource(name string, moduleState shared.State) kyma.Kyma {
+func createKymaResource(name string) kyma.Kyma {
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels[LabelGlobalAccountID] = "globalAccount"
 	kymaCustomResourceLabels[LabelShootName] = name
@@ -211,7 +211,7 @@ func createKymaResource(name string, moduleState shared.State) kyma.Kyma {
 
 	kymaModules := make([]kyma.ModuleStatus, 1)
 	kymaModules[0].Name = ApplicationConnectorModuleName
-	kymaModules[0].State = moduleState
+	kymaModules[0].State = shared.StateProcessing
 
 	return kyma.Kyma{
 		TypeMeta: metav1.TypeMeta{
