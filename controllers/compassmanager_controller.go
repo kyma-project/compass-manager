@@ -317,7 +317,7 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return cm.needsToBeReconciled(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return cm.needsToBeReconciled(e.ObjectNew)
+			return cm.needsToBeReconciledUpdate(e.ObjectOld, e.ObjectNew)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return cm.needsToBeDeleted(e.Object)
@@ -325,7 +325,6 @@ func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	omitStatusChanged := predicate.Or(
-		predicate.GenerationChangedPredicate{},
 		predicate.LabelChangedPredicate{},
 		predicate.AnnotationChangedPredicate{},
 	)
@@ -359,6 +358,45 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 		}
 	}
 
+	return false
+}
+
+func (cm *CompassManagerReconciler) needsToBeReconciledUpdate(oldObj, newObj runtime.Object) bool {
+	oldKymaObj, ok := oldObj.(*kyma.Kyma)
+	if !ok {
+		cm.Log.Error("Unexpected type detected. Old object is supposed to be of the Kyma type.")
+		return false
+	}
+	newKymaObj, ok := newObj.(*kyma.Kyma)
+	if !ok {
+		cm.Log.Error("Unexpected type detected. New object is supposed to be of the Kyma type.")
+		return false
+	}
+
+	oldModules := getModuleNames(oldKymaObj.Status.Modules)
+	newModules := getModuleNames(newKymaObj.Status.Modules)
+
+	if !existsInSlice(oldModules, ApplicationConnectorModuleName) && existsInSlice(newModules, ApplicationConnectorModuleName) {
+		return true
+	}
+
+	return false
+}
+
+func getModuleNames(modules []kyma.ModuleStatus) []string {
+	var result []string
+	for _, item := range modules {
+		result = append(result, item.Name)
+	}
+	return result
+}
+
+func existsInSlice(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
 	return false
 }
 
