@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/controllers/metrics"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -219,6 +220,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 			cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
 			return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
 		}
+		metrics.IncrementUnregisterCounter()
 		cm.Log.Infof("Runtime %s deregistered from Compass", name.Name)
 	} else {
 		cm.Log.Infof("Runtime was not connected in Compass, deleting without deregistering")
@@ -268,6 +270,7 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 		return ctrl.Result{Requeue: true}, errors.Wrapf(regError, "failed attempt to register runtime for Kyma resource: %s", kymaName.Name)
 	}
 
+	metrics.IncrementRegisterCounter()
 	cm.Log.Infof("Runtime %s registered in Compass", newCompassRuntimeID)
 	cmerr := cm.cluster.UpsertCompassMapping(kymaName, newCompassRuntimeID)
 	if cmerr != nil {
@@ -292,6 +295,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 		return ctrl.Result{Requeue: true}, errors.Wrapf(cfgError, "failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
 	}
 
+	metrics.IncrementConfigureCounter()
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered|Configured)
