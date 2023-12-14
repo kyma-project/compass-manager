@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: compass-manager
+    app.kubernetes.io/instance: compass-manager
+    app.kubernetes.io/component: compass-manager.kyma-project.io
+    app.kubernetes.io/created-by: compass-manager
+    app.kubernetes.io/part-of: compass-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: compass-manager-metrics
+  namespace: kcp-system
+spec:
+  ports:
+    - name: metrics
+      port: 8080
+      protocol: TCP
+      appProtocol: http
+      targetPort: metrics
+  selector:
+    app.kubernetes.io/component: compass-manager.kyma-project.io
