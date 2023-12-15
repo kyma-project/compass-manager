@@ -2,8 +2,6 @@ module github.com/kyma-project/compass-manager
 
 go 1.21
 
-toolchain go1.21.3
-
 require (
 	github.com/99designs/gqlgen v0.17.36
 	github.com/kyma-incubator/compass/components/director v0.0.0-20230719142033-84d33197415a
