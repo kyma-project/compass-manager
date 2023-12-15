@@ -5,21 +5,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-var (
-	configureCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "configure_counter",
-		Help: "Number of cluster configured",
-	})
-	registerCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "register_counter",
-		Help: "Number of cluster registered",
-	})
-	unregisterCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "unregister_counter",
-		Help: "Number of cluster unregistered",
-	})
-)
-
 type Metrics struct {
 	configured   prometheus.Counter
 	registered   prometheus.Counter
