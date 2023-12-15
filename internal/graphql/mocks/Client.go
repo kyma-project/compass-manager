@@ -4,7 +4,6 @@ package mocks
 
 import (
 	graphql "github.com/kyma-project/compass-manager/third_party/machinebox/graphql"
-
 	mock "github.com/stretchr/testify/mock"
 )
 

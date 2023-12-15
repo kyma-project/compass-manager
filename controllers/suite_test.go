@@ -3,12 +3,12 @@ package controllers
 import (
 	"context"
 	"errors"
-	"github.com/kyma-project/compass-manager/controllers/metrics"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/controllers/metrics"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2" //nolint:revive
