@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"github.com/kyma-project/compass-manager/controllers/metrics"
 	"log"
 	"net/http"
 	"os"
@@ -113,7 +114,17 @@ func main() {
 	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(directorClient, log)
 	requeueTime := time.Second * 5 //nolint:gomnd
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime, cfg.EnabledRegistration)
+	metrics := metrics.NewMetrics()
+
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(
+		mgr,
+		log,
+		runtimeAgentConfigurator,
+		compassRegistrator,
+		requeueTime,
+		cfg.EnabledRegistration,
+		metrics,
+	)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

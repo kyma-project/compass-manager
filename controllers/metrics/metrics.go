@@ -20,18 +20,39 @@ var (
 	})
 )
 
-func init() {
-	metrics.Registry.MustRegister(configureCounter, registerCounter, unregisterCounter)
+type Metrics struct {
+	configured   prometheus.Counter
+	registered   prometheus.Counter
+	unregistered prometheus.Counter
 }
 
-func IncrementConfigureCounter() {
+func NewMetrics() Metrics {
+	m := Metrics{
+		configured: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "configure_counter",
+			Help: "Number of cluster configured",
+		}),
+		registered: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "register_counter",
+			Help: "Number of cluster registered",
+		}),
+		unregistered: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "unregister_counter",
+			Help: "Number of cluster unregistered",
+		}),
+	}
+	metrics.Registry.MustRegister(m.configured, m.registered, m.unregistered)
+	return m
+}
+
+func (m Metrics) IncConfigure() {
 	configureCounter.Inc()
 }
 
-func IncrementRegisterCounter() {
+func (m Metrics) IncRegister() {
 	registerCounter.Inc()
 }
 
-func IncrementUnregisterCounter() {
+func (m Metrics) IncUnregister() {
 	unregisterCounter.Inc()
 }

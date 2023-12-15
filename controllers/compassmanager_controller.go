@@ -95,9 +95,18 @@ type CompassManagerReconciler struct {
 	requeueTime         time.Duration
 	enabledRegistration bool
 	cluster             *ControlPlaneInterface
+	metrics             metrics.Metrics
 }
 
-func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configurator, r Registrator, requeueTime time.Duration, enabledRegistration bool) *CompassManagerReconciler {
+func NewCompassManagerReconciler(
+	mgr manager.Manager,
+	log *log.Logger,
+	c Configurator,
+	r Registrator,
+	requeueTime time.Duration,
+	enabledRegistration bool,
+	metrics metrics.Metrics,
+) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
 		Client:              mgr.GetClient(),
 		Scheme:              mgr.GetScheme(),
@@ -107,6 +116,7 @@ func NewCompassManagerReconciler(mgr manager.Manager, log *log.Logger, c Configu
 		requeueTime:         requeueTime,
 		enabledRegistration: enabledRegistration,
 		cluster:             NewControlPlaneInterface(mgr.GetClient(), log),
+		metrics:             metrics,
 	}
 }
 
@@ -220,7 +230,7 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 			cm.Log.Warnf("Failed to deregister Runtime from Compass for Kyma Resource %s: %v", name.Name, err)
 			return errors.Wrap(&DirectorError{message: err}, "failed to deregister Runtime from Compass")
 		}
-		metrics.IncrementUnregisterCounter()
+		cm.metrics.IncUnregister()
 		cm.Log.Infof("Runtime %s deregistered from Compass", name.Name)
 	} else {
 		cm.Log.Infof("Runtime was not connected in Compass, deleting without deregistering")
@@ -270,7 +280,7 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 		return ctrl.Result{Requeue: true}, errors.Wrapf(regError, "failed attempt to register runtime for Kyma resource: %s", kymaName.Name)
 	}
 
-	metrics.IncrementRegisterCounter()
+	cm.metrics.IncRegister()
 	cm.Log.Infof("Runtime %s registered in Compass", newCompassRuntimeID)
 	cmerr := cm.cluster.UpsertCompassMapping(kymaName, newCompassRuntimeID)
 	if cmerr != nil {
@@ -295,7 +305,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 		return ctrl.Result{Requeue: true}, errors.Wrapf(cfgError, "failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
 	}
 
-	metrics.IncrementConfigureCounter()
+	cm.metrics.IncConfigure()
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	statErr := cm.cluster.SetCompassMappingStatus(kymaName, Registered|Configured)
