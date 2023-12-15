@@ -31,13 +31,13 @@ func NewMetrics() Metrics {
 }
 
 func (m Metrics) IncConfigure() {
-	configureCounter.Inc()
+	m.configured.Inc()
 }
 
 func (m Metrics) IncRegister() {
-	registerCounter.Inc()
+	m.registered.Inc()
 }
 
 func (m Metrics) IncUnregister() {
-	unregisterCounter.Inc()
+	m.unregistered.Inc()
 }
