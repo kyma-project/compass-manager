@@ -348,12 +348,12 @@ func (cm *CompassManagerReconciler) CreateFunc(obj runtime.Object) bool {
 func (cm *CompassManagerReconciler) UpdateFunc(oldObj, newObj runtime.Object) bool {
 	oldKymaObj, ok := oldObj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. Old object is supposed to be of the Kyma type: %T", oldObj)
+		cm.Log.Errorf("Unexpected type detected. Old object is supposed to be of the Kyma type: %T", oldObj)
 		return false
 	}
 	newKymaObj, ok := newObj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. New object is supposed to be of the Kyma type: %T", newObj)
+		cm.Log.Errorf("Unexpected type detected. New object is supposed to be of the Kyma type: %T", newObj)
 		return false
 	}
 
@@ -374,7 +374,7 @@ func getModuleNames(modules []kyma.ModuleStatus) []string {
 func (cm *CompassManagerReconciler) DeleteFunc(obj runtime.Object) bool {
 	_, ok := obj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type: %T", obj)
+		cm.Log.Errorf("Unexpected type detected. Object type is supposed to be of Kyma type: %T", obj)
 		return false
 	}
 
