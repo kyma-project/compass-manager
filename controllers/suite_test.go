@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"github.com/kyma-project/compass-manager/controllers/metrics"
 	"path/filepath"
 	"testing"
 	"time"
@@ -75,8 +76,17 @@ var _ = BeforeSuite(func() {
 	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
 	requeueTime := time.Second * 5
+	metrics := metrics.NewMetrics()
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime, true)
+	cm = NewCompassManagerReconciler(
+		k8sManager,
+		log,
+		mockConfigurator,
+		mockRegistrator,
+		requeueTime,
+		true,
+		metrics,
+	)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
