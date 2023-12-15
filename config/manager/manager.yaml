@@ -23,6 +23,7 @@ spec:
         app.kubernetes.io/component: compass-manager.kyma-project.io
       labels:
         control-plane: compass-manager
+        app.kubernetes.io/name: compass-manager
         app.kubernetes.io/component: compass-manager.kyma-project.io
     spec:
       securityContext:

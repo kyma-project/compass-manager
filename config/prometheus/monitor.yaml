@@ -5,9 +5,9 @@ kind: ServiceMonitor
 metadata:
   labels:
     control-plane: compass-manager
-    app.kubernetes.io/name: servicemonitor
-    app.kubernetes.io/instance: compass-manager-metrics-monitor
+    app.kubernetes.io/name: compass-metrics-monitor
     app.kubernetes.io/component: metrics
+    app.kubernetes.io/instance: compass-manager-metrics-monitor
     app.kubernetes.io/created-by: compass-manager
     app.kubernetes.io/part-of: compass-manager
     app.kubernetes.io/managed-by: kustomize
@@ -20,4 +20,5 @@ spec:
       scheme: http
   selector:
     matchLabels:
+      app.kubernetes.io/name: metrics
       app.kubernetes.io/component: compass-manager.kyma-project.io

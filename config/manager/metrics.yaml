@@ -3,6 +3,7 @@ kind: Service
 metadata:
   labels:
     control-plane: compass-manager
+    app.kubernetes.io/name: metrics
     app.kubernetes.io/instance: compass-manager
     app.kubernetes.io/component: compass-manager.kyma-project.io
     app.kubernetes.io/created-by: compass-manager
@@ -18,4 +19,5 @@ spec:
       appProtocol: http
       targetPort: metrics
   selector:
+    app.kubernetes.io/name: compass-manager
     app.kubernetes.io/component: compass-manager.kyma-project.io
