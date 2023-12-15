@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
@@ -15,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -312,41 +312,25 @@ func (cm *CompassManagerReconciler) setStatusAndRequeue(kymaName types.Namespace
 
 // SetupWithManager sets up the controller with the Manager.
 func (cm *CompassManagerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	fieldSelectorPredicate := predicate.Funcs{
+	eventFilters := predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
-			return cm.needsToBeReconciled(e.Object)
+			return cm.CreateFunc(e.Object)
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return cm.needsToBeReconciledUpdate(e.ObjectOld, e.ObjectNew)
+			return cm.UpdateFunc(e.ObjectOld, e.ObjectNew)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return cm.needsToBeDeleted(e.Object)
+			return cm.DeleteFunc(e.Object)
 		},
 	}
 
-	omitStatusChanged := predicate.Or(
-		predicate.LabelChangedPredicate{},
-		predicate.AnnotationChangedPredicate{},
-	)
-
-	// We can simplify passing the predicate filters to controller
-	// The predicates passed in For(builder.WithPredicates()) function is merged with runner.WithEventFilter() predicates to single slice with predicates.
-	// Proposal: delete the predicates from For() functions, and return runner.WithEventFilter(fieldSelectorPredicate).WithEventFilter(predicates).Complete(cm)
-
-	runner := ctrl.NewControllerManagedBy(mgr).
-		For(&kyma.Kyma{}, builder.WithPredicates(
-			predicate.And(
-				predicate.ResourceVersionChangedPredicate{},
-				omitStatusChanged,
-			)))
-
-	return runner.WithEventFilter(fieldSelectorPredicate).Complete(cm)
+	return ctrl.NewControllerManagedBy(mgr).For(&kyma.Kyma{}).WithEventFilter(eventFilters).Complete(cm)
 }
 
-func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool {
+func (cm *CompassManagerReconciler) CreateFunc(obj runtime.Object) bool {
 	kymaObj, ok := obj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
+		cm.Log.Errorf("Unexpected type detected. Object type is supposed to be of Kyma type: %T", obj)
 		return false
 	}
 
@@ -361,26 +345,22 @@ func (cm *CompassManagerReconciler) needsToBeReconciled(obj runtime.Object) bool
 	return false
 }
 
-func (cm *CompassManagerReconciler) needsToBeReconciledUpdate(oldObj, newObj runtime.Object) bool {
+func (cm *CompassManagerReconciler) UpdateFunc(oldObj, newObj runtime.Object) bool {
 	oldKymaObj, ok := oldObj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. Old object is supposed to be of the Kyma type.")
+		cm.Log.Error("Unexpected type detected. Old object is supposed to be of the Kyma type: %T", oldObj)
 		return false
 	}
 	newKymaObj, ok := newObj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. New object is supposed to be of the Kyma type.")
+		cm.Log.Error("Unexpected type detected. New object is supposed to be of the Kyma type: %T", newObj)
 		return false
 	}
 
 	oldModules := getModuleNames(oldKymaObj.Status.Modules)
 	newModules := getModuleNames(newKymaObj.Status.Modules)
 
-	if !existsInSlice(oldModules, ApplicationConnectorModuleName) && existsInSlice(newModules, ApplicationConnectorModuleName) {
-		return true
-	}
-
-	return false
+	return !slices.Contains(oldModules, ApplicationConnectorModuleName) && slices.Contains(newModules, ApplicationConnectorModuleName)
 }
 
 func getModuleNames(modules []kyma.ModuleStatus) []string {
@@ -391,19 +371,10 @@ func getModuleNames(modules []kyma.ModuleStatus) []string {
 	return result
 }
 
-func existsInSlice(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func (cm *CompassManagerReconciler) needsToBeDeleted(obj runtime.Object) bool {
+func (cm *CompassManagerReconciler) DeleteFunc(obj runtime.Object) bool {
 	_, ok := obj.(*kyma.Kyma)
 	if !ok {
-		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type.")
+		cm.Log.Error("Unexpected type detected. Object type is supposed to be of Kyma type: %T", obj)
 		return false
 	}
 
