@@ -12,7 +12,6 @@ const (
 	ErrCompassDirectorClient ErrComponent = "compass director client"
 	ErrCompassDirector       ErrComponent = "compass director"
 	ErrMpsOAuth2             ErrComponent = "mps oauth2"
-	ErrClusterK8SClient      ErrComponent = "k8s client - cluster"
 )
 
 const (

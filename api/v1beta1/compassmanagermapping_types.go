@@ -8,7 +8,11 @@ import (
 type CompassManagerMappingSpec struct{}
 
 // CompassManagerMappingStatus defines the observed state of CompassManagerMapping
-type CompassManagerMappingStatus struct{}
+type CompassManagerMappingStatus struct {
+	Registered bool   `json:"registered"`
+	Configured bool   `json:"configured"`
+	State      string `json:"state,omitempty"`
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

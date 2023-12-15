@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
@@ -40,6 +41,7 @@ type config struct {
 	DirectorURL                  string `envconfig:"default=https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql"`
 	SkipDirectorCertVerification bool   `envconfig:"default=false"`
 	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
+	EnabledRegistration          bool   `envconfig:"APP_ENABLED_REGISTRATION,default=false"`
 }
 
 func (c *config) String() string {
@@ -85,9 +87,10 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443, //nolint:gomnd
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsAddr,
+		},
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "2647ec81.kyma-project.io",
@@ -106,11 +109,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	compassRegistrator := controllers.NewCompassRegistator(directorClient, log)
-	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(log)
-	requeueTime := time.Minute * 5 //nolint:gomnd
+	compassRegistrator := controllers.NewCompassRegistrator(directorClient, log)
+	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(directorClient, log)
+	requeueTime := time.Second * 5 //nolint:gomnd
 
-	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime)
+	compassManagerReconciler := controllers.NewCompassManagerReconciler(mgr, log, runtimeAgentConfigurator, compassRegistrator, requeueTime, cfg.EnabledRegistration)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CompassManager")
 		os.Exit(1)

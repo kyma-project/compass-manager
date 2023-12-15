@@ -24,7 +24,7 @@ type CompassRegistrator struct {
 	Log    *logrus.Logger
 }
 
-func NewCompassRegistator(directorClient director.Client, log *logrus.Logger) *CompassRegistrator {
+func NewCompassRegistrator(directorClient director.Client, log *logrus.Logger) *CompassRegistrator {
 	return &CompassRegistrator{
 		Client: directorClient,
 		Log:    log,
