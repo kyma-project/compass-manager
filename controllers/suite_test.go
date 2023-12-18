@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/controllers/metrics"
 	"github.com/kyma-project/compass-manager/controllers/mocks"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2" //nolint:revive
@@ -75,8 +76,17 @@ var _ = BeforeSuite(func() {
 	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
 	requeueTime := time.Second * 5
+	metrics := metrics.NewMetrics()
 
-	cm = NewCompassManagerReconciler(k8sManager, log, mockConfigurator, mockRegistrator, requeueTime, true)
+	cm = NewCompassManagerReconciler(
+		k8sManager,
+		log,
+		mockConfigurator,
+		mockRegistrator,
+		requeueTime,
+		true,
+		metrics,
+	)
 	k8sClient = k8sManager.GetClient()
 	err = cm.SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())

@@ -23,6 +23,8 @@ spec:
         app.kubernetes.io/component: compass-manager.kyma-project.io
       labels:
         control-plane: compass-manager
+        app.kubernetes.io/name: compass-manager
+        app.kubernetes.io/component: compass-manager.kyma-project.io
     spec:
       securityContext:
         runAsNonRoot: true
@@ -43,6 +45,9 @@ spec:
             value: /director-secret/director.yaml
           - name : APP_ENABLED_REGISTRATION
             value: "false"
+        ports:
+          - containerPort: 8080
+            name: metrics
         volumeMounts:
           - name: director-oauth
             mountPath: /director-secret/

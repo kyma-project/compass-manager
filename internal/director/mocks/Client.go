@@ -3,12 +3,9 @@
 package mocks
 
 import (
-	apperrors "github.com/kyma-project/compass-manager/internal/apperrors"
-
-	gqlschema "github.com/kyma-project/compass-manager/pkg/gqlschema"
-
 	graphql "github.com/kyma-incubator/compass/components/director/pkg/graphql"
-
+	apperrors "github.com/kyma-project/compass-manager/internal/apperrors"
+	gqlschema "github.com/kyma-project/compass-manager/pkg/gqlschema"
 	mock "github.com/stretchr/testify/mock"
 )
 
