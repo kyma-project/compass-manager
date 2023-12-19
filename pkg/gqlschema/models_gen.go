@@ -4,6 +4,6 @@ package gqlschema
 
 type RuntimeInput struct {
 	Name        string  `json:"name"`
-	Description *string `json:"description"`
-	Labels      Labels  `json:"labels"`
+	Description *string `json:"description,omitempty"`
+	Labels      Labels  `json:"labels,omitempty"`
 }
