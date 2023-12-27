@@ -45,6 +45,8 @@ spec:
             value: /director-secret/director.yaml
           - name : APP_ENABLED_REGISTRATION
             value: "false"
+          - name: APP_DIRECTOR_URL
+            value: https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql
         ports:
           - containerPort: 8080
             name: metrics
