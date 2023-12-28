@@ -44,7 +44,7 @@ spec:
           - name: APP_DIRECTOR_OAUTH_PATH
             value: /director-secret/director.yaml
           - name : APP_ENABLED_REGISTRATION
-            value: "false"
+            value: "true"
           - name: APP_DIRECTOR_URL
             value: https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql
         ports:
