@@ -3,12 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	s "github.com/kyma-project/compass-manager/controllers/status"
-	"slices"
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
+	"github.com/kyma-project/compass-manager/controllers/actions"
 	"github.com/kyma-project/compass-manager/controllers/metrics"
+	s "github.com/kyma-project/compass-manager/controllers/status"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"slices"
 )
 
 const (
@@ -178,7 +179,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Compass Manager Mapping for status checks")
 	}
-	status := s.StatusNumber(mapping.Status)
+	status := s.Number(mapping.Status)
 
 	if status == s.Empty {
 		return cm.setStatusAndRequeue(req.NamespacedName, s.Processing)

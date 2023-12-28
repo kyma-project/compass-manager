@@ -137,7 +137,7 @@ func Test_statusNumber(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := StatusNumber(tt.args.status); got != tt.want {
+			if got := Number(tt.args.status); got != tt.want {
 				t.Errorf("statusNumber() = %v, want %v", got, tt.want)
 			}
 		})

@@ -78,7 +78,7 @@ func (m Metrics) setModuleStateGauge(kymaName, state string) {
 		}
 		m.states.With(prometheus.Labels{
 			LabelName:  kymaName,
-			LabelState: string(s),
+			LabelState: s,
 		}).Set(val)
 	}
 }

@@ -35,7 +35,7 @@ func StateText(status Status) string {
 	return FailedState
 }
 
-func StatusNumber(status v1beta1.CompassManagerMappingStatus) Status {
+func Number(status v1beta1.CompassManagerMappingStatus) Status {
 	out := Status(0)
 
 	if status.State == ProcessingState {
