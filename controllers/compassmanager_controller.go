@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kyma-project/compass-manager/api/v1beta1"
-	"github.com/kyma-project/compass-manager/controllers/actions"
 	"github.com/kyma-project/compass-manager/controllers/metrics"
 	s "github.com/kyma-project/compass-manager/controllers/status"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
