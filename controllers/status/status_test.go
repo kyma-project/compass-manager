@@ -1,4 +1,4 @@
-package controllers
+package status
 
 import (
 	"testing"
@@ -73,7 +73,7 @@ func Test_stateText(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := stateText(tt.args.status); got != tt.want {
+			if got := StateText(tt.args.status); got != tt.want {
 				t.Errorf("stateText() = %v, want %v", got, tt.want)
 			}
 		})
@@ -137,7 +137,7 @@ func Test_statusNumber(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := statusNumber(tt.args.status); got != tt.want {
+			if got := Number(tt.args.status); got != tt.want {
 				t.Errorf("statusNumber() = %v, want %v", got, tt.want)
 			}
 		})

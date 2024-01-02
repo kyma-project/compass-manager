@@ -1,4 +1,4 @@
-package controllers
+package status
 
 import (
 	"github.com/kyma-project/compass-manager/api/v1beta1"
@@ -20,7 +20,7 @@ const (
 	FailedState     = "Failed"
 )
 
-func stateText(status Status) string {
+func StateText(status Status) string {
 	if status&Failed != 0 {
 		return FailedState
 	}
@@ -35,7 +35,7 @@ func stateText(status Status) string {
 	return FailedState
 }
 
-func statusNumber(status v1beta1.CompassManagerMappingStatus) Status {
+func Number(status v1beta1.CompassManagerMappingStatus) Status {
 	out := Status(0)
 
 	if status.State == ProcessingState {
