@@ -312,7 +312,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 	}
 
 	cm.metrics.IncConfigure(kymaName.Name)
-	cm.metrics.UpdateState(kymaName.Name, s.Registered|s.Processing)
+	cm.metrics.UpdateState(kymaName.Name, s.Registered|s.Configured)
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	statErr := cm.cluster.SetCompassMappingStatus(kymaName, s.Registered|s.Configured)
