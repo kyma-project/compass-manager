@@ -46,12 +46,12 @@ spec:
           - name : APP_ENABLED_REGISTRATION
             value: "true"
           - name: APP_DIRECTOR_URL
-            value: https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql
+            value: https://compass-gateway-auth-oauth.cmp-main.dev.kyma.cloud.sap/director/graphql
         ports:
           - containerPort: 8080
             name: metrics
         volumeMounts:
-          - name: director-oauth
+          - name: new-director-oauth
             mountPath: /director-secret/
             readOnly: true
         livenessProbe:
@@ -74,9 +74,9 @@ spec:
             cpu: 10m
             memory: 64Mi
       volumes:
-        - name: director-oauth
+        - name: new-director-oauth
           secret:
-            secretName: kcp-provisioner-credentials-file
+            secretName: kcp-provisioner-new-credentials-file
             optional: false
       serviceAccountName: compass-manager
       terminationGracePeriodSeconds: 10
