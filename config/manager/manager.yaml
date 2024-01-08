@@ -51,7 +51,7 @@ spec:
           - containerPort: 8080
             name: metrics
         volumeMounts:
-          - name: new-director-oauth
+          - name: director-oauth
             mountPath: /director-secret/
             readOnly: true
         livenessProbe:
@@ -74,7 +74,7 @@ spec:
             cpu: 10m
             memory: 64Mi
       volumes:
-        - name: new-director-oauth
+        - name: director-oauth
           secret:
             secretName: kcp-provisioner-new-credentials-file
             optional: false
