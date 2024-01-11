@@ -85,6 +85,7 @@ var _ = BeforeSuite(func() {
 		mockRegistrator,
 		requeueTime,
 		true,
+		false,
 		metrics,
 	)
 	k8sClient = k8sManager.GetClient()
