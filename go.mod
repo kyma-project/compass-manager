@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/99designs/gqlgen v0.17.36
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.5.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20231219143409-4fb990359ef2
 	github.com/kyma-project/lifecycle-manager v0.0.0-20231130130018-43561431746e
 	github.com/matryer/is v1.4.1
