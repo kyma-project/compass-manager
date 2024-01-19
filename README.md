@@ -20,8 +20,6 @@ It's main responsibilities **will be**:
 
 ## Installation
 
-## Installation
-
 1. Clone the project.
 
 ```bash
@@ -80,6 +78,21 @@ data:
 make deploy
 ```
 ## Usage
+
+### Configuration Envs
+
+| Name                               | Default                                                                      | Description                                                                        |
+|------------------------------------|------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
+| `APP_ADDRESS`                      | `127.0.0.1:3000`                                                             | Adress on which the app will be exposed                                            |
+| `APP_APIENDPOINT`                  | `/graphql`                                                                   | Endpoint for GraphQL requests                                                      |
+| `APP_PLAYGROUNDAPIENDPOINT`        | `/graphql`                                                                   | This option is not used                                                            |
+| `APP_SKIPDIRECTORCERTVERIFICATION` | `false`                                                                      | Skip cert verification in Compass Director GraphQL calls                           |
+| `APP_DIRECTOR_URL`                 | `https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql` | URL of the Compass Director GraphQL endpoint                                       |
+| `APP_DIRECTOR_OAUTH_PATH`          | `./dev/director.yaml`                                                        | File with OAuth data for Compass Director                                          |
+| `APP_ENABLED_REGISTRATION`         | `false`                                                                      | Enable registering runtimes with Compass                                           |
+| `APP_DRYRUN`                       | `false`                                                                      | Disable registering and configuring, instead log what operations would be executed |
+
+> **TIP:** `CompassManagerMappings` created with dry run will be labeled `kyma-project.io/cm-dry-run: Yes`
 
 > Explain how to use the project. You can create multiple subsections (H3). Include the instructions or provide links to the related documentation.
 
