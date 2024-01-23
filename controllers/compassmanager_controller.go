@@ -554,7 +554,9 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
-	labels[LabelDryRun] = "Yes"
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	existingMapping, err := c.GetCompassMapping(name)
 
@@ -597,7 +599,9 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
-	labels[LabelDryRun] = "Yes"
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	newMapping := v1beta1.CompassManagerMapping{}
 	newMapping.Name = name.Name
