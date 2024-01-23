@@ -39,7 +39,7 @@ const (
 	LabelManagedBy        = "operator.kyma-project.io/managed-by"
 	LabelShootName        = "kyma-project.io/shoot-name"
 	LabelSubaccountID     = "kyma-project.io/subaccount-id"
-	LabelDryRun           = "compass-manager-dry-run"
+	LabelDryRun           = "kyma-project.io/cm-dry-run"
 
 	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
