@@ -38,9 +38,8 @@ var (
 type config struct {
 	Address                      string `envconfig:"default=127.0.0.1:3000"`
 	APIEndpoint                  string `envconfig:"default=/graphql"`
-	PlaygroundAPIEndpoint        string `envconfig:"default=/graphql"`
 	SkipDirectorCertVerification bool   `envconfig:"default=false"`
-	DirectorURL                  string `envconfig:"APP_DIRECTOR_URL,default=https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql"`
+	DirectorURL                  string `envconfig:"APP_DIRECTOR_URL,default=https://compass-gateway-auth-oauth.cmp-main.dev.kyma.cloud.sap/director/graphql"`
 	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
 	EnabledRegistration          bool   `envconfig:"APP_ENABLED_REGISTRATION,default=false"`
 	DryRun                       bool   `envconfig:"APP_DRYRUN,default=false"`

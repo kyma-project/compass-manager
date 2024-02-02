@@ -39,7 +39,7 @@ const (
 	LabelManagedBy        = "operator.kyma-project.io/managed-by"
 	LabelShootName        = "kyma-project.io/shoot-name"
 	LabelSubaccountID     = "kyma-project.io/subaccount-id"
-	LabelDryRun           = "compass-manager-dry-run"
+	LabelDryRun           = "kyma-project.io/cm-dry-run"
 
 	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
@@ -554,7 +554,9 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
-	labels[LabelDryRun] = "Yes"
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	existingMapping, err := c.GetCompassMapping(name)
 
@@ -597,7 +599,9 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
-	labels[LabelDryRun] = "Yes"
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	newMapping := v1beta1.CompassManagerMapping{}
 	newMapping.Name = name.Name

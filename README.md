@@ -20,8 +20,6 @@ It's main responsibilities **will be**:
 - [kubebuilder](https://book.kubebuilder.io/)
 
 
-## Installation
-
 1. Clone the project.
 
 ```bash
@@ -79,8 +77,6 @@ make deploy
 Compass Manager watches for Kyma Custom Resource changes, and when a Kyma with `application-connector` component is created, it registers the Kyma runtime in the Compass Director and creates a Compass Manager Mapping with the ID assigned by the Compass Director.
 It then configures the Compass Runtime Secret on the client cluster.
 
-Compass Manager can be triggered manually by creating a Kyma Custom Resource:
-
 ```yaml
 apiVersion: operator.kyma-project.io/v1beta2
 kind: Kyma
@@ -104,6 +100,21 @@ status:
     - name: "application-connector"
       state: "Ready"
 ```
+
+### Configuration Envs
+
+| Name                               | Default                                                                      | Description                                                                         |
+|------------------------------------|------------------------------------------------------------------------------|-------------------------------------------------------------------------------------|
+| `APP_ADDRESS`                      | `127.0.0.1:3000`                                                             | Address on which the app is exposed                                                 |
+| `APP_APIENDPOINT`                  | `/graphql`                                                                   | Endpoint for GraphQL requests                                                       |
+| `APP_SKIPDIRECTORCERTVERIFICATION` | `false`                                                                      | Skips cert verification in the Compass Director GraphQL calls                       |
+| `APP_DIRECTOR_URL`                 | `https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql` | URL of the Compass Director GraphQL endpoint                                        |
+| `APP_DIRECTOR_OAUTH_PATH`          | `./dev/director.yaml`                                                        | File with OAuth data for Compass Director                                           |
+| `APP_ENABLED_REGISTRATION`         | `false`                                                                      | Enable registering runtimes with Compass                                            |
+| `APP_DRYRUN`                       | `false`                                                                      | Disable registering and configuring; instead log which operations would be executed |
+
+> **TIP:** `CompassManagerMappings` created with dry run are labeled `kyma-project.io/cm-dry-run: Yes`
+
 ## Development
 
 To run the project locally, use the following command:
