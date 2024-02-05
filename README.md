@@ -74,7 +74,7 @@ make deploy
 ```
 ## Usage
 
-Compass Manager watches for Kyma Custom Resource changes, and when a Kyma with `application-connector` component is created, it registers the Kyma runtime in the Compass Director and creates a Compass Manager Mapping with the ID assigned by the Compass Director.
+Compass Manager watches for Kyma Custom Resource changes, and when a Kyma with `application-connector` module is created, it registers the Kyma runtime in the Compass Director and creates a Compass Manager Mapping with the ID assigned by the Compass Director.
 It then configures the Compass Runtime Secret on the client cluster.
 
 ```yaml
@@ -117,13 +117,17 @@ status:
 
 ## Development
 
-To run the project locally, use the following command:
+To build the project, use the following command:
 ```shell
 make build
+````
+
+To run the project locally:
+```shell
 ./bin/manager -kubeconfig <PATH TO KUBECONFIG>
 ```
 
-To run the tests, use the following command:
+To run the tests:
 ```shell
 make test
 ```
