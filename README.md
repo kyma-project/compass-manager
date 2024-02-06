@@ -74,8 +74,8 @@ make deploy
 ```
 ## Usage
 
-Compass Manager watches for Kyma Custom Resource changes, and when a Kyma with `application-connector` module is created, it registers the Kyma runtime in the Compass Director and creates a Compass Manager Mapping with the ID assigned by the Compass Director.
-It then configures the Compass Runtime Secret on the client cluster.
+Compass Manager watches for Kyma custom resource changes. When Kyma with the Application Connector module is created, it registers Kyma runtime in the Compass Director and creates a Compass Manager Mapping with the ID assigned by the Compass Director.
+It then configures the Compass runtime Secret on the client cluster.
 
 ```yaml
 apiVersion: operator.kyma-project.io/v1beta2
