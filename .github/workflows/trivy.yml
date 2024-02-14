@@ -29,4 +29,16 @@ jobs:
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          trivy-config: trivy-cfg.yaml
+          exit-code: 1
+          format: table
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+          timeout: 5m0s
+          vulnerability:
+            ignore-unfixed: false
+            type: os,library
+          scan:
+            scanners:
+              - vuln
+              - secret
+          db:
+            no-progress: true
