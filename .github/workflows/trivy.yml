@@ -35,4 +35,3 @@ jobs:
           ignore-unfixed: false
           timeout: '5m0s'
           vuln-type: 'os,library'
-          scanners: 'vuln,secret'
