@@ -11,8 +11,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      working-directory: compass-manager
     steps:
     - uses: actions/checkout@v3
 
