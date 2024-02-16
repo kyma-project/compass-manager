@@ -3,21 +3,32 @@ name: Compass Manager tests
 on:
   pull_request:
     paths-ignore:
-    - '.**'
-    - 'docs/**'
-    - '**.md'
-    - 'sec-scanners-config.yaml'
+      - '.**'
+      - 'docs/**'
+      - '**.md'
+      - 'sec-scanners-config.yaml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Golang
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.21'
+      - name: Set up cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            /home/runner/work/compass-manager/compass-manager/bin
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-    - name: Run the tests
-      run: make test
+      - name: Set up Golang
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run the tests
+        run: make test
