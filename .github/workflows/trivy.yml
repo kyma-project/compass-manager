@@ -6,9 +6,6 @@
 name: trivy-scan
 
 on:
-  push:
-    branches:
-    - main
   pull_request:
 
 permissions:
