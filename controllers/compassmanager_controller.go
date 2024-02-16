@@ -39,6 +39,7 @@ const (
 	LabelManagedBy        = "operator.kyma-project.io/managed-by"
 	LabelShootName        = "kyma-project.io/shoot-name"
 	LabelSubaccountID     = "kyma-project.io/subaccount-id"
+	LabelDryRun           = "kyma-project.io/cm-dry-run"
 
 	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
@@ -106,6 +107,7 @@ func NewCompassManagerReconciler(
 	r Registrator,
 	requeueTime time.Duration,
 	enabledRegistration bool,
+	dryRun bool,
 	metrics metrics.Metrics,
 ) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
@@ -116,7 +118,7 @@ func NewCompassManagerReconciler(
 		Registrator:         r,
 		requeueTime:         requeueTime,
 		enabledRegistration: enabledRegistration,
-		cluster:             NewControlPlaneInterface(mgr.GetClient(), log),
+		cluster:             NewControlPlaneInterface(mgr.GetClient(), log, dryRun),
 		metrics:             metrics,
 	}
 }
@@ -312,7 +314,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 	}
 
 	cm.metrics.IncConfigure(kymaName.Name)
-	cm.metrics.UpdateState(kymaName.Name, s.Registered|s.Processing)
+	cm.metrics.UpdateState(kymaName.Name, s.Registered|s.Configured)
 	cm.Log.Infof("Compass Runtime Agent for Runtime %s configured.", compassRuntimeID)
 
 	statErr := cm.cluster.SetCompassMappingStatus(kymaName, s.Registered|s.Configured)
@@ -418,12 +420,14 @@ func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interfa
 type ControlPlaneInterface struct {
 	log     *log.Logger
 	kubectl Client
+	dry     bool
 }
 
-func NewControlPlaneInterface(kubectl Client, log *log.Logger) *ControlPlaneInterface {
+func NewControlPlaneInterface(kubectl Client, log *log.Logger, dryRun bool) *ControlPlaneInterface {
 	return &ControlPlaneInterface{
 		log:     log,
 		kubectl: kubectl,
+		dry:     dryRun,
 	}
 }
 
@@ -550,6 +554,9 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	existingMapping, err := c.GetCompassMapping(name)
 
@@ -592,6 +599,9 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
+	if c.dry {
+		labels[LabelDryRun] = "Yes"
+	}
 
 	newMapping := v1beta1.CompassManagerMapping{}
 	newMapping.Name = name.Name

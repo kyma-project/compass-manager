@@ -38,11 +38,11 @@ var (
 type config struct {
 	Address                      string `envconfig:"default=127.0.0.1:3000"`
 	APIEndpoint                  string `envconfig:"default=/graphql"`
-	PlaygroundAPIEndpoint        string `envconfig:"default=/graphql"`
-	DirectorURL                  string `envconfig:"default=https://compass-gateway-auth-oauth.mps.dev.kyma.cloud.sap/director/graphql"`
 	SkipDirectorCertVerification bool   `envconfig:"default=false"`
+	DirectorURL                  string `envconfig:"APP_DIRECTOR_URL,default=https://compass-gateway-auth-oauth.cmp-main.dev.kyma.cloud.sap/director/graphql"`
 	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
 	EnabledRegistration          bool   `envconfig:"APP_ENABLED_REGISTRATION,default=false"`
+	DryRun                       bool   `envconfig:"APP_DRYRUN,default=false"`
 }
 
 func (c *config) String() string {
@@ -110,10 +110,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	compassRegistrator := controllers.NewCompassRegistrator(directorClient, log)
-	runtimeAgentConfigurator := controllers.NewRuntimeAgentConfigurator(directorClient, log)
-	requeueTime := time.Second * 5 //nolint:gomnd
+	var compassRegistrator controllers.Registrator
+	var runtimeAgentConfigurator controllers.Configurator
 
+	if cfg.DryRun {
+		dry := controllers.NewDryRunner(log)
+		compassRegistrator = dry
+		runtimeAgentConfigurator = dry
+	} else {
+		compassRegistrator = controllers.NewCompassRegistrator(directorClient, log)
+		runtimeAgentConfigurator = controllers.NewRuntimeAgentConfigurator(directorClient, log)
+	}
+
+	requeueTime := time.Second * 5 //nolint:gomnd
 	metrics := metrics.NewMetrics()
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(
@@ -123,6 +132,7 @@ func main() {
 		compassRegistrator,
 		requeueTime,
 		cfg.EnabledRegistration,
+		cfg.DryRun,
 		metrics,
 	)
 	if err = compassManagerReconciler.SetupWithManager(mgr); err != nil {
