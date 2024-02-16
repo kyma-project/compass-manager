@@ -30,6 +30,7 @@ jobs:
           scan-type: 'fs'
           ignore-unfixed: true
           format: table
+          exit-code: 1
           # format: 'sarif'
           # output: 'trivy-results.sarif'
           severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
