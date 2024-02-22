@@ -1,4 +1,4 @@
-name: Compass Manager tests
+name: tests
 
 on:
   pull_request:
