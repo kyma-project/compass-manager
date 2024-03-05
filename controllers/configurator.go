@@ -33,8 +33,6 @@ func NewRuntimeAgentConfigurator(directorClient director.Client, log *logrus.Log
 	}
 }
 
-// trigger
-
 func (r *RuntimeAgentConfigurator) ConfigureCompassRuntimeAgent(kubeconfig []byte, compassRuntimeID, globalAccount string) error {
 	kubeClient, err := r.prepareKubeClient(kubeconfig)
 	if err != nil {

@@ -1,4 +1,4 @@
-name: Run vuln check
+name: security-checks
 on:
   push:
     branches: [ "main" ]
@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  test:
+  govuln:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code

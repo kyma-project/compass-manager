@@ -3,7 +3,7 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: trivy-scan
+name: security-checks
 
 on:
   pull_request:
@@ -12,10 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  trivy:
     permissions:
       contents: read # for actions/checkout to fetch code
-    name: Build
     runs-on: "ubuntu-20.04"
     steps:
       - name: Checkout code
