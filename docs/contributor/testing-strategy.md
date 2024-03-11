@@ -29,33 +29,33 @@ For each layer, a dedicated testing approach is used:
 
 This section focuses on ensuring the functionality and reliability of critical functions, methods, and components within our system.
 
-1. Identify critical functions, methods, and components that require testing.
-2. Write unit tests using GoUnit tests, Ginkgo, and Gomega frameworks.
-3. Ensure tests cover various scenarios, edge cases, and possible failure scenarios. We try to verify business relevant logic with at least 65% code coverage.
-4. Test for both positive and negative inputs to validate the expected behavior.
-5. Mock external dependencies and use stubs or fakes to isolate the unit under test.
-6. Run unit tests periodically during development and before each PR is merged to prevent regressions.
-7. Unit tests must be executed as fast as possible to minimize roundtrip times. Long-running tests should be excluded from frequently executed test runs and be triggered periodically, for example, 4 times a day.
+- Identify critical functions, methods, and components that require testing.
+- Write unit tests using GoUnit tests, Ginkgo, and Gomega frameworks.
+- Ensure tests cover various scenarios, edge cases, and possible failure scenarios. We try to verify business relevant logic with at least 65% code coverage.
+- Test for both positive and negative inputs to validate the expected behavior.
+- Mock external dependencies and use stubs or fakes to isolate the unit under test.
+- Run unit tests periodically during development and before each PR is merged to prevent regressions.
+- Unit tests must be executed as fast as possible to minimize roundtrip times. Long-running tests should be excluded from frequently executed test runs and be triggered periodically, for example, 4 times a day.
 
 ### Integration Testing
 
 This section focuses on the integration testing process, which involves testing the interaction and integration of various components and custom resources with the Kubernetes API. It provides you with a step-by-step guide to conduct integration testing, ensuring the correctness and functionality of the implemented business features.
 
-1. The PO and the team create a registry of implemented business features and define a suitable test scenario for each feature.
-2. Create a separate test suite for integration testing.
-3. Each test scenario is implemented in a separate test case. Use the Kubebuilder Test Framework and others to create test cases that interact with the Kubernetes cluster.  
-4. Test the interaction and integration of your custom resources, controllers, and other components with the Kubernetes API.
-5. Ensure test cases cover various aspects such as resource creation, updating, deletion, and handling of edge cases.
-6. Validate the correctness of event handling, reconciliation, and other control logic.
-7. Integration tests must be executed fast to minimize roundtrip times and be applied for each PR. Long-running tests should be excluded from frequently executed test runs and be triggered periodically, for example, 4 times a day.
+- The PO and the team create a registry of implemented business features and define a suitable test scenario for each feature.
+- Create a separate test suite for integration testing.
+- Each test scenario is implemented in a separate test case. Use the Kubebuilder Test Framework and others to create test cases that interact with the Kubernetes cluster.  
+- Test the interaction and integration of your custom resources, controllers, and other components with the Kubernetes API.
+- Ensure test cases cover various aspects such as resource creation, updating, deletion, and handling of edge cases.
+- Validate the correctness of event handling, reconciliation, and other control logic.
+- Integration tests must be executed fast to minimize roundtrip times and be applied for each PR. Long-running tests should be excluded from frequently executed test runs and be triggered periodically, for example, 4 times a day.
 
 ### End-to-End Testing
 
 This section describes how to create and manage test clusters using mainstream Kubernetes management tools like Helm or Kustomize, and how to perform regular performance tests to ensure your application functions correctly and meets the KPIs in a production-like environment.
 
-1. Use a mainstream Kubernetes management tool (for example, [Helm](https://helm.sh/) or [Kustomize](https://kustomize.io/)) to create, deploy, and manage test clusters and environments that closely resemble the productive execution context.
-2. For short-living Kubernetes clusters, use k3d or other lightweight Kubernetes cluster providers.
-3. Run regularly, but at least once per release, a performance test that measures product KPIs to indicate KPI violations or performance differences between release candidates.
+- Use a mainstream Kubernetes management tool (for example, [Helm](https://helm.sh/) or [Kustomize](https://kustomize.io/)) to create, deploy, and manage test clusters and environments that closely resemble the productive execution context.
+- For short-living Kubernetes clusters, use k3d or other lightweight Kubernetes cluster providers.
+- Run regularly, but at least once per release, a performance test that measures product KPIs to indicate KPI violations or performance differences between release candidates.
 
 |Testing Approach|Per Commit|Per PR|Per Release|In intervals|
 |--|--|--|--|--|
