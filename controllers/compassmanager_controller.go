@@ -44,8 +44,7 @@ const (
 	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
-	KubeconfigKey                = "config"
-	requeueTimeMissingKubeconfig = time.Minute * 3
+	KubeconfigKey = "config"
 )
 
 var errNotFound = errors.New("resource not found")
@@ -90,15 +89,16 @@ type Client interface {
 
 // CompassManagerReconciler reconciles a CompassManager object
 type CompassManagerReconciler struct {
-	Client              Client
-	Scheme              *runtime.Scheme
-	Log                 *log.Logger
-	Configurator        Configurator
-	Registrator         Registrator
-	requeueTime         time.Duration
-	enabledRegistration bool
-	cluster             *ControlPlaneInterface
-	metrics             metrics.Metrics
+	Client                   Client
+	Scheme                   *runtime.Scheme
+	Log                      *log.Logger
+	Configurator             Configurator
+	Registrator              Registrator
+	requeueTime              time.Duration
+	requeueTimeForKubeconfig time.Duration
+	enabledRegistration      bool
+	cluster                  *ControlPlaneInterface
+	metrics                  metrics.Metrics
 }
 
 func NewCompassManagerReconciler(
@@ -107,20 +107,22 @@ func NewCompassManagerReconciler(
 	c Configurator,
 	r Registrator,
 	requeueTime time.Duration,
+	requeueTimeForKubeconfig time.Duration,
 	enabledRegistration bool,
 	dryRun bool,
 	metrics metrics.Metrics,
 ) *CompassManagerReconciler {
 	return &CompassManagerReconciler{
-		Client:              mgr.GetClient(),
-		Scheme:              mgr.GetScheme(),
-		Log:                 log,
-		Configurator:        c,
-		Registrator:         r,
-		requeueTime:         requeueTime,
-		enabledRegistration: enabledRegistration,
-		cluster:             NewControlPlaneInterface(mgr.GetClient(), log, dryRun),
-		metrics:             metrics,
+		Client:                   mgr.GetClient(),
+		Scheme:                   mgr.GetScheme(),
+		Log:                      log,
+		Configurator:             c,
+		Registrator:              r,
+		requeueTime:              requeueTime,
+		requeueTimeForKubeconfig: requeueTimeForKubeconfig,
+		enabledRegistration:      enabledRegistration,
+		cluster:                  NewControlPlaneInterface(mgr.GetClient(), log, dryRun),
+		metrics:                  metrics,
 	}
 }
 
@@ -153,7 +155,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Kubeconfig doesn't exist / is empty
 	if isNotFound(err) || len(kubeconfig) == 0 {
 		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in 3 minutes", req.Name)
-		return ctrl.Result{RequeueAfter: requeueTimeMissingKubeconfig}, nil
+		return ctrl.Result{RequeueAfter: cm.requeueTimeForKubeconfig}, nil
 	}
 
 	if err != nil {

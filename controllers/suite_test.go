@@ -76,6 +76,7 @@ var _ = BeforeSuite(func() {
 	prepareMockFunctions(mockConfigurator, mockRegistrator)
 
 	requeueTime := time.Second * 5
+	requeueTimeForKubeconfig := time.Second * 5
 	metrics := metrics.NewMetrics()
 
 	cm = NewCompassManagerReconciler(
@@ -84,6 +85,7 @@ var _ = BeforeSuite(func() {
 		mockConfigurator,
 		mockRegistrator,
 		requeueTime,
+		requeueTimeForKubeconfig,
 		true,
 		false,
 		metrics,
