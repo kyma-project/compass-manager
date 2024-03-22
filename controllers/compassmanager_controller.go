@@ -157,7 +157,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name, requeueTimeMissingKubeconfig)
 	}
 
 	// Kyma exists and has a kubeconfig, get the compass mapping
