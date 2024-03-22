@@ -44,7 +44,8 @@ const (
 	ApplicationConnectorModuleName = "application-connector"
 	// KubeconfigKey is the name of the key in the secret storing cluster credentials.
 	// The secret is created by KEB: https://github.com/kyma-project/control-plane/blob/main/components/kyma-environment-broker/internal/process/steps/lifecycle_manager_kubeconfig.go
-	KubeconfigKey = "config"
+	KubeconfigKey                = "config"
+	requeueTimeMissingKubeconfig = time.Minute * 3
 )
 
 var errNotFound = errors.New("resource not found")
@@ -151,8 +152,8 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Kubeconfig doesn't exist / is empty
 	if isNotFound(err) || len(kubeconfig) == 0 {
-		cm.Log.Infof("Kubeconfig for Kyma resource %s not available.", req.Name)
-		return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
+		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in %m minutes", req.Name)
+		return ctrl.Result{RequeueAfter: requeueTimeMissingKubeconfig}, nil
 	}
 
 	if err != nil {
