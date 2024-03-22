@@ -361,6 +361,7 @@ func (cm *CompassManagerReconciler) CreateFunc(obj runtime.Object) bool {
 
 	for _, v := range kymaModules {
 		if v.Name == ApplicationConnectorModuleName {
+			cm.Log.Infof("CreateFunc, Application Connector module detected in Kyma resource %s", kymaObj.Name)
 			return true
 		}
 	}
@@ -383,7 +384,12 @@ func (cm *CompassManagerReconciler) UpdateFunc(oldObj, newObj runtime.Object) bo
 	oldModules := getModuleNames(oldKymaObj.Status.Modules)
 	newModules := getModuleNames(newKymaObj.Status.Modules)
 
-	return !slices.Contains(oldModules, ApplicationConnectorModuleName) && slices.Contains(newModules, ApplicationConnectorModuleName)
+	ret := !slices.Contains(oldModules, ApplicationConnectorModuleName) && slices.Contains(newModules, ApplicationConnectorModuleName)
+
+	if ret == true {
+		cm.Log.Infof("UpdateFunc, Application Connector module change detected in Kyma resource %s", newKymaObj.Name)
+	}
+	return ret
 }
 
 func getModuleNames(modules []kyma.ModuleStatus) []string {
@@ -395,12 +401,13 @@ func getModuleNames(modules []kyma.ModuleStatus) []string {
 }
 
 func (cm *CompassManagerReconciler) DeleteFunc(obj runtime.Object) bool {
-	_, ok := obj.(*kyma.Kyma)
+	kyma, ok := obj.(*kyma.Kyma)
 	if !ok {
 		cm.Log.Errorf("Unexpected type detected. Object type is supposed to be of Kyma type: %T", obj)
 		return false
 	}
 
+	cm.Log.Infof("DeleteFunc, Kyma resource deleted %s", kyma.Name)
 	return true
 }
 
