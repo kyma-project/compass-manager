@@ -152,7 +152,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Kubeconfig doesn't exist / is empty
 	if isNotFound(err) || len(kubeconfig) == 0 {
-		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in %m minutes", req.Name, requeueTimeMissingKubeconfig)
+		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in 3 minutes", req.Name)
 		return ctrl.Result{RequeueAfter: requeueTimeMissingKubeconfig}, nil
 	}
 
