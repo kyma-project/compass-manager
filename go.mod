@@ -13,7 +13,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 	github.com/vrischmann/envconfig v1.3.0
 	k8s.io/api v0.29.1
@@ -161,7 +161,7 @@ require (
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
-	github.com/lestrrat-go/httprc v1.0.4 // indirect
+	github.com/lestrrat-go/httprc v1.0.5 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
 	github.com/lestrrat-go/jwx/v2 v2.0.19 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
@@ -222,7 +222,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.17.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.1.6 // indirect
-	github.com/stretchr/objx v0.5.1 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
@@ -295,8 +295,13 @@ require (
 
 replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
+	github.com/docker/docker => github.com/docker/docker v24.0.9+incompatible
+	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/lestrrat-go/jwx/v2 => github.com/lestrrat-go/jwx/v2 v2.0.21
 	golang.org/x/crypto => golang.org/x/crypto v0.21.0
 	golang.org/x/net => golang.org/x/net v0.22.0
 	golang.org/x/sys => golang.org/x/sys v0.18.0
 	golang.org/x/text => golang.org/x/text v0.14.0
+	google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
+	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
