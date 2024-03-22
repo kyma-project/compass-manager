@@ -152,12 +152,12 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Kubeconfig doesn't exist / is empty
 	if isNotFound(err) || len(kubeconfig) == 0 {
-		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in %m minutes", req.Name)
+		cm.Log.Infof("Kubeconfig for Kyma resource %s not available. Next attempt in %m minutes", req.Name, requeueTimeMissingKubeconfig)
 		return ctrl.Result{RequeueAfter: requeueTimeMissingKubeconfig}, nil
 	}
 
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name, requeueTimeMissingKubeconfig)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get Kubeconfig object for Kyma: %s", req.Name)
 	}
 
 	// Kyma exists and has a kubeconfig, get the compass mapping
