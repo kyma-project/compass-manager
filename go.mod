@@ -296,8 +296,5 @@ require (
 replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/docker/docker => github.com/docker/docker v24.0.9+incompatible
-	golang.org/x/crypto => golang.org/x/crypto v0.21.0
 	golang.org/x/net => golang.org/x/net v0.22.0
-	golang.org/x/sys => golang.org/x/sys v0.18.0
-	golang.org/x/text => golang.org/x/text v0.14.0
 )
