@@ -294,7 +294,10 @@ require (
 )
 
 replace (
+	golang.org/x/net => golang.org/x/net v0.22.0
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/docker/docker => github.com/docker/docker v24.0.9+incompatible
-	golang.org/x/net => golang.org/x/net v0.22.0
+	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
+	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/lestrrat-go/jwx/v2 => github.com/lestrrat-go/jwx/v2 v2.0.21
 )
