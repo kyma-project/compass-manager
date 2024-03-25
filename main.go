@@ -122,7 +122,8 @@ func main() {
 		runtimeAgentConfigurator = controllers.NewRuntimeAgentConfigurator(directorClient, log)
 	}
 
-	requeueTime := time.Second * 5 //nolint:gomnd
+	requeueTime := time.Second * 5              //nolint:gomnd
+	requeueTimeForKubeconfig := time.Minute * 3 //nolint:gomnd
 	metrics := metrics.NewMetrics()
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(
@@ -131,6 +132,7 @@ func main() {
 		runtimeAgentConfigurator,
 		compassRegistrator,
 		requeueTime,
+		requeueTimeForKubeconfig,
 		cfg.EnabledRegistration,
 		cfg.DryRun,
 		metrics,
