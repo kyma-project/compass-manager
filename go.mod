@@ -302,6 +302,5 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.22.0
 	golang.org/x/sys => golang.org/x/sys v0.18.0
 	golang.org/x/text => golang.org/x/text v0.14.0
-	google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
 	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
