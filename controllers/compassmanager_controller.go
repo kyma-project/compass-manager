@@ -412,7 +412,7 @@ func createCompassRuntimeLabels(kymaLabels map[string]string) map[string]interfa
 	runtimeLabels["director_connection_managed_by"] = ManagedBy
 	runtimeLabels["broker_instance_id"] = kymaLabels[LabelBrokerInstanceID]
 	runtimeLabels["gardenerClusterName"] = kymaLabels[LabelShootName]
-	runtimeLabels["subaccount_id"] = kymaLabels[LabelSubaccountID]
+	runtimeLabels["global_subaccount_id"] = kymaLabels[LabelSubaccountID]
 	runtimeLabels["global_account_id"] = kymaLabels[LabelGlobalAccountID]
 	runtimeLabels["broker_plan_id"] = kymaLabels[LabelBrokerPlanID]
 	runtimeLabels["broker_plan_name"] = kymaLabels[LabelBrokerPlanName]
