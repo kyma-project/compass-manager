@@ -4,11 +4,6 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"time"
-
 	"github.com/kyma-project/compass-manager/api/v1beta1"
 	"github.com/kyma-project/compass-manager/controllers"
 	"github.com/kyma-project/compass-manager/controllers/metrics"
@@ -19,15 +14,23 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vrischmann/envconfig"
+	apicorev1 "k8s.io/api/core/v1"
+	k8slabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+	"log"
+	"net/http"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"time"
 )
 
 var (
@@ -87,6 +90,13 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
+	//namespaces := []string{"kcp-system"}
+	//defaultNamespaces := make(map[string]cache.Config)
+	//
+	//for _, ns := range namespaces {
+	//	defaultNamespaces[ns] = cache.Config{}
+	//}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
@@ -95,6 +105,7 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "2647ec81.kyma-project.io",
+		Cache:                  setCacheOptions(),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -190,5 +201,28 @@ func exitOnError(err error, context string) {
 	if err != nil {
 		wrappedError := errors.Wrap(err, context)
 		log.Fatal(wrappedError)
+	}
+}
+
+func setCacheOptions() cache.Options {
+	return cache.Options{
+		ByObject: map[client.Object]cache.ByObject{
+			&apicorev1.Secret{}: {
+				Label: k8slabels.Everything(),
+				Namespaces: map[string]cache.Config{
+					"kcp-system": {},
+				},
+			},
+			&kyma.Kyma{}: {
+				Namespaces: map[string]cache.Config{
+					"kcp-system": {},
+				},
+			},
+			&v1beta1.CompassManagerMapping{}: {
+				Namespaces: map[string]cache.Config{
+					"kcp-system": {},
+				},
+			},
+		},
 	}
 }
