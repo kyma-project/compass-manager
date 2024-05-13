@@ -57,12 +57,11 @@ func (e *DirectorError) Error() string {
 	return fmt.Sprintf("error from director: %s", e.message)
 }
 
-//+kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch;update
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/finalizers,verbs=update;get
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=kymas,verbs=get;list;watch,namespace=kcp-system
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings,verbs=create;get;list;delete;watch;update,namespace=kcp-system
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/status,verbs=get;update;patch,namespace=kcp-system
+//+kubebuilder:rbac:groups=operator.kyma-project.io,resources=compassmanagermappings/finalizers,verbs=update;get,namespace=kcp-system
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch,namespace=kcp-system
 
 //go:generate mockery --name=Configurator
 type Configurator interface {
