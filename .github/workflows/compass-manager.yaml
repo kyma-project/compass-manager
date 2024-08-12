@@ -1,0 +1,61 @@
+name: Compass Manager
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+    paths-ignore:
+      - .reuse
+      - hack/
+      - LICENSES/
+      - LICENSE
+      - .gitignore
+      - "**.md"
+
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - .reuse
+      - hack/
+      - LICENSES/
+      - LICENSE
+      - .gitignore
+      - "**.md"
+
+permissions:
+  id-token: write # This is required for requesting the JWT token
+  contents: read # This is required for actions/checkout
+
+jobs:
+  setup:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      code: ${{ steps.detect-files.outputs.code_any_changed }}
+    steps:
+      - id: tag
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+      - name: Detect files
+        id: detect-files
+        uses: tj-actions/changed-files@d6babd6899969df1a11d14c368283ea4436bca78
+        with:
+          files_yaml: |
+            code:
+              - **.go
+              - go.mod
+              - go.sum
+
+  build-image:
+    needs: setup
+    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
+    with:
+      name: compass-manager
+      dockerfile: Dockerfile
+      context: .
+      tags: ${{ needs.setup.outputs.tag }}
