@@ -38,6 +38,8 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
       code: ${{ steps.detect-files.outputs.code_any_changed }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - id: tag
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
