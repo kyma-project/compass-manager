@@ -1,9 +1,9 @@
 # Build the manager binary
-FROM golang:1.22.3 as builder
+FROM golang:1.22.5-alpine as builder
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /workspace
+WORKDIR /cm-workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -32,7 +32,7 @@ RUN --mount=type=cache,target="/go-build-cache" GOCACHE=/go-build-cache \
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --chown=65532:65532 --from=builder /workspace/manager .
+COPY --chown=65532:65532 --from=builder /cm-workspace/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
