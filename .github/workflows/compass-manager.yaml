@@ -99,15 +99,21 @@ jobs:
           format: json
           output: 'trivy-results.json'
 
+      - name: Install trivy
+        run: |
+          mkdir ./trivy
+          curl -L https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.tar.gz | tar xvz --directory=./trivy
+          ./trivy/trivy --version
+
       - name: Convert results
         if: success() || failure()
         run: |
-          trivy convert -f table -o trivy-results.txt trivy-results.json
-          trivy convert -f sarif -o trivy-results.sarif trivy-results.json
+          ./trivy/trivy convert -f table -o trivy-results.txt trivy-results.json
+          ./trivy/trivy convert -f sarif -o trivy-results.sarif trivy-results.json
 
       - name: Upload Trivy scan results to GitHub Security tab
         if: success() || failure()
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
 
