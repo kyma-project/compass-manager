@@ -15,7 +15,7 @@ on:
       - .gitignore
       - "**.md"
 
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - .reuse
@@ -133,7 +133,6 @@ jobs:
       
 
   build-image:
-    if: false
     needs: setup
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
     with:
