@@ -138,3 +138,15 @@ You can run single envtest with the following command:
 make manifests generate fmt vet envtest
 KUBEBUILDER_ASSETS="$PWD/$(./bin/setup-envtest use 1.26.0 --bin-dir ./bin -p path)" go test ./controllers -v -run TestAPIs -ginkgo.focus "Kyma was already registered, but doesn't have a Compass Mapping"
 ```
+
+## Contributing
+
+See the [Contributing Rules](CONTRIBUTING.md).
+
+## Code of Conduct
+
+See the [Code of Conduct](CODE_OF_CONDUCT.md) document.
+
+## Licensing
+
+See the [license](./LICENSE) file.
