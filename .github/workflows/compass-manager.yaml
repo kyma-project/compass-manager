@@ -5,8 +5,8 @@ on:
     branches:
       - main
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
-      - '[0-9]+.[0-9]+.[0-9]+-*'
+      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+-*"
     paths-ignore:
       - .reuse
       - hack/
@@ -60,21 +60,21 @@ jobs:
     if: needs.setup.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Set up go environment
-      uses: actions/setup-go@v4
-      with:
-        cache-dependency-path: go.sum
-        go-version-file: go.mod
-    - name: Run unit tests
-      run: make test | tee test.log
-    - name: Upload test logs artifact
-      uses: actions/upload-artifact@v4
-      if: success() || failure()
-      with:
-        name: test.log
-        path: test.log
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up go environment
+        uses: actions/setup-go@v4
+        with:
+          cache-dependency-path: go.sum
+          go-version-file: go.mod
+      - name: Run unit tests
+        run: make test | tee test.log
+      - name: Upload test logs artifact
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: test.log
+          path: test.log
 
   trivy:
     permissions:
@@ -93,17 +93,17 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
+          scan-type: "fs"
+          scan-ref: "."
 
           exit-code: 1
-          severity: 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL'
+          severity: "UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL"
           ignore-unfixed: false
-          timeout: '5m0s'
-          vuln-type: 'os,library'
+          timeout: "5m0s"
+          vuln-type: "os,library"
 
           format: json
-          output: 'trivy-results.json'
+          output: "trivy-results.json"
 
       - name: Convert results
         if: success() || failure()
@@ -115,7 +115,7 @@ jobs:
         if: (success() || failure()) && github.ref == 'refs/heads/main'
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
       - name: Upload trivy table
         if: success() || failure()
@@ -123,7 +123,6 @@ jobs:
         with:
           name: trivy-results.txt
           path: trivy-results.txt
-      
 
   build-image:
     needs: setup
