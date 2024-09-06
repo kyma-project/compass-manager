@@ -29,6 +29,10 @@ permissions:
   id-token: write # This is required for requesting the JWT token
   contents: read # This is required for actions/checkout
 
+env:
+  unit-test-log: unit-test.log
+  trivy-table: trivy-table.txt
+
 jobs:
   setup:
     permissions:
@@ -80,13 +84,13 @@ jobs:
           cache-dependency-path: go.sum
           go-version-file: go.mod
       - name: Run unit tests
-        run: make test | tee unit-test.log
+        run: make test | tee ${{ env.unit-test-log }}
       - name: Upload test logs artifact
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: unit-test.log
-          path: test.log
+          name: ${{ env.unit-test-log }}
+          path: ${{ env.unit-test-log }}
 
   trivy:
     permissions:
@@ -118,14 +122,15 @@ jobs:
           vuln-type: "os,library"
 
           format: table
-          output: "trivy-results.txt"
+          output: ${{ env.trivy-table }}
 
       - name: Upload trivy table
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-results.txt
-          path: trivy-results.txt
+          name: ${{ env.trivy-table }}
+          path: ${{ env.trivy-table }}
+
   build-image:
     needs: setup
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
@@ -144,28 +149,28 @@ jobs:
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: test.log
+          name: ${{ env.unit-test-log }}
       - name: "Download trivy log"
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
-          name: trivy-results.txt
+          name: ${{ env.trivy-table }}
       - name: "Generate summary"
         run: |
           {
             echo '# Compass Manager'
-            # if trivy-results.txt exists
-            if [ -f trivy-results.txt ]; then
+            # if trivy results table exists
+            if [ -f ${{ env.trivy-table }} ]; then
               echo '## Trivy'
               printf '\n```txt\n'
-              cat trivy-results.txt
+              cat ${{ env.trivy-table }}
               printf '\n```\n'
             fi
-            # if test.log exists
-            if [ -f test.log ]; then
+            # if test log exists
+            if [ -f ${{ env.unit-test-log }} ]; then
               echo '## Unit Tests'
               printf '\n```\n'
-              cat test.log
+              cat ${{ env.unit-test-log }}}
               printf '\n```\n'
             fi
             # if build-image was successful
