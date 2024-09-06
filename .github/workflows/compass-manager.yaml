@@ -169,9 +169,9 @@ jobs:
             # if test log exists
             if [ -f ${{ env.unit-test-log }} ]; then
               echo '## Unit Tests'
-              printf '\n```\n'
+              printf '<details>\n<summary>click to expand logs</summary>\n```\n'
               cat ${{ env.unit-test-log }}}
-              printf '\n```\n'
+              printf '\n```\n</details>\n'
             fi
             # if build-image was successful
             if [ "${{ needs.build-image.result }}" == "success" ]; then
