@@ -180,8 +180,8 @@ jobs:
             # if build-image was successful
             if [ "${{ needs.build-image.result }}" == "success" ]; then
               echo '## Image'
-              echo '```json'
+              printf '\n```json\n'
               echo '${{ needs.build-image.outputs.images }}' | jq
-              echo '```'
+              printf '\n```\n'
             fi
           } >> $GITHUB_STEP_SUMMARY
