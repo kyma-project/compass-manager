@@ -174,7 +174,7 @@ jobs:
             if [ -f ${{ env.unit-test-log }} ]; then
               echo '## Unit Tests'
               printf '<details>\n<summary>click to expand logs</summary>\n```\n'
-              cat ${{ env.unit-test-log }}}
+              cat ${{ env.unit-test-log }}
               printf '\n```\n</details>\n'
             fi
             # if build-image was successful
