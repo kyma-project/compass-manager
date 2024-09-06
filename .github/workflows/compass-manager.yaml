@@ -180,7 +180,7 @@ jobs:
             fi
             # if build-image was successful
             if [ "${{ needs.build-image.result }}" == "success" ]; then
-              echo '## Image'
+              printf '\n\n## Image\n'
               printf '\n```json\n'
               echo '${{ needs.build-image.outputs.images }}' | jq
               printf '\n```\n'
