@@ -131,6 +131,10 @@ jobs:
           name: ${{ env.trivy-table }}
           path: ${{ env.trivy-table }}
 
+      - name: Print trivy table
+        if: success() || failure()
+        run: cat ${{ env.trivy-table }}
+
   build-image:
     needs: setup
     uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
