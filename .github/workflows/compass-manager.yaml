@@ -36,15 +36,19 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
-      code: ${{ steps.detect-files.outputs.code_any_changed }}
+      code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - id: tag
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
       - name: Detect files
         id: detect-files
+        continue-on-error: true
         uses: tj-actions/changed-files@d6babd6899969df1a11d14c368283ea4436bca78
         with:
           files_yaml: |
@@ -52,6 +56,11 @@ jobs:
               - ./**.go
               - ./go.mod
               - ./go.sum
+      - name: Fallback values
+        id: fallback-values
+        if: steps.detect-files.outcome != 'success'
+        run: |
+          echo "code_any_changed=true" >> $GITHUB_OUTPUT
 
   unit-tests:
     permissions:
