@@ -1,6 +1,8 @@
 module github.com/kyma-project/compass-manager
 
-go 1.22.5
+go 1.23.0
+
+toolchain go1.23.1
 
 require (
 	github.com/99designs/gqlgen v0.17.43
@@ -234,11 +236,11 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.26.0 // indirect
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
-	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/term v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
@@ -268,8 +270,12 @@ replace (
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/lestrrat-go/jwx/v2 => github.com/lestrrat-go/jwx/v2 v2.0.21
 	golang.org/x/crypto => golang.org/x/crypto v0.21.0
-	golang.org/x/sys => golang.org/x/sys v0.18.0
-	golang.org/x/text => golang.org/x/text v0.14.0
+	golang.org/x/net => golang.org/x/net v0.28.0
+	golang.org/x/sys => golang.org/x/sys v0.25.0
+	golang.org/x/term => golang.org/x/term v0.24.0
+	golang.org/x/text => golang.org/x/text v0.18.0
+	golang.org/x/time => golang.org/x/time v0.6.0
+	golang.org/x/tools => golang.org/x/tools v0.25.0
 	google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
 	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
