@@ -46,6 +46,7 @@ linters-settings:
     # Default: []
     disable:
       - fieldalignment # too strict
+      - printf # too strict
     # Settings per analyzer.
     settings:
       shadow:
