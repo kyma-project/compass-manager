@@ -3,7 +3,7 @@ run:
   timeout: 10m
 
 output:
-  format: tab
+  formats: tab
   sort-results: true
 
 
@@ -24,7 +24,7 @@ linters-settings:
         # Default: true
         skipRecvDeref: false
 
-  gomnd:
+  mnd:
     # List of function patterns to exclude from analysis.
     # Values always ignored: `time.Date`,
     # `strconv.FormatInt`, `strconv.FormatUint`, `strconv.FormatFloat`,
@@ -46,6 +46,7 @@ linters-settings:
     # Default: []
     disable:
       - fieldalignment # too strict
+      - printf # too strict
     # Settings per analyzer.
     settings:
       shadow:
@@ -71,14 +72,14 @@ linters:
     - durationcheck # checks for two durations multiplied together
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
-    - exportloopref # checks for pointers to enclosing loop variables
+    - copyloopvar # checks for pointers to enclosing loop variables
     - gci # controls golang package import order and makes it always deterministic
     - gochecknoglobals # checks that no global variables exist
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - godox # detects TODOs keywords
     # - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt. Dissabled as can't work together with `gci`
-    - gomnd # detects magic numbers
+    - mnd # detects magic numbers
     # - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - nestif # reports deeply nested if statements
     - nilerr # finds the code that returns nil even if it checks that the error is not nil

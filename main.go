@@ -127,8 +127,8 @@ func main() {
 		runtimeAgentConfigurator = controllers.NewRuntimeAgentConfigurator(directorClient, log)
 	}
 
-	requeueTime := time.Second * 5              //nolint:gomnd
-	requeueTimeForKubeconfig := time.Minute * 3 //nolint:gomnd
+	requeueTime := time.Second * 5              //nolint:mnd
+	requeueTimeForKubeconfig := time.Minute * 3 //nolint:mnd
 	metrics := metrics.NewMetrics()
 
 	compassManagerReconciler := controllers.NewCompassManagerReconciler(
@@ -187,7 +187,7 @@ func newHTTPClient(skipCertVerification bool) *http.Client {
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipCertVerification},
 		},
-		Timeout: 30 * time.Second, //nolint:gomnd
+		Timeout: 30 * time.Second, //nolint:mnd
 	}
 }
 
