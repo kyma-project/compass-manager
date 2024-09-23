@@ -78,7 +78,7 @@ linters:
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - godox # detects TODOs keywords
     # - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt. Dissabled as can't work together with `gci`
-    - gomnd # detects magic numbers
+    - mnd # detects magic numbers
     # - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - nestif # reports deeply nested if statements
     - nilerr # finds the code that returns nil even if it checks that the error is not nil
