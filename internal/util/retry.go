@@ -11,6 +11,7 @@ func RetryOnError(interval time.Duration, count int, errMsgFmt string, function 
 	var err apperrors.AppError
 	for i := 0; i < count; i++ {
 		err = function()
+
 		if err == nil {
 			return nil
 		}
