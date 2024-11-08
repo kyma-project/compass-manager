@@ -8,7 +8,7 @@ Compass Manager **will be** a new Control Plane component. Build using [Kubebuil
 It's main responsibilities **will be**:
 - registering Kyma runtimes in the Compass Director
 - creating secret on client cluster with the Compass Runtime configuration
-
+test change to validate pipelines
 ## Prerequisites
 
 - Golang - minimum version is 1.20.
