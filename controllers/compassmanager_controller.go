@@ -27,8 +27,6 @@ import (
 const (
 	ManagedBy = "compass-manager"
 
-	AnnotationIDForMigration = "compass-runtime-id-for-migration"
-
 	Finalizer             = "kyma-project.io/cm-protection"
 	LabelBrokerInstanceID = "kyma-project.io/instance-id"
 	LabelBrokerPlanID     = "kyma-project.io/broker-plan-id"
@@ -256,13 +254,6 @@ func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName typ
 
 	// default mode - application-connector module is enabled for the first time in Kyma, we create Compass Manager Mapping
 	runtimeRegistrationType := "newly provisioned Kyma runtime"
-
-	// remove below after migration is completed
-	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; ok && len(migrationCompassRuntimeID) > 0 {
-		// Runtime registered previously by Provisioner, but we have the Compass ID provided by KEB
-		runtimeRegistrationType = "already registered Kyma runtime"
-		runtimeID = migrationCompassRuntimeID
-	}
 
 	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
 	cmerr := cm.cluster.CreateCompassMapping(kymaName, runtimeID)
