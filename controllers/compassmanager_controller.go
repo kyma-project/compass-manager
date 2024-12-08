@@ -27,8 +27,6 @@ import (
 const (
 	ManagedBy = "compass-manager"
 
-	AnnotationIDForMigration = "compass-runtime-id-for-migration"
-
 	Finalizer             = "kyma-project.io/cm-protection"
 	LabelBrokerInstanceID = "kyma-project.io/instance-id"
 	LabelBrokerPlanID     = "kyma-project.io/broker-plan-id"
@@ -175,7 +173,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	/// Part 1 - If compass mapping doesn't exist let's create it and requeue
 	if isNotFound(runtimeIDErr) {
-		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName, kymaCR.Annotations)
+		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName)
 	}
 
 	mapping, err := cm.cluster.GetCompassMapping(req.NamespacedName)
@@ -251,18 +249,11 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 	return nil
 }
 
-func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName, kymaAnnotations map[string]string) (ctrl.Result, error) {
+func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName) (ctrl.Result, error) {
 	var runtimeID string
 
 	// default mode - application-connector module is enabled for the first time in Kyma, we create Compass Manager Mapping
 	runtimeRegistrationType := "newly provisioned Kyma runtime"
-
-	// remove below after migration is completed
-	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; ok && len(migrationCompassRuntimeID) > 0 {
-		// Runtime registered previously by Provisioner, but we have the Compass ID provided by KEB
-		runtimeRegistrationType = "already registered Kyma runtime"
-		runtimeID = migrationCompassRuntimeID
-	}
 
 	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
 	cmerr := cm.cluster.CreateCompassMapping(kymaName, runtimeID)
