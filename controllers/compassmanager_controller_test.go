@@ -30,41 +30,6 @@ var _ = Describe("Compass Manager controller", func() {
 	kymaCustomResourceLabels := make(map[string]string)
 	kymaCustomResourceLabels["operator.kyma-project.io/managed-by"] = "lifecycle-manager"
 
-	Context("Kyma was already registered, but doesn't have a Compass Mapping", func() {
-		It("creates the compass mapping without registering runtime again", func() {
-			const kymaName = "preregistered"
-			const preRegisteredID = "preregistered-id"
-
-			secret := createCredentialsSecret(kymaName)
-			Expect(k8sClient.Create(context.Background(), &secret)).To(Succeed())
-
-			By("Create Kyma Resource")
-			kymaCR := createKymaResource(kymaName)
-			kymaCR.Annotations["compass-runtime-id-for-migration"] = preRegisteredID
-			Expect(k8sClient.Create(context.Background(), &kymaCR)).To(Succeed())
-
-			By("Wait for mapping")
-			Eventually(func() string {
-				label, _, err := getCompassMappingCompassIDAndState(kymaCR.Name)
-				if err != nil {
-					return err.Error()
-				}
-				return label
-			}, clientTimeout, clientInterval).Should(Equal(preRegisteredID))
-
-			By("Verify status")
-			var cmm v1beta1.CompassManagerMapping
-			Eventually(func() bool {
-				var err error
-				cmm, err = getCompassMapping(kymaCR.Name)
-
-				stateIsReady := cmm.Status.State == mappingCRFailedState || cmm.Status.State == mappingCRReadyState
-
-				return err == nil && cmm.Status.Registered && cmm.Status.Configured && stateIsReady
-			}, clientTimeout, clientInterval).Should(BeTrue(), "registered: %v, configured: %v", cmm.Status.Registered, cmm.Status.Configured)
-		})
-	})
-
 	Context("Secret with Kubeconfig is correctly created, and assigned to Kyma resource", func() {
 		DescribeTable("Register Runtime in the Director, and configure Compass Runtime Agent", func(kymaName string) {
 			By("Create secret with credentials")

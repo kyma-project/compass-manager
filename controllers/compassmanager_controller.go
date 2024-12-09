@@ -27,8 +27,6 @@ import (
 const (
 	ManagedBy = "compass-manager"
 
-	AnnotationIDForMigration = "compass-runtime-id-for-migration"
-
 	Finalizer             = "kyma-project.io/cm-protection"
 	LabelBrokerInstanceID = "kyma-project.io/instance-id"
 	LabelBrokerPlanID     = "kyma-project.io/broker-plan-id"
@@ -175,7 +173,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	/// Part 1 - If compass mapping doesn't exist let's create it and requeue
 	if isNotFound(runtimeIDErr) {
-		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName, kymaCR.Annotations)
+		return cm.makeNewCompassMappingAndRequeue(req.NamespacedName)
 	}
 
 	mapping, err := cm.cluster.GetCompassMapping(req.NamespacedName)
@@ -251,21 +249,12 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 	return nil
 }
 
-func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName, kymaAnnotations map[string]string) (ctrl.Result, error) {
-	var runtimeID string
-
+func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName) (ctrl.Result, error) {
 	// default mode - application-connector module is enabled for the first time in Kyma, we create Compass Manager Mapping
 	runtimeRegistrationType := "newly provisioned Kyma runtime"
 
-	// remove below after migration is completed
-	if migrationCompassRuntimeID, ok := kymaAnnotations[AnnotationIDForMigration]; ok && len(migrationCompassRuntimeID) > 0 {
-		// Runtime registered previously by Provisioner, but we have the Compass ID provided by KEB
-		runtimeRegistrationType = "already registered Kyma runtime"
-		runtimeID = migrationCompassRuntimeID
-	}
-
 	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
-	cmerr := cm.cluster.CreateCompassMapping(kymaName, runtimeID)
+	cmerr := cm.cluster.CreateCompassMapping(kymaName)
 	if cmerr != nil {
 		return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for %s for Kyma resource ID %s", runtimeRegistrationType, kymaName.Name)
 	}
@@ -589,7 +578,7 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	return err
 }
 
-func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
+func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName) error {
 	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
@@ -597,7 +586,7 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 
 	labels := make(map[string]string)
 	labels[LabelKymaName] = kymaCR.Labels[LabelKymaName]
-	labels[LabelCompassID] = compassRuntimeID
+	labels[LabelCompassID] = ""
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
