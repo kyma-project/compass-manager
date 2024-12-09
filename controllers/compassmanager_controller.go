@@ -250,13 +250,11 @@ func (cm *CompassManagerReconciler) handleKymaDeletion(name types.NamespacedName
 }
 
 func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName types.NamespacedName) (ctrl.Result, error) {
-	var runtimeID string
-
 	// default mode - application-connector module is enabled for the first time in Kyma, we create Compass Manager Mapping
 	runtimeRegistrationType := "newly provisioned Kyma runtime"
 
 	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
-	cmerr := cm.cluster.CreateCompassMapping(kymaName, runtimeID)
+	cmerr := cm.cluster.CreateCompassMapping(kymaName)
 	if cmerr != nil {
 		return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for %s for Kyma resource ID %s", runtimeRegistrationType, kymaName.Name)
 	}
@@ -580,7 +578,7 @@ func (c *ControlPlaneInterface) UpsertCompassMapping(name types.NamespacedName, 
 	return err
 }
 
-func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, compassRuntimeID string) error {
+func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName) error {
 	kymaCR, err := c.GetKyma(name)
 	if err != nil {
 		return err
@@ -588,7 +586,7 @@ func (c *ControlPlaneInterface) CreateCompassMapping(name types.NamespacedName, 
 
 	labels := make(map[string]string)
 	labels[LabelKymaName] = kymaCR.Labels[LabelKymaName]
-	labels[LabelCompassID] = compassRuntimeID
+	labels[LabelCompassID] = ""
 	labels[LabelGlobalAccountID] = kymaCR.Labels[LabelGlobalAccountID]
 	labels[LabelSubaccountID] = kymaCR.Labels[LabelSubaccountID]
 	labels[LabelManagedBy] = ManagedBy
