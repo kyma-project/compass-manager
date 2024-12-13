@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	compassTestingID   = "test-runtime-ID-12345"
+	compassTestingID   = "4366e452-2ffb-435d-abbd-81cf5d3965c9"
 	compassTestingName = "Runtime Test name"
 	validTokenValue    = "12345"
 	globalAccountValue = "3e64ebae-38b5-46a0-b1ed-9ccee153a0ae"
@@ -34,17 +34,17 @@ const (
 	}) { id } }`
 
 	expectedOneTimeTokenQuery = `mutation {
-	result: requestOneTimeTokenForRuntime(id: "test-runtime-ID-12345") {
+	result: requestOneTimeTokenForRuntime(id: "4366e452-2ffb-435d-abbd-81cf5d3965c9") {
 		token connectorURL
 }}`
 
 	expectedGetRuntimeQuery = `query {
-    result: runtime(id: "test-runtime-ID-12345") {
+    result: runtime(id: "4366e452-2ffb-435d-abbd-81cf5d3965c9") {
          id name description labels
 }}`
 
 	expectedDeleteRuntimeQuery = `mutation {
-	result: unregisterRuntime(id: "test-runtime-ID-12345") {
+	result: unregisterRuntime(id: "4366e452-2ffb-435d-abbd-81cf5d3965c9") {
 		id
 }}`
 )
@@ -156,6 +156,43 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		assert.Error(t, err)
 		util.CheckErrorType(t, err, apperrors.CodeInternal)
 		assert.Empty(t, receivedRuntimeID)
+	})
+
+	t.Run("Should not register Runtime and return error when the Runtime ID from Director is not in UUID format", func(t *testing.T) {
+		// given
+		responseDescription := "runtime description"
+		expectedResponse := &graphql.Runtime{
+			ID:          "non-uuid-format",
+			Name:        compassTestingName,
+			Description: &responseDescription,
+		}
+
+		expectedID := ""
+
+		gqlClient := gql.NewQueryAssertClient(t, nil, []*gcli.Request{expectedRequest}, func(t *testing.T, r interface{}) {
+			cfg, ok := r.(*CreateRuntimeResponse)
+			require.True(t, ok)
+			assert.Empty(t, cfg.Result)
+			cfg.Result = expectedResponse
+		})
+
+		token := oauth.Token{
+			AccessToken: validTokenValue,
+			Expiration:  futureExpirationTime,
+		}
+
+		mockedOAuthClient := &oauthmocks.Client{}
+		mockedOAuthClient.On("GetAuthorizationToken").Return(token, nil)
+
+		configClient := NewDirectorClient(gqlClient, mockedOAuthClient)
+
+		// when
+		receivedRuntimeID, err := configClient.CreateRuntime(runtimeInput, globalAccountValue)
+
+		// then
+		assert.Error(t, err)
+		assert.Equal(t, expectedID, receivedRuntimeID)
+
 	})
 
 	t.Run("Should return error when the result of the call to Director service is nil", func(t *testing.T) {
