@@ -238,9 +238,9 @@ require (
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.19.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/term v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/term v0.27.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
@@ -267,7 +267,7 @@ replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/lestrrat-go/jwx/v2 => github.com/lestrrat-go/jwx/v2 v2.0.21
-	golang.org/x/crypto => golang.org/x/crypto v0.21.0
+	golang.org/x/crypto => golang.org/x/crypto v0.31.0
 	golang.org/x/net => golang.org/x/net v0.28.0
 	golang.org/x/sys => golang.org/x/sys v0.25.0
 	golang.org/x/term => golang.org/x/term v0.24.0
