@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"github.com/pkg/errors"
+	"strings"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
@@ -22,14 +24,16 @@ const (
 )
 
 type RuntimeAgentConfigurator struct {
-	Client director.Client
-	Log    *logrus.Logger
+	Client              director.Client
+	ConnectorUrlPattern string
+	Log                 *logrus.Logger
 }
 
-func NewRuntimeAgentConfigurator(directorClient director.Client, log *logrus.Logger) *RuntimeAgentConfigurator {
+func NewRuntimeAgentConfigurator(directorClient director.Client, connectorUrlPattern string, log *logrus.Logger) *RuntimeAgentConfigurator {
 	return &RuntimeAgentConfigurator{
-		Client: directorClient,
-		Log:    log,
+		Client:              directorClient,
+		ConnectorUrlPattern: connectorUrlPattern,
+		Log:                 log,
 	}
 }
 
@@ -97,6 +101,10 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 
 	if err != nil {
 		return graphql.OneTimeTokenForRuntimeExt{}, err
+	}
+
+	if !strings.Contains(token.ConnectorURL, r.ConnectorUrlPattern) {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("Connector URL does not match the expected pattern")
 	}
 
 	return token, nil
