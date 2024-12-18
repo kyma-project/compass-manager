@@ -3,8 +3,8 @@ package director
 import (
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 
+	"github.com/google/uuid"
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql/graphqlizer"

@@ -192,7 +192,6 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 		// then
 		assert.Error(t, err)
 		assert.Equal(t, expectedID, receivedRuntimeID)
-
 	})
 
 	t.Run("Should return error when the result of the call to Director service is nil", func(t *testing.T) {
