@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -21,6 +22,7 @@ import (
 const (
 	AgentConfigurationSecretName   = "compass-agent-configuration"
 	runtimeAgentComponentNameSpace = "kyma-system"
+	maxTokenLength                 = 100
 )
 
 type RuntimeAgentConfigurator struct {
@@ -105,6 +107,11 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 
 	if !strings.Contains(token.ConnectorURL, r.ConnectorUrlPattern) {
 		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("Connector URL does not match the expected pattern")
+	}
+
+	decodedToken, er := base64.StdEncoding.DecodeString(token.Token)
+	if len(decodedToken) > maxTokenLength || er != nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken is too long or cannot be decoded")
 	}
 
 	return token, nil
