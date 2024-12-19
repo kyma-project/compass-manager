@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	directorApperrors "github.com/kyma-incubator/compass/components/director/pkg/apperrors"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql/graphqlizer"
@@ -82,6 +83,11 @@ func (cc *directorClient) CreateRuntime(config *gqlschema.RuntimeInput, globalAc
 	// Nil check is necessary due to GraphQL client not checking response code
 	if response.Result == nil {
 		return "", apperrors.Internal("Failed to register runtime in Director: Received nil response.").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+	}
+
+	_, err = uuid.Parse(response.Result.ID)
+	if err != nil {
+		return "", apperrors.Internal("Failed to register runtime in Director: Received ID is not in UUID format").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDInvalidFormat)
 	}
 
 	log.Infof("Successfully registered Runtime %s in Director for Global Account %s", config.Name, globalAccount)

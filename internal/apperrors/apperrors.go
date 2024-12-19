@@ -17,9 +17,10 @@ const (
 const (
 	ErrCompassManagerInternal ErrReason = "err_compass_manager_internal"
 
-	ErrDirectorNilResponse       ErrReason = "err_director_nil_response"
-	ErrDirectorRuntimeIDMismatch ErrReason = "err_director_runtime_id_mismatch"
-	ErrDirectorClientGraphqlizer ErrReason = "err_director_client_graphqlizer"
+	ErrDirectorNilResponse            ErrReason = "err_director_nil_response"
+	ErrDirectorRuntimeIDMismatch      ErrReason = "err_director_runtime_id_mismatch"
+	ErrDirectorClientGraphqlizer      ErrReason = "err_director_client_graphqlizer"
+	ErrDirectorRuntimeIDInvalidFormat ErrReason = "err_director_runtime_id_invalid_format"
 )
 
 type ErrCode int

@@ -45,6 +45,7 @@ type config struct {
 	SkipDirectorCertVerification bool   `envconfig:"default=false"`
 	DirectorURL                  string `envconfig:"APP_DIRECTOR_URL,default=https://compass-gateway-auth-oauth.cmp-main.dev.kyma.cloud.sap/director/graphql"`
 	DirectorOAuthPath            string `envconfig:"APP_DIRECTOR_OAUTH_PATH,default=./dev/director.yaml"`
+	ConnectorURLPattern          string `envconfig:"APP_CONNECTOR_URL_PATTERN,default=kyma.cloud.sap/connector/graphql"`
 	EnabledRegistration          bool   `envconfig:"APP_ENABLED_REGISTRATION,default=false"`
 	DryRun                       bool   `envconfig:"APP_DRYRUN,default=false"`
 }
@@ -124,7 +125,7 @@ func main() {
 		runtimeAgentConfigurator = dry
 	} else {
 		compassRegistrator = controllers.NewCompassRegistrator(directorClient, log)
-		runtimeAgentConfigurator = controllers.NewRuntimeAgentConfigurator(directorClient, log)
+		runtimeAgentConfigurator = controllers.NewRuntimeAgentConfigurator(directorClient, cfg.ConnectorURLPattern, log)
 	}
 
 	requeueTime := time.Second * 5              //nolint:mnd
