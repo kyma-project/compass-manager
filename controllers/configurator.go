@@ -105,7 +105,7 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 		return graphql.OneTimeTokenForRuntimeExt{}, err
 	}
 
-	if !strings.Contains(token.ConnectorURL, r.ConnectorURLPattern) {
+	if !strings.HasSuffix(token.ConnectorURL, r.ConnectorURLPattern) {
 		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("Connector URL does not match the expected pattern")
 	}
 
