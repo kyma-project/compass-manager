@@ -110,8 +110,10 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 	}
 
 	decodedToken, er := base64.StdEncoding.DecodeString(token.Token)
-	if len(decodedToken) > maxTokenLength || er != nil {
-		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken is too long or cannot be decoded")
+	if len(decodedToken) > maxTokenLength {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken is too long")
+	} else if er != nil {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken cannot be decoded")
 	}
 
 	return token, nil
