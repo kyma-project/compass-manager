@@ -47,6 +47,8 @@ spec:
             value: "true"
           - name: APP_DIRECTOR_URL
             value: https://compass-gateway-auth-oauth.cmp-main.dev.kyma.cloud.sap/director/graphql
+          - name: APP_CONNECTOR_URL_PATTERN
+            value: kyma.cloud.sap/connector/graphql
         ports:
           - containerPort: 8080
             name: metrics
