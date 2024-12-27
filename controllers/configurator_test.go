@@ -1,12 +1,13 @@
 package controllers
 
 import (
+	"testing"
+
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/director/mocks"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestAppError(t *testing.T) {
@@ -14,7 +15,7 @@ func TestAppError(t *testing.T) {
 		mockDirectorClient := mocks.Client{}
 		mockDirectorClient.On("GetConnectionToken", "compassID", "globalAccount").Return(graphql.OneTimeTokenForRuntimeExt{
 			OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{
-				graphql.TokenWithURL{
+				TokenWithURL: graphql.TokenWithURL{
 					Token:        "dGVzdFRva2VuQmFzZWQ2NA==",
 					ConnectorURL: "kyma.cloud.sap/connector/graphql",
 				},
@@ -33,7 +34,7 @@ func TestAppError(t *testing.T) {
 		mockDirectorClient := mocks.Client{}
 		mockDirectorClient.On("GetConnectionToken", "compassID", "globalAccount").Return(graphql.OneTimeTokenForRuntimeExt{
 			OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{
-				graphql.TokenWithURL{
+				TokenWithURL: graphql.TokenWithURL{
 					Token:        "dGVzdFRva2VuQmFzZWQ2NA==",
 					ConnectorURL: "invalid.domain/connector/graphql",
 				},
@@ -50,7 +51,7 @@ func TestAppError(t *testing.T) {
 		mockDirectorClient := mocks.Client{}
 		mockDirectorClient.On("GetConnectionToken", "compassID", "globalAccount").Return(graphql.OneTimeTokenForRuntimeExt{
 			OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{
-				graphql.TokenWithURL{
+				TokenWithURL: graphql.TokenWithURL{
 					Token:        "not-base64-encoded",
 					ConnectorURL: "kyma.cloud.sap/connector/graphql",
 				},
@@ -67,7 +68,7 @@ func TestAppError(t *testing.T) {
 		mockDirectorClient := mocks.Client{}
 		mockDirectorClient.On("GetConnectionToken", "compassID", "globalAccount").Return(graphql.OneTimeTokenForRuntimeExt{
 			OneTimeTokenForRuntime: graphql.OneTimeTokenForRuntime{
-				graphql.TokenWithURL{
+				TokenWithURL: graphql.TokenWithURL{
 					Token:        "bm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVkbm90LWJhc2U2NC1lbmNvZGVk",
 					ConnectorURL: "kyma.cloud.sap/connector/graphql",
 				},
