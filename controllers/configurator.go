@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/kyma-incubator/compass/components/director/pkg/graphql"
 	"github.com/kyma-project/compass-manager/internal/apperrors"
 	"github.com/kyma-project/compass-manager/internal/director"
 	"github.com/kyma-project/compass-manager/internal/util"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	core "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,17 +21,20 @@ import (
 const (
 	AgentConfigurationSecretName   = "compass-agent-configuration"
 	runtimeAgentComponentNameSpace = "kyma-system"
+	maxTokenLength                 = 100
 )
 
 type RuntimeAgentConfigurator struct {
-	Client director.Client
-	Log    *logrus.Logger
+	Client              director.Client
+	ConnectorURLPattern string
+	Log                 *logrus.Logger
 }
 
-func NewRuntimeAgentConfigurator(directorClient director.Client, log *logrus.Logger) *RuntimeAgentConfigurator {
+func NewRuntimeAgentConfigurator(directorClient director.Client, connectorURLPattern string, log *logrus.Logger) *RuntimeAgentConfigurator {
 	return &RuntimeAgentConfigurator{
-		Client: directorClient,
-		Log:    log,
+		Client:              directorClient,
+		ConnectorURLPattern: connectorURLPattern,
+		Log:                 log,
 	}
 }
 
@@ -97,6 +102,14 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 
 	if err != nil {
 		return graphql.OneTimeTokenForRuntimeExt{}, err
+	}
+
+	if !strings.HasSuffix(token.ConnectorURL, r.ConnectorURLPattern) {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("Connector URL does not match the expected pattern")
+	}
+
+	if len(token.Token) > maxTokenLength {
+		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken is too long")
 	}
 
 	return token, nil
