@@ -44,6 +44,7 @@ func TestAppError(t *testing.T) {
 		configurator := NewRuntimeAgentConfigurator(&mockDirectorClient, "kyma.cloud.sap/connector/graphql", logrus.New())
 
 		token, err := configurator.fetchCompassToken("compassID", "globalAccount")
+		require.Error(t, err)
 		require.ErrorContains(t, err, "Connector URL does not match the expected pattern")
 		assert.Equal(t, token, graphql.OneTimeTokenForRuntimeExt{})
 	})
@@ -61,6 +62,7 @@ func TestAppError(t *testing.T) {
 		configurator := NewRuntimeAgentConfigurator(&mockDirectorClient, "kyma.cloud.sap/connector/graphql", logrus.New())
 
 		token, err := configurator.fetchCompassToken("compassID", "globalAccount")
+		require.Error(t, err)
 		require.ErrorContains(t, err, "OneTimeToken cannot be decoded")
 		assert.Equal(t, token, graphql.OneTimeTokenForRuntimeExt{})
 	})
@@ -78,6 +80,7 @@ func TestAppError(t *testing.T) {
 		configurator := NewRuntimeAgentConfigurator(&mockDirectorClient, "kyma.cloud.sap/connector/graphql", logrus.New())
 
 		token, err := configurator.fetchCompassToken("compassID", "globalAccount")
+		require.Error(t, err)
 		require.ErrorContains(t, err, "OneTimeToken is too long")
 		assert.Equal(t, token, graphql.OneTimeTokenForRuntimeExt{})
 	})
