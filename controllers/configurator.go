@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/base64"
 	"strings"
 	"time"
 
@@ -109,11 +108,8 @@ func (r *RuntimeAgentConfigurator) fetchCompassToken(compassID, globalAccount st
 		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("Connector URL does not match the expected pattern")
 	}
 
-	decodedToken, er := base64.StdEncoding.DecodeString(token.Token)
-	if len(decodedToken) > maxTokenLength {
+	if len(token.Token) > maxTokenLength {
 		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken is too long")
-	} else if er != nil {
-		return graphql.OneTimeTokenForRuntimeExt{}, errors.New("OneTimeToken cannot be decoded: " + token.Token)
 	}
 
 	return token, nil
