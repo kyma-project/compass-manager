@@ -1,4 +1,5 @@
 module-name: compass-manager
+kind: kcp
 bdba:
   - europe-docker.pkg.dev/kyma-project/prod/compass-manager:1.0.13
 mend:
