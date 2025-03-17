@@ -9,6 +9,6 @@ import (
 func Close(closer io.ReadCloser) {
 	err := closer.Close()
 	if err != nil {
-		logrus.Warnf("Failed to close read closer: %s", err.Error())
+		logrus.Warn("Failed to close read closer.")
 	}
 }
