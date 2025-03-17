@@ -1,7 +1,7 @@
 module-name: compass-manager
 kind: kcp
 bdba:
-  - europe-docker.pkg.dev/kyma-project/dev/compass-manager@sha256:9dcef8cc01c9dc34f25972e5e8da526a487839894eb5f321f768fdbc98d8f14d
+  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:v20250317-f19051d9
 mend:
   language: golang-mod
   exclude:
