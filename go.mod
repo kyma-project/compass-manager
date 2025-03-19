@@ -112,6 +112,6 @@ replace (
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/lestrrat-go/jwx/v2 => github.com/lestrrat-go/jwx/v2 v2.0.21
 	golang.org/x/net => golang.org/x/net v0.37.0
-	google.golang.org/protobuf => google.golang.org/protobuf v1.33.0
+	google.golang.org/protobuf => google.golang.org/protobuf v1.36.5
 	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
