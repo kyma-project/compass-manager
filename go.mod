@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.43
 	github.com/google/uuid v1.6.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f
-	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250320123930-6d4d7a6ad94e
+	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250321082931-ad80eebb0752
 	github.com/matryer/is v1.4.1
 	github.com/onsi/ginkgo/v2 v2.23.2
 	github.com/onsi/gomega v1.36.2
