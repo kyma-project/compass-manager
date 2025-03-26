@@ -52,7 +52,7 @@ jobs:
       - name: Detect files
         id: detect-files
         continue-on-error: true
-        uses: tj-actions/changed-files@27ae6b33eaed7bf87272fdeb9f1c54f9facc9d99
+        uses: step-security/changed-files@3dbe17c78367e7d60f00d78ae6781a35be47b4a1
         with:
           files_yaml: |
             code:
