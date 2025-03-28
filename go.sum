@@ -140,6 +140,8 @@ github.com/kyma-project/lifecycle-manager/api v0.0.0-20250327133519-e2c3cf3a99bb
 github.com/kyma-project/lifecycle-manager/api v0.0.0-20250327133519-e2c3cf3a99bb/go.mod h1:OPHMLeB0fYVzd6GNnbmJmJFIL45IECO4zedNAPPnnpM=
 github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328082333-26d7b0226fae h1:jCePuGaDDUAAS95L4GKEx3JY+T3hTc8KjEXOU0eBZMY=
 github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328082333-26d7b0226fae/go.mod h1:OPHMLeB0fYVzd6GNnbmJmJFIL45IECO4zedNAPPnnpM=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328110750-cb908da11ac8 h1:WNNC//J07hRB7HITmS/e3Gd3CFUQ6fKhwX+LQCqXlvY=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328110750-cb908da11ac8/go.mod h1:OPHMLeB0fYVzd6GNnbmJmJFIL45IECO4zedNAPPnnpM=
 github.com/lestrrat-go/backoff/v2 v2.0.8 h1:oNb5E5isby2kiro9AgdHLv5N5tint1AnDVVf2E2un5A=
 github.com/lestrrat-go/backoff/v2 v2.0.8/go.mod h1:rHP/q/r9aT27n24JQLa7JhSQZCKBBOiM/uP402WwN8Y=
 github.com/lestrrat-go/blackmagic v1.0.2 h1:Cg2gVSc9h7sz9NOByczrbUvLopQmXrfFx//N+AkAr5k=
