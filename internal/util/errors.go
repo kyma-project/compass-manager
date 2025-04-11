@@ -14,6 +14,4 @@ func CheckErrorType(t *testing.T, err error, errCode apperrors.ErrCode) {
 		t.Fail()
 	}
 	assert.Equal(t, appErr.Code(), errCode)
-
-	// test triggering the CI
 }
