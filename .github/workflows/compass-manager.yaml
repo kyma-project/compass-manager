@@ -83,6 +83,7 @@ jobs:
           cache-dependency-path: go.sum
           go-version-file: go.mod
       - name: Run unit tests
+        continue-on-error: false
         run: |
           set -o pipefail
           make test | tee ${{ env.unit-test-log }}
