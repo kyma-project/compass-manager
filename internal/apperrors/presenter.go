@@ -26,15 +26,15 @@ func (p *presenter) Do(ctx context.Context, err error) *gqlerror.Error {
 	}
 
 	if customErr.Code() == CodeInternal {
-		p.Logger.Errorf("Internal Server Error: %s", err.Error())
+		p.Logger.Errorf("Internalf Server Error: %s", err.Error())
 	}
 
 	return newGraphqlErrorResponse(ctx, customErr.Code(), customErr.Reason(), customErr.Component(), customErr.Error())
 }
 
-func newGraphqlErrorResponse(ctx context.Context, code ErrCode, reason ErrReason, component ErrComponent, msg string, args ...interface{}) *gqlerror.Error {
+func newGraphqlErrorResponse(ctx context.Context, code ErrCode, reason ErrReason, component ErrComponent, msg string) *gqlerror.Error {
 	return &gqlerror.Error{
-		Message: fmt.Sprintf(msg, args...),
+		Message: fmt.Sprint(msg),
 		Path:    graphql.GetFieldContext(ctx).Path(),
 		Extensions: map[string]interface{}{
 			"error_component": component,

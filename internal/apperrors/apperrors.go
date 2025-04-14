@@ -69,8 +69,12 @@ func BadGateway(format string, a ...interface{}) AppError {
 	return errorf(CodeBadGateway, Unknown, format, a...)
 }
 
-func Internal(format string, a ...interface{}) AppError {
+func Internalf(format string, a ...interface{}) AppError {
 	return errorf(CodeInternal, Unknown, format, a...)
+}
+
+func Internal(message string) AppError {
+	return appError{code: CodeInternal, message: message}
 }
 
 func External(format string, a ...interface{}) AppError {

@@ -30,5 +30,5 @@ func (t *tester) testFunction() apperrors.AppError {
 		return nil
 	}
 	t.errReturned = true
-	return apperrors.Internal("some test error")
+	return apperrors.Internalf("some test error")
 }

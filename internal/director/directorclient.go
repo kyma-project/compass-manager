@@ -69,7 +69,7 @@ func (cc *directorClient) CreateRuntime(config *gqlschema.RuntimeInput, globalAc
 	runtimeInput, err := cc.graphqlizer.RuntimeRegisterInputToGQL(directorInput)
 	if err != nil {
 		log.Infof("Failed to create graphQLized Runtime input")
-		return "", apperrors.Internal("Failed to create graphQLized Runtime input: %s", err.Error()).SetComponent(apperrors.ErrCompassDirectorClient).SetReason(apperrors.ErrDirectorClientGraphqlizer)
+		return "", apperrors.Internalf("Failed to create graphQLized Runtime input: %s", err.Error()).SetComponent(apperrors.ErrCompassDirectorClient).SetReason(apperrors.ErrDirectorClientGraphqlizer)
 	}
 
 	runtimeQuery := cc.queryProvider.createRuntimeMutation(runtimeInput)
@@ -82,12 +82,12 @@ func (cc *directorClient) CreateRuntime(config *gqlschema.RuntimeInput, globalAc
 
 	// Nil check is necessary due to GraphQL client not checking response code
 	if response.Result == nil {
-		return "", apperrors.Internal("Failed to register runtime in Director: Received nil response.").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+		return "", apperrors.Internalf("Failed to register runtime in Director: Received nil response.").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
 	}
 
 	_, err = uuid.Parse(response.Result.ID)
 	if err != nil {
-		return "", apperrors.Internal("Failed to register runtime in Director: Received ID is not in UUID format").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDInvalidFormat)
+		return "", apperrors.Internalf("Failed to register runtime in Director: Received ID is not in UUID format").SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDInvalidFormat)
 	}
 
 	log.Infof("Successfully registered Runtime %s in Director for Global Account %s", config.Name, globalAccount)
@@ -106,10 +106,10 @@ func (cc *directorClient) GetRuntime(compassID, globalAccount string) (graphql.R
 		return graphql.RuntimeExt{}, err.Append("Failed to get runtime %s from Director", compassID)
 	}
 	if response.Result == nil {
-		return graphql.RuntimeExt{}, apperrors.Internal("Failed to get runtime %s from Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+		return graphql.RuntimeExt{}, apperrors.Internalf("Failed to get runtime %s from Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
 	}
 	if response.Result.ID != compassID {
-		return graphql.RuntimeExt{}, apperrors.Internal("Failed to get runtime %s from Director: received unexpected RuntimeID", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
+		return graphql.RuntimeExt{}, apperrors.Internalf("Failed to get runtime %s from Director: received unexpected RuntimeID", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
 	}
 
 	log.Infof("Successfully got Runtime %s from Director for Global Account %s", compassID, globalAccount)
@@ -126,7 +126,7 @@ func (cc *directorClient) GetConnectionToken(compassID, globalAccount string) (g
 	}
 
 	if response.Result == nil {
-		return graphql.OneTimeTokenForRuntimeExt{}, apperrors.Internal("Failed to get OneTimeToken for Runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+		return graphql.OneTimeTokenForRuntimeExt{}, apperrors.Internalf("Failed to get OneTimeToken for Runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
 	}
 
 	log.Infof("Received OneTimeToken for Runtime %s in Director for Global Account %s", compassID, globalAccount)
@@ -148,11 +148,11 @@ func (cc *directorClient) DeleteRuntime(compassID, globalAccount string) apperro
 	}
 	// Nil check is necessary due to GraphQL client not checking response code
 	if response.Result == nil {
-		return apperrors.Internal("Failed to unregister runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
+		return apperrors.Internalf("Failed to unregister runtime %s in Director: received nil response.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorNilResponse)
 	}
 
 	if response.Result.ID != compassID {
-		return apperrors.Internal("Failed to unregister runtime %s in Director: received unexpected RuntimeID.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
+		return apperrors.Internalf("Failed to unregister runtime %s in Director: received unexpected RuntimeID.", compassID).SetComponent(apperrors.ErrCompassDirector).SetReason(apperrors.ErrDirectorRuntimeIDMismatch)
 	}
 
 	log.Infof("Successfully unregistered Runtime %s in Director for tenant %s", compassID, globalAccount)
@@ -167,7 +167,7 @@ func (cc *directorClient) getToken() apperrors.AppError {
 	}
 
 	if token.EmptyOrExpired() {
-		return apperrors.Internal("Obtained empty or expired token")
+		return apperrors.Internalf("Obtained empty or expired token")
 	}
 
 	cc.token = token
@@ -191,7 +191,7 @@ func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globa
 		if errors.As(err, &egErr) {
 			return mapDirectorErrorToProvisionerError(egErr, gracefulUnregistration).Append("Failed to execute GraphQL request to Director")
 		}
-		return apperrors.Internal("Failed to execute GraphQL request to Director: %v", err)
+		return apperrors.Internalf("Failed to execute GraphQL request to Director: %v", err)
 	}
 
 	return nil
@@ -200,11 +200,11 @@ func (cc *directorClient) executeDirectorGraphQLCall(directorQuery string, globa
 func mapDirectorErrorToProvisionerError(egErr gcli.ExtendedError, gracefulUnregistration bool) apperrors.AppError {
 	errorCodeValue, present := egErr.Extensions()["error_code"]
 	if !present {
-		return apperrors.Internal("Failed to read the error code from the error response. Original error: %v", egErr)
+		return apperrors.Internalf("Failed to read the error code from the error response. Original error: %v", egErr)
 	}
 	errorCode, ok := errorCodeValue.(float64)
 	if !ok {
-		return apperrors.Internal("Failed to cast the error code from the error response. Original error: %v", egErr)
+		return apperrors.Internalf("Failed to cast the error code from the error response. Original error: %v", egErr)
 	}
 
 	var err apperrors.AppError
@@ -227,7 +227,7 @@ func mapDirectorErrorToProvisionerError(egErr gcli.ExtendedError, gracefulUnregi
 	case directorApperrors.TenantRequired, directorApperrors.TenantNotFound:
 		err = apperrors.InvalidGlobalAccount(egErr.Error())
 	default:
-		err = apperrors.Internal("Did not recognize the error code from the error response. Original error: %v", egErr)
+		err = apperrors.Internalf("Did not recognize the error code from the error response. Original error: %v", egErr)
 	}
 
 	return err.SetComponent(apperrors.ErrCompassDirector).SetReason(reason)

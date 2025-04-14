@@ -145,7 +145,7 @@ func TestDirectorClient_RuntimeRegistering(t *testing.T) {
 	t.Run("Should not register Runtime and return error when the client fails to get an access token for Director", func(t *testing.T) {
 		// given
 		mockedOAuthClient := &oauthmocks.Client{}
-		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internal("Failed token error"))
+		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internalf("Failed token error"))
 
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
@@ -328,7 +328,7 @@ func TestDirectorClient_RuntimeUnregistering(t *testing.T) {
 	t.Run("Should not unregister Runtime and return error when the client fails to get an access token for Director", func(t *testing.T) {
 		// given
 		mockedOAuthClient := &oauthmocks.Client{}
-		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internal("Failed token error"))
+		mockedOAuthClient.On("GetAuthorizationToken").Return(oauth.Token{}, apperrors.Internalf("Failed token error"))
 
 		configClient := NewDirectorClient(nil, mockedOAuthClient)
 
@@ -691,14 +691,14 @@ func TestDirectorClient_MapDirectorErrors(t *testing.T) {
 		provisionerErrorMessage string
 	}{
 		{
-			"Should map Director Internal Error to Provisioner Internal Error",
+			"Should map Director Internalf Error to Provisioner Internalf Error",
 			map[string]interface{}{"error_code": float64(directorApperrors.InternalError)},
 			apperrors.CodeInternal,
 			apperrors.Unknown,
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, graphql: some error",
 		},
 		{
-			"Should map Director Unknown Error to Provisioner Internal Error",
+			"Should map Director Unknown Error to Provisioner Internalf Error",
 			map[string]interface{}{"error_code": float64(directorApperrors.UnknownError)},
 			apperrors.CodeInternal,
 			apperrors.Unknown,
@@ -761,21 +761,21 @@ func TestDirectorClient_MapDirectorErrors(t *testing.T) {
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, graphql: some error",
 		},
 		{
-			"Should return Internal Error if failed to find error code in the Director Error",
+			"Should return Internalf Error if failed to find error code in the Director Error",
 			map[string]interface{}{"something_else": float64(directorApperrors.InvalidOperation)},
 			apperrors.CodeInternal,
 			apperrors.Unknown,
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, Failed to read the error code from the error response. Original error: graphql: some error",
 		},
 		{
-			"Should return Internal Error if failed to cast error code from the Director Error",
+			"Should return Internalf Error if failed to cast error code from the Director Error",
 			map[string]interface{}{"error_code": "not a float64"},
 			apperrors.CodeInternal,
 			apperrors.Unknown,
 			"Failed to register runtime in Director. Request failed, Failed to execute GraphQL request to Director, Failed to cast the error code from the error response. Original error: graphql: some error",
 		},
 		{
-			"Should return Internal Error if failed to recognize the Director Error code",
+			"Should return Internalf Error if failed to recognize the Director Error code",
 			map[string]interface{}{"error_code": float64(123)},
 			apperrors.CodeInternal,
 			apperrors.Unknown,

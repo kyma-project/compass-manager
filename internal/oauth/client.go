@@ -49,7 +49,7 @@ func (c *oauthClient) getAuthorizationToken(credentials credentials) (Token, app
 	request, err := http.NewRequest(http.MethodPost, credentials.tokensEndpoint, strings.NewReader(form.Encode()))
 	if err != nil {
 		log.Errorf("Failed to create authorisation token request")
-		return Token{}, apperrors.Internal("Failed to create authorisation token request: %s", err.Error())
+		return Token{}, apperrors.Internalf("Failed to create authorisation token request: %s", err.Error())
 	}
 
 	now := time.Now().Unix()
@@ -59,7 +59,7 @@ func (c *oauthClient) getAuthorizationToken(credentials credentials) (Token, app
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return Token{}, apperrors.Internal("Failed to execute http call: %s", err.Error())
+		return Token{}, apperrors.Internalf("Failed to execute http call: %s", err.Error())
 	}
 	defer util.Close(response.Body)
 
@@ -73,14 +73,14 @@ func (c *oauthClient) getAuthorizationToken(credentials credentials) (Token, app
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		return Token{}, apperrors.Internal("Failed to read token response body from '%s': %s", credentials.tokensEndpoint, err.Error())
+		return Token{}, apperrors.Internalf("Failed to read token response body from '%s': %s", credentials.tokensEndpoint, err.Error())
 	}
 
 	tokenResponse := Token{}
 
 	err = json.Unmarshal(body, &tokenResponse)
 	if err != nil {
-		return Token{}, apperrors.Internal("failed to unmarshal token response body: %s", err.Error())
+		return Token{}, apperrors.Internalf("failed to unmarshal token response body: %s", err.Error())
 	}
 
 	log.Infof("Successfully unmarshal response oauth token for accessing Director")
