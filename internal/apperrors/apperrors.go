@@ -65,32 +65,36 @@ func errorf(code ErrCode, cause CauseCode, format string, a ...interface{}) AppE
 	return appError{code: code, internalCode: cause, message: fmt.Sprintf(format, a...)}
 }
 
-func BadGateway(format string, a ...interface{}) AppError {
-	return errorf(CodeBadGateway, Unknown, format, a...)
+func BadGateway(message string) AppError {
+	return appError{code: CodeBadGateway, internalCode: Unknown, message: message}
 }
 
-func Internal(format string, a ...interface{}) AppError {
-	return errorf(CodeInternal, Unknown, format, a...)
+func Internalf(formatted string, a ...interface{}) AppError {
+	return errorf(CodeInternal, Unknown, formatted, a...)
 }
 
-func External(format string, a ...interface{}) AppError {
-	return errorf(CodeExternal, Unknown, format, a...)
+func Internal(message string) AppError {
+	return appError{code: CodeInternal, internalCode: Unknown, message: message}
 }
 
-func Forbidden(format string, a ...interface{}) AppError {
-	return errorf(CodeForbidden, Unknown, format, a...)
+func External(formatted string, a ...interface{}) AppError {
+	return errorf(CodeExternal, Unknown, formatted, a...)
 }
 
-func BadRequest(format string, a ...interface{}) AppError {
-	return errorf(CodeBadRequest, Unknown, format, a...)
+func Forbidden(formatted string, a ...interface{}) AppError {
+	return errorf(CodeForbidden, Unknown, formatted, a...)
 }
 
-func InvalidGlobalAccount(format string, a ...interface{}) AppError {
-	return errorf(CodeBadRequest, GlobalAccountNotFound, format, a...)
+func BadRequest(message string) AppError {
+	return appError{code: CodeBadRequest, internalCode: Unknown, message: message}
 }
 
-func NotFound(format string, a ...interface{}) AppError {
-	return errorf(CodeNotFound, RuntimeNotFound, format, a...)
+func NotFound(message string) AppError {
+	return appError{code: CodeNotFound, internalCode: RuntimeNotFound, message: message}
+}
+
+func InvalidGlobalAccount(message string) AppError {
+	return appError{code: CodeBadRequest, internalCode: GlobalAccountNotFound, message: message}
 }
 
 func (ae appError) Append(additionalFormat string, a ...interface{}) AppError {
