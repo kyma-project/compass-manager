@@ -36,43 +36,43 @@ env:
   COVERFILE: true
 
 jobs:
-  setup:
-    permissions:
-      contents: read
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-      code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-      - id: tag
-        if: github.event_name == 'push' && github.ref_type == 'tag'
-        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-      - name: Detect files
-        id: detect-files
-        continue-on-error: true
-        uses: step-security/changed-files@52f756978519f427e38a119d8c4f0c8f549d1402
-        with:
-          files_yaml: |
-            code:
-              - ./**.go
-              - ./go.mod
-              - ./go.sum
-      - name: Fallback values
-        id: fallback-values
-        if: steps.detect-files.outcome != 'success'
-        run: |
-          echo "code_any_changed=true" >> $GITHUB_OUTPUT
+#  setup:
+#    permissions:
+#      contents: read
+#    runs-on: ubuntu-latest
+#    outputs:
+#      tag: ${{ steps.tag.outputs.tag }}
+#      code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#        with:
+#          ref: ${{ github.event.pull_request.head.ref }}
+#          repository: ${{ github.event.pull_request.head.repo.full_name }}
+#      - id: tag
+#        if: github.event_name == 'push' && github.ref_type == 'tag'
+#        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+#      - name: Detect files
+#        id: detect-files
+#        continue-on-error: true
+#        uses: step-security/changed-files@52f756978519f427e38a119d8c4f0c8f549d1402
+#        with:
+#          files_yaml: |
+#            code:
+#              - ./**.go
+#              - ./go.mod
+#              - ./go.sum
+#      - name: Fallback values
+#        id: fallback-values
+#        if: steps.detect-files.outcome != 'success'
+#        run: |
+#          echo "code_any_changed=true" >> $GITHUB_OUTPUT
 
   unit-tests:
     permissions:
       contents: read
-    needs: setup
-    if: needs.setup.outputs.code == 'true'
+#    needs: setup
+#    if: needs.setup.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
