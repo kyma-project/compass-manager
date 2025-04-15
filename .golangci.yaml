@@ -3,7 +3,9 @@ run:
   timeout: 10m
 
 output:
-  formats: tab
+  formats:
+    - tab
+
 
 
 # This file contains only configs which differ from defaults.
