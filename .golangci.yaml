@@ -9,11 +9,15 @@ output:
     tab:
       path: stdout
 
+formatters:
+  enable:
+    - gci # controls golang package import order and makes it always deterministic
+    - gosimple # specializes in simplifying a code
+
 linters:
   enable:
     ## enabled by default
     - errcheck # checking for unchecked errors, these unchecked errors can be critical bugs in some cases
-    - gosimple # specializes in simplifying a code
     - govet # reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
     - ineffassign # detects when assignments to existing variables are not used
     - staticcheck # is a go vet on steroids, applying a ton of static analysis checks
@@ -25,7 +29,6 @@ linters:
     - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
     - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
     - copyloopvar # checks for pointers to enclosing loop variables
-    - gci # controls golang package import order and makes it always deterministic
     - gochecknoglobals # checks that no global variables exist
     - goconst # finds repeated strings that could be replaced by a constant
     - gocritic # provides diagnostics that check for bugs, performance and style issues
