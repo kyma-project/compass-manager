@@ -134,7 +134,12 @@ func (c *Client) runWithJSON(ctx context.Context, req *Request, resp interface{}
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			c.logf("error closing body: %v", err)
+		}
+	}(res.Body)
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, res.Body); err != nil {
 		return errors.Wrap(err, "reading body")
@@ -205,7 +210,12 @@ func (c *Client) runWithPostFields(ctx context.Context, req *Request, resp inter
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			c.logf("error closing body: %v", err)
+		}
+	}(res.Body)
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, res.Body); err != nil {
 		return errors.Wrap(err, "reading body")
@@ -258,22 +268,22 @@ type ExtendedError interface {
 	Extensions() map[string]interface{}
 }
 
-type graphErr struct {
+type graphError struct {
 	Message         string                 `json:"message,omitempty"`
 	ErrorExtensions map[string]interface{} `json:"extensions,omitempty"`
 }
 
-func (e graphErr) Error() string {
+func (e graphError) Error() string {
 	return "graphql: " + e.Message
 }
 
-func (e graphErr) Extensions() map[string]interface{} {
+func (e graphError) Extensions() map[string]interface{} {
 	return e.ErrorExtensions
 }
 
 type graphResponse struct {
 	Data   interface{}
-	Errors []graphErr
+	Errors []graphError
 }
 
 // Request is a GraphQL request.
