@@ -130,8 +130,8 @@ github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-0567
 github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f/go.mod h1:eRgJGoMNtO7yN+tPGPVC7+85dXcZ6tN5z/qrgm3EnZI=
 github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb1f6bc126 h1:mqh55X5e5KMAfidVZcCpeZ4NWED4cxb269pCjRVAYJU=
 github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb1f6bc126/go.mod h1:+P5o9jqxaugVfkJWMYFS37tp3+8B7PX9PHSC7nhnlVc=
-github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328082333-26d7b0226fae h1:jCePuGaDDUAAS95L4GKEx3JY+T3hTc8KjEXOU0eBZMY=
-github.com/kyma-project/lifecycle-manager/api v0.0.0-20250328082333-26d7b0226fae/go.mod h1:OPHMLeB0fYVzd6GNnbmJmJFIL45IECO4zedNAPPnnpM=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370 h1:FHQvlODr7pYYJcYK93lS/EcigKLwVsZ5TP1O11/lIbI=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370/go.mod h1:S023A+Htyp9zRDC+JXhu7qXjebO6jYzwQf4dlyTsZbk=
 github.com/lestrrat-go/backoff/v2 v2.0.8 h1:oNb5E5isby2kiro9AgdHLv5N5tint1AnDVVf2E2un5A=
 github.com/lestrrat-go/backoff/v2 v2.0.8/go.mod h1:rHP/q/r9aT27n24JQLa7JhSQZCKBBOiM/uP402WwN8Y=
 github.com/lestrrat-go/blackmagic v1.0.2 h1:Cg2gVSc9h7sz9NOByczrbUvLopQmXrfFx//N+AkAr5k=
@@ -245,8 +245,6 @@ github.com/tidwall/sjson v1.2.5/go.mod h1:Fvgq9kS/6ociJEDnK0Fk1cpYF4FIW6ZF7LAe+6
 github.com/urfave/cli/v2 v2.1.1/go.mod h1:SE9GqnLQmjVa0iPEY0f1w3ygNIYcIJ0OKPMoW2caLfQ=
 github.com/vektah/dataloaden v0.2.1-0.20190515034641-a19b9a6e7c9e/go.mod h1:/HUdMve7rvxZma+2ZELQeNh88+003LL7Pf/CZ089j8U=
 github.com/vektah/gqlparser/v2 v2.0.1/go.mod h1:SyUiHgLATUR8BiYURfTirrTcGpcE+4XkV2se04Px1Ms=
-github.com/vektah/gqlparser/v2 v2.5.23 h1:PurJ9wpgEVB7tty1seRUwkIDa/QH5RzkzraiKIjKLfA=
-github.com/vektah/gqlparser/v2 v2.5.23/go.mod h1:D1/VCZtV3LPnQrcPBeR/q5jkSQIPti0uYCP/RI0gIeo=
 github.com/vektah/gqlparser/v2 v2.5.24 h1:Dnip1ilW+nnXmaXL6s6f1w4IaXpAFDLLE1f9SqMegpI=
 github.com/vektah/gqlparser/v2 v2.5.24/go.mod h1:D1/VCZtV3LPnQrcPBeR/q5jkSQIPti0uYCP/RI0gIeo=
 github.com/vrischmann/envconfig v1.4.1 h1:fucz2HsoAkJCLgIngWdWqLNxNjdWD14zfrLF6EQPdY4=
