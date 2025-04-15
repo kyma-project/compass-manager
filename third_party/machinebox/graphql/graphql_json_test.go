@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,14 +19,17 @@ func TestDoJSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		is.Equal(r.Method, http.MethodPost)
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		is.NoErr(err)
 		is.Equal(string(b), `{"query":"query {}","variables":null}`+"\n")
-		io.WriteString(w, `{
+		_, err = io.WriteString(w, `{
 			"data": {
 				"something": "yes"
 			}
 		}`)
+		if err != nil {
+			is.NoErr(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -49,11 +51,14 @@ func TestDoJSONServerError(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		is.Equal(r.Method, http.MethodPost)
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		is.NoErr(err)
 		is.Equal(string(b), `{"query":"query {}","variables":null}`+"\n")
 		w.WriteHeader(http.StatusInternalServerError)
-		io.WriteString(w, `Internal Server Error`)
+		_, err = io.WriteString(w, `Internal Server Error`)
+		if err != nil {
+			is.NoErr(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -74,15 +79,18 @@ func TestDoJSONBadRequestErr(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		is.Equal(r.Method, http.MethodPost)
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		is.NoErr(err)
 		is.Equal(string(b), `{"query":"query {}","variables":null}`+"\n")
 		w.WriteHeader(http.StatusBadRequest)
-		io.WriteString(w, `{
-			"errors": [{
-				"message": "miscellaneous message as to why the the request was bad"
-			}]
-		}`)
+		_, err = io.WriteString(w, `{
+					"errors": [{
+						"message": "miscellaneous message as to why the the request was bad"
+					}]
+				}`)
+		if err != nil {
+			is.NoErr(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -103,11 +111,11 @@ func TestDoJSONErrWithExtensions(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
 		is.Equal(r.Method, http.MethodPost)
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		is.NoErr(err)
 		is.Equal(string(b), `{"query":"query {}","variables":null}`+"\n")
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, `{
+		_, err = io.WriteString(w, `{
 			"errors": [{
 				"message": "miscellaneous message as to why the the request was bad",
 				"extensions": {
@@ -115,6 +123,9 @@ func TestDoJSONErrWithExtensions(t *testing.T) {
 				}
 			}]
 		}`)
+		if err != nil {
+			is.NoErr(err)
+		}
 	}))
 	defer srv.Close()
 
@@ -127,7 +138,7 @@ func TestDoJSONErrWithExtensions(t *testing.T) {
 	err := client.Run(ctx, &Request{q: "query {}"}, &responseData)
 	is.Equal(calls, 1) // calls
 	is.Equal(err.Error(), "graphql: miscellaneous message as to why the the request was bad")
-	is.Equal(err.(ExtendedError).Extensions()["code"], "400")
+	is.Equal(err.(ExtendedError).Extensions()["code"], "400") //nolint: errorlint
 }
 
 func TestQueryJSON(t *testing.T) {
@@ -136,7 +147,7 @@ func TestQueryJSON(t *testing.T) {
 	var calls int
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		is.NoErr(err)
 		is.Equal(string(b), `{"query":"query {}","variables":{"username":"matryer"}}`+"\n")
 		_, err = io.WriteString(w, `{"data":{"value":"some data"}}`)
@@ -198,11 +209,14 @@ func TestHeader(t *testing.T) {
 func TestHideAuthInJSON(t *testing.T) {
 	is := is.New(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, `{
-			"data": {
-				"something": "yes"
-			}
-		}`)
+		_, err := io.WriteString(w, `{
+					"data": {
+						"something": "yes"
+					}
+				}`)
+		if err != nil {
+			is.NoErr(err)
+		}
 	}))
 	defer srv.Close()
 
