@@ -1,12 +1,12 @@
 module github.com/kyma-project/compass-manager
 
-go 1.24.1
+go 1.24.2
 
 require (
 	github.com/99designs/gqlgen v0.17.43
 	github.com/google/uuid v1.6.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f
-	github.com/kyma-project/lifecycle-manager/api 3922bac13370
+	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370
 	github.com/matryer/is v1.4.1
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -57,7 +57,6 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
