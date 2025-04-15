@@ -44,6 +44,7 @@ permissions:
 env:
   unit-test-log: unit-test.log
   COVERFILE: true
+  TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
 
 jobs:
 #  setup:
