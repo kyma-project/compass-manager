@@ -4,7 +4,8 @@ run:
 
 output:
   formats:
-    - tab
+    tab:
+      path: stdout
 
 
 
