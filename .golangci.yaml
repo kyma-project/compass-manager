@@ -87,23 +87,20 @@ linters:
           # Whether to be strict about shadowing; can be noisy.
           # Default: false
           strict: false
-
-
+  exclusions:
+    rules:
+      - source: "(noinspection|TODO)"
+        linters:
+          - godot
+      - source: "//noinspection"
+        linters:
+          - gocritic
+      - path: "_test\\.go"
+        linters:
+          - goconst
 
 issues:
   # Maximum count of issues with the same text.
   # Set to 0 to disable.
   # Default: 3
   max-same-issues: 5
-
-exclusions:
-  rules:
-    - source: "(noinspection|TODO)"
-      linters:
-        - godot
-    - source: "//noinspection"
-      linters:
-        -  gocritic
-    - path: "_test\\.go"
-      linters:
-        - goconst
