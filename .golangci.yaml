@@ -3,14 +3,12 @@ run:
   timeout: 10m
 
 output:
-  formats: 
-  - format: tab
-  sort-results: true
+  formats: tab
 
 
 # This file contains only configs which differ from defaults.
 # All possible options can be found here https://github.com/golangci/golangci-lint/blob/master/.golangci.reference.yml
-linters-settings:
+settings:
   gocritic:
     # Settings passed to gocritic.
     # The settings key is the name of a supported gocritic checker.
@@ -97,11 +95,14 @@ issues:
   # Default: 3
   max-same-issues: 5
 
-  exclude-rules:
+exclusions:
+  rules:
     - source: "(noinspection|TODO)"
-      linters: [ godot ]
+      linters:
+        - godot
     - source: "//noinspection"
-      linters: [ gocritic ]
+      linters:
+        -  gocritic
     - path: "_test\\.go"
       linters:
         - goconst
