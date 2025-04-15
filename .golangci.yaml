@@ -12,7 +12,6 @@ output:
 formatters:
   enable:
     - gci # controls golang package import order and makes it always deterministic
-    - gosimple # specializes in simplifying a code
 
 linters:
   enable:
