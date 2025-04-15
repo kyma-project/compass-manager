@@ -31,6 +31,11 @@ on:
       - "**.md"
     branches:
       - main
+    workflow_dispatch:
+      environment:
+        description: 'Environment to run tests against'
+        type: environment
+        required: true
 
 permissions:
   id-token: write # This is required for requesting the JWT token
