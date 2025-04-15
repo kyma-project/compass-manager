@@ -57,7 +57,6 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -111,7 +110,7 @@ require (
 replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.4
-	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v2 v3.0.0
+	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.0
 	golang.org/x/net => golang.org/x/net v0.39.0
 	google.golang.org/protobuf => google.golang.org/protobuf v1.36.6
 	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
