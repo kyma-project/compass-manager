@@ -118,7 +118,6 @@ jobs:
         with:
           coverage-artifact-name: "code-coverage"
           coverage-file-name: "coverage.txt"
-          github-baseline-workflow-ref: ${{ github.event.pull_request.head.ref }}
 
   build-image:
     needs: setup
