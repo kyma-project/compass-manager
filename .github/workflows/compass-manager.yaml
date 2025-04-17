@@ -18,9 +18,9 @@ on:
       environment:
         description: 'Environment to run tests against'
         type: environment
-        required: true
+        required: false
 
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
     paths-ignore:
       - .reuse
@@ -29,13 +29,6 @@ on:
       - LICENSE
       - .gitignore
       - "**.md"
-    branches:
-      - main
-    workflow_dispatch:
-      environment:
-        description: 'Environment to run tests against'
-        type: environment
-        required: true
 
 permissions:
   id-token: write # This is required for requesting the JWT token
@@ -44,46 +37,45 @@ permissions:
 env:
   unit-test-log: unit-test.log
   COVERFILE: true
-  TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
 
 jobs:
-#  setup:
-#    permissions:
-#      contents: read
-#    runs-on: ubuntu-latest
-#    outputs:
-#      tag: ${{ steps.tag.outputs.tag }}
-#      code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v4
-#        with:
-#          ref: ${{ github.event.pull_request.head.ref }}
-#          repository: ${{ github.event.pull_request.head.repo.full_name }}
-#      - id: tag
-#        if: github.event_name == 'push' && github.ref_type == 'tag'
-#        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-#      - name: Detect files
-#        id: detect-files
-#        continue-on-error: true
-#        uses: step-security/changed-files@52f756978519f427e38a119d8c4f0c8f549d1402
-#        with:
-#          files_yaml: |
-#            code:
-#              - ./**.go
-#              - ./go.mod
-#              - ./go.sum
-#      - name: Fallback values
-#        id: fallback-values
-#        if: steps.detect-files.outcome != 'success'
-#        run: |
-#          echo "code_any_changed=true" >> $GITHUB_OUTPUT
+  setup:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+      code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - id: tag
+        if: github.event_name == 'push' && github.ref_type == 'tag'
+        run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+      - name: Detect files
+        id: detect-files
+        continue-on-error: true
+        uses: step-security/changed-files@52f756978519f427e38a119d8c4f0c8f549d1402
+        with:
+          files_yaml: |
+            code:
+              - ./**.go
+              - ./go.mod
+              - ./go.sum
+      - name: Fallback values
+        id: fallback-values
+        if: steps.detect-files.outcome != 'success'
+        run: |
+          echo "code_any_changed=true" >> $GITHUB_OUTPUT
 
   unit-tests:
     permissions:
       contents: read
-#    needs: setup
-#    if: needs.setup.outputs.code == 'true'
+    needs: setup
+    if: needs.setup.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -129,42 +121,42 @@ jobs:
           coverage-file-name: "coverage.txt"
           github-baseline-workflow-ref: ${{ github.event.pull_request.head.ref }}
 
-#  build-image:
-#    needs: setup
-#    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
-#    with:
-#      name: compass-manager
-#      dockerfile: Dockerfile
-#      context: .
-#      tags: ${{ needs.setup.outputs.tag }}
-#
-#  summary:
-#    runs-on: ubuntu-latest
-#    needs: [build-image, unit-tests]
-#    if: success() || failure()
-#    steps:
-#      - name: "Download test log"
-#        uses: actions/download-artifact@v4
-#        continue-on-error: true
-#        with:
-#          name: ${{ env.unit-test-log }}
-#      - name: "Generate summary"
-#        run: |
-#          {
-#            echo '# Compass Manager'
-#            # if test log exists
-#            if [ -f ${{ env.unit-test-log }} ]; then
-#              echo '## Unit Tests'
-#              printf '\n<details>\n<summary>click to expand logs</summary>\n'
-#              printf '\n```\n'
-#              cat ${{ env.unit-test-log }}
-#              printf '\n```\n</details>\n'
-#            fi
-#            # if build-image was successful
-#            if [ "${{ needs.build-image.result }}" == "success" ]; then
-#              printf '\n\n## Image\n'
-#              printf '\n```json\n'
-#              echo '${{ needs.build-image.outputs.images }}' | jq
-#              printf '\n```\n'
-#            fi
-#          } >> $GITHUB_STEP_SUMMARY
+  build-image:
+    needs: setup
+    uses: kyma-project/test-infra/.github/workflows/image-builder.yml@main # Usage: kyma-project/test-infra/.github/workflows/image-builder.yml@main
+    with:
+      name: compass-manager
+      dockerfile: Dockerfile
+      context: .
+      tags: ${{ needs.setup.outputs.tag }}
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [build-image, unit-tests]
+    if: success() || failure()
+    steps:
+      - name: "Download test log"
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ${{ env.unit-test-log }}
+      - name: "Generate summary"
+        run: |
+          {
+            echo '# Compass Manager'
+            # if test log exists
+            if [ -f ${{ env.unit-test-log }} ]; then
+              echo '## Unit Tests'
+              printf '\n<details>\n<summary>click to expand logs</summary>\n'
+              printf '\n```\n'
+              cat ${{ env.unit-test-log }}
+              printf '\n```\n</details>\n'
+            fi
+            # if build-image was successful
+            if [ "${{ needs.build-image.result }}" == "success" ]; then
+              printf '\n\n## Image\n'
+              printf '\n```json\n'
+              echo '${{ needs.build-image.outputs.images }}' | jq
+              printf '\n```\n'
+            fi
+          } >> $GITHUB_STEP_SUMMARY
