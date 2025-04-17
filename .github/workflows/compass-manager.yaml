@@ -37,6 +37,7 @@ permissions:
 env:
   unit-test-log: unit-test.log
   COVERFILE: true
+  GITHUB_BASELINE_WORKFLOW_REF: "Compass Manager"
 
 jobs:
   setup:
@@ -75,7 +76,7 @@ jobs:
     permissions:
       contents: read
     needs: setup
-    #    if: needs.setup.outputs.code == 'true'
+    if: needs.setup.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
