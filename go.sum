@@ -132,6 +132,8 @@ github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb
 github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb1f6bc126/go.mod h1:+P5o9jqxaugVfkJWMYFS37tp3+8B7PX9PHSC7nhnlVc=
 github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370 h1:FHQvlODr7pYYJcYK93lS/EcigKLwVsZ5TP1O11/lIbI=
 github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370/go.mod h1:S023A+Htyp9zRDC+JXhu7qXjebO6jYzwQf4dlyTsZbk=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250417151826-fcb8cc369698 h1:FZSZ3WMILkEuZDryjYYlHtt5MPB1jojASiIuptcZ12U=
+github.com/kyma-project/lifecycle-manager/api v0.0.0-20250417151826-fcb8cc369698/go.mod h1:hYT3C1lFQ9r22WayJhp8TaCTgwpDbvVJWmDwiRckTTA=
 github.com/lestrrat-go/backoff/v2 v2.0.8 h1:oNb5E5isby2kiro9AgdHLv5N5tint1AnDVVf2E2un5A=
 github.com/lestrrat-go/backoff/v2 v2.0.8/go.mod h1:rHP/q/r9aT27n24JQLa7JhSQZCKBBOiM/uP402WwN8Y=
 github.com/lestrrat-go/blackmagic v1.0.2 h1:Cg2gVSc9h7sz9NOByczrbUvLopQmXrfFx//N+AkAr5k=
@@ -287,6 +289,8 @@ golang.org/x/net v0.39.0 h1:ZCu7HMWDxpXpaiKdhzIfaltL9Lp31x/3fCP11bc6/fY=
 golang.org/x/net v0.39.0/go.mod h1:X7NRbYVEA+ewNkCNyJ513WmMdQ3BineSwVtN2zD/d+E=
 golang.org/x/oauth2 v0.28.0 h1:CrgCKl8PPAVtLnU3c+EDw6x11699EWlsDeWNWKdIOkc=
 golang.org/x/oauth2 v0.28.0/go.mod h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=
+golang.org/x/oauth2 v0.29.0 h1:WdYw2tdTK1S8olAzWHdgeqfy+Mtm9XNhv/xJsY65d98=
+golang.org/x/oauth2 v0.29.0/go.mod h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

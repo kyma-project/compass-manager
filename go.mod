@@ -6,7 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.43
 	github.com/google/uuid v1.6.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f
-	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370
+	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250417151826-fcb8cc369698
 	github.com/matryer/is v1.4.1
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -84,8 +84,8 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
-	golang.org/x/oauth2 v0.28.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/oauth2 v0.29.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/term v0.31.0 // indirect
