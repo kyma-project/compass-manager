@@ -1,6 +1,11 @@
 name: Compass Manager
 
 on:
+  workflow_dispatch:
+    environment:
+      description: 'Environment to run tests against'
+      type: environment
+      required: false
   push:
     branches:
       - main
@@ -31,6 +36,8 @@ permissions:
 
 env:
   unit-test-log: unit-test.log
+  COVERFILE: true
+  GITHUB_BASELINE_WORKFLOW_REF: "Compass Manager"
 
 jobs:
   setup:
@@ -69,7 +76,7 @@ jobs:
     permissions:
       contents: read
     needs: setup
-    if: needs.setup.outputs.code == 'true'
+    #if: needs.setup.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -92,6 +99,27 @@ jobs:
         with:
           name: ${{ env.unit-test-log }}
           path: ${{ env.unit-test-log }}
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: "code-coverage"
+          path: "coverage.txt"
+
+  code_coverage:
+    name: "Code coverage report"
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+    steps:
+      - uses: fgrosse/go-coverage-report@c3951d5d738d8cfe2b24d515f5b7d326c43341e0
+        with:
+          coverage-artifact-name: "code-coverage"
+          coverage-file-name: "coverage.txt"
 
   build-image:
     needs: setup
