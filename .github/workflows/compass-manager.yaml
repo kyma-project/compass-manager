@@ -3,7 +3,7 @@ name: Compass Manager
 on:
   workflow_dispatch:
     environment:
-      description: 'Environment to run tests against'
+      description: "Environment to run tests against"
       type: environment
       required: false
   push:
@@ -47,6 +47,7 @@ jobs:
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
       code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
+      latest: ${{ steps.latest.outputs.latest || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -56,6 +57,9 @@ jobs:
       - id: tag
         if: github.event_name == 'push' && github.ref_type == 'tag'
         run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+      - id: latest
+        if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name == 'push'
+        run: echo "latest=latest" >> $GITHUB_OUTPUT
       - name: Detect files
         id: detect-files
         continue-on-error: true
@@ -128,7 +132,9 @@ jobs:
       name: compass-manager
       dockerfile: Dockerfile
       context: .
-      tags: ${{ needs.setup.outputs.tag }}
+      tags: |
+        ${{ needs.setup.outputs.tag }}
+        ${{ needs.setup.outputs.latest }}
 
   summary:
     runs-on: ubuntu-latest

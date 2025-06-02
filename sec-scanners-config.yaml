@@ -1,12 +1,12 @@
 module-name: compass-manager
 kind: kcp
 bdba:
-  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:v20250317-f19051d9
+  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:latest
 mend:
   language: golang-mod
   exclude:
     - "**/*_test.go"
 checkmarx-one:
-    preset: go-default
-    exclude:
-        - '**/*_test.go'
+  preset: go-default
+  exclude:
+    - "**/*_test.go"
