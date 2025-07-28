@@ -3,7 +3,7 @@ module github.com/kyma-project/compass-manager
 go 1.24.2
 
 require (
-	github.com/99designs/gqlgen v0.17.43
+	github.com/99designs/gqlgen v0.17.78
 	github.com/google/uuid v1.6.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f
 	github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370
@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
-	github.com/vektah/gqlparser/v2 v2.5.27
+	github.com/vektah/gqlparser/v2 v2.5.30
 	github.com/vrischmann/envconfig v1.4.1
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
@@ -67,6 +67,7 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/sosodev/duration v1.3.1 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -106,7 +107,7 @@ require (
 )
 
 replace (
-	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
+	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.17.78
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.5
 	golang.org/x/net => golang.org/x/net v0.42.0
