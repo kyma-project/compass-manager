@@ -1,9 +1,11 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/compass-manager)](https://api.reuse.software/info/github.com/kyma-project/compass-manager)
-
+[![Coverage Status](https://coveralls.io/repos/github/kyma-project/compass-manager/badge.svg?branch=main)](https://coveralls.io/github/kyma-project/compass-manager?branch=main)
+[![tests](https://badgen.net/github/checks/kyma-project/compass-manager/main/unit-tests)](https://github.com/kyma-project/compass-manager/actions/workflows/compass-manager.yaml)
+[![latest release](https://badgen.net/github/release/kyma-project/compass-manager)](https://github.com/kyma-project/compass-manager/releases/latest)
 # Compass Manager
 
 ## Overview
-Compass Manager **will be** a new Control Plane component. Build using [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) framework. 
+Compass Manager **will be** a new Control Plane component. Build using [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) framework.
 
 It's main responsibilities **will be**:
 - registering Kyma runtimes in the Compass Director
@@ -44,7 +46,7 @@ make build
 make docker-build
 ```
 
-5. Push the image to the external DockerHub registry. 
+5. Push the image to the external DockerHub registry.
 
 ```bash
 make docker-push
