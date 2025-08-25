@@ -1,7 +1,7 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/compass-manager)](https://api.reuse.software/info/github.com/kyma-project/compass-manager)
-[![Coverage Status](https://coveralls.io/repos/github/kyma-project/compass-manager/badge.svg?branch=main)](https://coveralls.io/github/kyma-project/compass-manager?branch=main)
 [![tests](https://badgen.net/github/checks/kyma-project/compass-manager/main/unit-tests)](https://github.com/kyma-project/compass-manager/actions/workflows/compass-manager.yaml)
 [![latest release](https://badgen.net/github/release/kyma-project/compass-manager)](https://github.com/kyma-project/compass-manager/releases/latest)
+[![Coverage Status](https://coveralls.io/repos/github/kyma-project/compass-manager/badge.svg?branch=main)](https://coveralls.io/github/kyma-project/compass-manager?branch=main)
 # Compass Manager
 
 ## Overview
