@@ -97,6 +97,12 @@ jobs:
         run: |
           set -o pipefail
           make test | tee ${{ env.unit-test-log }}
+      - name: coveralls github action
+        uses: coverallsapp/github-action@v2.3.6
+        with:
+          format: golang
+          file: ./coverage.txt
+          fail-on-error: false
       - name: Upload test logs artifact
         uses: actions/upload-artifact@v4
         if: success() || failure()
