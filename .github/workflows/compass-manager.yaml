@@ -97,11 +97,34 @@ jobs:
         run: |
           set -o pipefail
           make test | tee ${{ env.unit-test-log }}
+      - name: filter out coverage
+        run: |
+          #!/bin/bash
+
+          filters=(
+              "github.com/kyma-project/compass-manager/api"
+              "mock"
+              "test"
+          )
+
+          input="coverage.txt"
+          output="coverage-filtered.txt"
+
+          cp "$input" "$output"
+
+          for i in "${filters[@]}"; do
+            echo "filtering $i"
+            cp "$output" "$output~"
+            grep --invert-match $i "$output~" > "$output"
+            wc -l $output
+          done
+          rm "$output~"
+
       - name: coveralls github action
         uses: coverallsapp/github-action@v2.3.6
         with:
           format: golang
-          file: ./coverage.txt
+          file: ./coverage-filtered.txt
           fail-on-error: false
       - name: Upload test logs artifact
         uses: actions/upload-artifact@v4
