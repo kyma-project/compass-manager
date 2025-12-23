@@ -157,8 +157,8 @@ github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-0567
 github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f/go.mod h1:eRgJGoMNtO7yN+tPGPVC7+85dXcZ6tN5z/qrgm3EnZI=
 github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb1f6bc126 h1:mqh55X5e5KMAfidVZcCpeZ4NWED4cxb269pCjRVAYJU=
 github.com/kyma-incubator/compass/components/hydrator v0.0.0-20240123081221-34fb1f6bc126/go.mod h1:+P5o9jqxaugVfkJWMYFS37tp3+8B7PX9PHSC7nhnlVc=
-github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370 h1:FHQvlODr7pYYJcYK93lS/EcigKLwVsZ5TP1O11/lIbI=
-github.com/kyma-project/lifecycle-manager/api v0.0.0-20250415061517-3922bac13370/go.mod h1:S023A+Htyp9zRDC+JXhu7qXjebO6jYzwQf4dlyTsZbk=
+github.com/kyma-project/lifecycle-manager/api v1.0.0 h1:gUXHjaNMWSt2tskUHG3tijXmh4SdCs0X+SiEDC9hXGA=
+github.com/kyma-project/lifecycle-manager/api v1.0.0/go.mod h1:wbr1nMJFdpQo25JLle8oEub1SBpgClulxOPAPqjcm4c=
 github.com/lestrrat-go/backoff/v2 v2.0.8 h1:oNb5E5isby2kiro9AgdHLv5N5tint1AnDVVf2E2un5A=
 github.com/lestrrat-go/backoff/v2 v2.0.8/go.mod h1:rHP/q/r9aT27n24JQLa7JhSQZCKBBOiM/uP402WwN8Y=
 github.com/lestrrat-go/blackmagic v1.0.2 h1:Cg2gVSc9h7sz9NOByczrbUvLopQmXrfFx//N+AkAr5k=
