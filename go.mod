@@ -121,7 +121,7 @@ replace (
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.4
 	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.12
 	golang.org/x/crypto => golang.org/x/crypto v0.47.0
-	golang.org/x/net => golang.org/x/net v0.48.0
+	golang.org/x/net => golang.org/x/net v0.49.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.34.0
 	golang.org/x/text => golang.org/x/text v0.32.0
 	golang.org/x/time => golang.org/x/time v0.14.0
