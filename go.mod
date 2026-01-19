@@ -123,7 +123,7 @@ replace (
 	golang.org/x/crypto => golang.org/x/crypto v0.47.0
 	golang.org/x/net => golang.org/x/net v0.49.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.34.0
-	golang.org/x/text => golang.org/x/text v0.32.0
+	golang.org/x/text => golang.org/x/text v0.33.0
 	golang.org/x/time => golang.org/x/time v0.14.0
 	golang.org/x/tools => golang.org/x/tools v0.41.0
 	google.golang.org/protobuf => google.golang.org/protobuf v1.36.11
