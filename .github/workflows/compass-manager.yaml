@@ -127,13 +127,13 @@ jobs:
           file: ./coverage-filtered.txt
           fail-on-error: false
       - name: Upload test logs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: success() || failure()
         with:
           name: ${{ env.unit-test-log }}
           path: ${{ env.unit-test-log }}
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: success() || failure()
         with:
           name: "code-coverage"
@@ -171,7 +171,7 @@ jobs:
     if: success() || failure()
     steps:
       - name: "Download test log"
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         continue-on-error: true
         with:
           name: ${{ env.unit-test-log }}
