@@ -12,6 +12,8 @@ jobs:
     uses: ./.github/workflows/tests.yaml
 
   build-release-images:
+    permissions:
+      id-token: write # This is required for requesting the JWT token
     needs: run-release-tests
     if: needs.run-release-tests.result == 'success'
     uses: ./.github/workflows/build-image.yaml
