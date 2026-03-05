@@ -36,7 +36,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-    uses: ./.github/workflows/upload-release-report.yaml
+    uses: ./.github/workflows/release/upload-release-report.yaml
     with:
       release_version: ${{ github.ref_name }}
     secrets:
