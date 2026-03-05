@@ -22,6 +22,8 @@ on:
       - LICENSE
       - .gitignore
       - "**.md"
+env:
+  COVERFILE: true
 
 jobs:
   unit-tests:
