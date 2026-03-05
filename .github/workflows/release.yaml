@@ -20,8 +20,8 @@ jobs:
     uses: ./.github/workflows/build-image.yaml
 
   generate-release:
-    needs: run-release-tests
-    if: needs.run-release-tests.result == 'success'
+    needs: build-release-images
+    if: needs.build-release-images.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Needed for creating releases and uploading assets
