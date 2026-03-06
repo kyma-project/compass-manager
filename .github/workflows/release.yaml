@@ -1,4 +1,4 @@
-name: KIM Release
+name: Compass Manager release
 
 on:
   push:
