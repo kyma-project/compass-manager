@@ -55,7 +55,7 @@ jobs:
       - name: Detect files
         id: detect-files
         continue-on-error: true
-        uses: step-security/changed-files@89030a259c7f36d294c5ad1184fd3ca4a76942de
+        uses: step-security/changed-files@e332b00b6ae113f0e8246a758e000a65604e6dd4
         with:
           files_yaml: |
             code:
