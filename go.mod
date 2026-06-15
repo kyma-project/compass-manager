@@ -9,7 +9,7 @@ require (
 	github.com/kyma-project/lifecycle-manager/api v1.0.0
 	github.com/matryer/is v1.4.1
 	github.com/onsi/ginkgo/v2 v2.28.3
-	github.com/onsi/gomega v1.41.0
+	github.com/onsi/gomega v1.42.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.4
@@ -36,7 +36,7 @@ require (
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
+	github.com/fxamacker/cbor/v2 v2.9.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.4 // indirect
@@ -118,7 +118,7 @@ require (
 
 replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
-	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.4
+	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.13
 	golang.org/x/crypto => golang.org/x/crypto v0.47.0
 	golang.org/x/net => golang.org/x/net v0.56.0
