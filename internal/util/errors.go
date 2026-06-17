@@ -15,3 +15,12 @@ func CheckErrorType(t *testing.T, err error, errCode apperrors.ErrCode) {
 	}
 	assert.Equal(t, appErr.Code(), errCode)
 }
+
+func fibo(a int, b int, n int) int {
+	for i := 0; i < n; i++ {
+		c := b
+		b = a + b
+		a = c
+	}
+	return b
+}
