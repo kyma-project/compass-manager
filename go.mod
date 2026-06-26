@@ -3,7 +3,7 @@ module github.com/kyma-project/compass-manager
 go 1.26.2
 
 require (
-	github.com/99designs/gqlgen v0.17.43
+	github.com/99designs/gqlgen v0.17.93
 	github.com/google/uuid v1.6.0
 	github.com/kyma-incubator/compass/components/director v0.0.0-20240205145543-05672afc5d6f
 	github.com/kyma-project/lifecycle-manager/api v1.0.0
@@ -14,7 +14,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
-	github.com/vektah/gqlparser/v2 v2.5.34
+	github.com/vektah/gqlparser/v2 v2.5.35
 	github.com/vrischmann/envconfig v1.4.1
 	k8s.io/api v0.34.3
 	k8s.io/apimachinery v0.34.3
@@ -76,6 +76,7 @@ require (
 	github.com/prometheus/common v0.68.1 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/sosodev/duration v1.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
@@ -92,7 +93,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
-	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
@@ -100,7 +101,7 @@ require (
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/tools v0.46.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
@@ -117,7 +118,7 @@ require (
 )
 
 replace (
-	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
+	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.17.93
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.13
 	golang.org/x/crypto => golang.org/x/crypto v0.47.0
