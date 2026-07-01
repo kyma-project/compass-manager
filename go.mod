@@ -119,7 +119,7 @@ require (
 replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
-	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.13
+	github.com/lestrrat-go/jwx/v4 => github.com/lestrrat-go/jwx/v3 v4.1.0
 	golang.org/x/crypto => golang.org/x/crypto v0.47.0
 	golang.org/x/net => golang.org/x/net v0.56.0
 	golang.org/x/oauth2 => golang.org/x/oauth2 v0.34.0
