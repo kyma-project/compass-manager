@@ -1,0 +1,4 @@
+name: kyma-project.io/kyma-runtime/kcp-components/compass-manager
+team: kyma/framefrog
+images:
+  - europe-docker.pkg.dev/kyma-project/prod/compass-manager:latest
