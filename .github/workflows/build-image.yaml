@@ -97,7 +97,7 @@ jobs:
   summary:
     runs-on: ubuntu-latest
     needs: build-image
-    if: always() && contains(needs.*.result, 'success')
+    if: needs.build-image.result == 'success'
     steps:
       - name: "Generate summary"
         run: |
