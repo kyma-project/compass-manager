@@ -117,12 +117,6 @@ replace (
 	github.com/99designs/gqlgen => github.com/99designs/gqlgen v0.11.3
 	github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
 	github.com/lestrrat-go/jwx/v3 => github.com/lestrrat-go/jwx/v3 v3.0.13
-	golang.org/x/crypto => golang.org/x/crypto v0.54.0
-	golang.org/x/net => golang.org/x/net v0.57.0
-	golang.org/x/oauth2 => golang.org/x/oauth2 v0.36.0
-	golang.org/x/text => golang.org/x/text v0.40.0
-	golang.org/x/time => golang.org/x/time v0.15.0
-	golang.org/x/tools => golang.org/x/tools v0.48.0
 	google.golang.org/protobuf => google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/go-jose/go-jose.v2 => gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
