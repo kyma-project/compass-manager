@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // CompassManagerMappingSpec defines the desired state of CompassManagerMapping
@@ -36,5 +37,11 @@ type CompassManagerMappingList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&CompassManagerMapping{}, &CompassManagerMappingList{})
+	SchemeBuilder.Register(func(scheme *runtime.Scheme) error {
+		scheme.AddKnownTypes(GroupVersion,
+			&CompassManagerMapping{},
+			&CompassManagerMappingList{},
+		)
+		return nil
+	})
 }
