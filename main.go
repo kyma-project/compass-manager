@@ -103,7 +103,7 @@ func main() {
 		Cache:                  setCacheOptions(),
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "unable to start Manager")
 		os.Exit(1)
 	}
 
