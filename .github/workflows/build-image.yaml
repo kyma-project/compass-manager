@@ -66,7 +66,7 @@ jobs:
         run: echo "latest=latest" >> $GITHUB_OUTPUT
       - name: Detect files
         id: detect-files
-        if: github.event_name != 'workflow_call'  # Skip detection for workflow_call (releases)
+        if: github.event_name != 'workflow_call'  # Skip detection for workflow_call (releases); fallback-values will set code_any_changed=true
         continue-on-error: true
         uses: step-security/changed-files@2e07db73e5ccdb319b9a6c7766bd46d39d304bad
         with:
