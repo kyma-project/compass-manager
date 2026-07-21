@@ -21,20 +21,11 @@ on:
 jobs:
   upload-release-report:
     runs-on: ubuntu-latest
-    environment: ${{ vars.PROTECTED_ENVIRONMENT }}
-
     permissions:
       actions: read
       contents: read
 
     steps:
-      - name: Check required environment variable
-        run: |
-          if [ -z "${{ vars.PROTECTED_ENVIRONMENT }}" ]; then
-            echo "Error: PROTECTED_ENVIRONMENT variable is not set"
-            exit 1
-          fi
-
       - name: Set release version
         run: |
           echo "RELEASE_VERSION=${{ inputs.release_version }}" >> $GITHUB_ENV
@@ -84,3 +75,5 @@ jobs:
           REPO: ${{ github.event.repository.name }}
         run: |
           gsutil cp "${REPO}_${RELEASE_VERSION}.zip" gs://kyma_release_test_logs/
+
+
