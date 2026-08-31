@@ -51,6 +51,7 @@ jobs:
       tag: ${{ steps.tag.outputs.tag }}
       code: ${{ steps.detect-files.outputs.code_any_changed || steps.fallback-values.outputs.code_any_changed}}
       latest: ${{ steps.latest.outputs.latest || '' }}
+      pr-tag: ${{ steps.pr-tag.outputs.pr-tag || '' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -59,6 +60,7 @@ jobs:
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           allow-unsafe-pr-checkout: true
       - id: tag
+        if: github.event_name == 'push' && github.ref_type == 'tag'
         run: echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
       - id: latest
         if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event_name == 'push'
@@ -78,6 +80,9 @@ jobs:
         if: steps.detect-files.outcome != 'success'
         run: |
           echo "code_any_changed=true" >> $GITHUB_OUTPUT
+      - id: pr-tag
+        if: github.event_name == 'pull_request_target'
+        run: echo "pr-tag=0.0.0-PR-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
   build-image:
     needs: [setup, gate]
@@ -90,6 +95,7 @@ jobs:
       tags: |
         ${{ needs.setup.outputs.tag }}
         ${{ needs.setup.outputs.latest }}
+        ${{ needs.setup.outputs.pr-tag }}
 
   summary:
     runs-on: ubuntu-latest
