@@ -199,23 +199,25 @@ func exitOnError(err error, context string) {
 	}
 }
 
+const kcpSystemNamespace = "kcp-system"
+
 func setCacheOptions() cache.Options {
 	return cache.Options{
 		ByObject: map[client.Object]cache.ByObject{
 			&corev1.Secret{}: {
 				Label: k8slabels.Everything(),
 				Namespaces: map[string]cache.Config{
-					"kcp-system": {},
+					kcpSystemNamespace: {},
 				},
 			},
 			&kyma.Kyma{}: {
 				Namespaces: map[string]cache.Config{
-					"kcp-system": {},
+					kcpSystemNamespace: {},
 				},
 			},
 			&v1beta1.CompassManagerMapping{}: {
 				Namespaces: map[string]cache.Config{
-					"kcp-system": {},
+					kcpSystemNamespace: {},
 				},
 			},
 		},
