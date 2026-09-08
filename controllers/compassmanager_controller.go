@@ -256,7 +256,7 @@ func (cm *CompassManagerReconciler) makeNewCompassMappingAndRequeue(kymaName typ
 	cm.Log.Infof("Attempting to create Compass Manager Mapping for %s for Kyma resource %s.", runtimeRegistrationType, kymaName.Name)
 	cmerr := cm.cluster.CreateCompassMapping(kymaName)
 	if cmerr != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for %s for Kyma resource ID %s", runtimeRegistrationType, kymaName.Name)
+		return ctrl.Result{}, errors.Wrapf(cmerr, "failed to create Compass Manager Mapping for %s for Kyma resource ID %s", runtimeRegistrationType, kymaName.Name)
 	}
 	return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 }
@@ -271,10 +271,10 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 		statErr := cm.cluster.SetCompassMappingStatus(kymaName, s.Failed)
 
 		if statErr != nil {
-			return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt to register runtime")
+			return ctrl.Result{}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt to register runtime")
 		}
 
-		return ctrl.Result{Requeue: true}, errors.Wrapf(regError, "failed attempt to register runtime for Kyma resource: %s", kymaName.Name)
+		return ctrl.Result{}, errors.Wrapf(regError, "failed attempt to register runtime for Kyma resource: %s", kymaName.Name)
 	}
 
 	cm.metrics.IncRegister(kymaName.Name)
@@ -283,7 +283,7 @@ func (cm *CompassManagerReconciler) registerRuntimeInCompassAndRequeue(kymaName 
 	cm.Log.Infof("Runtime %s registered in Compass", newCompassRuntimeID)
 	cmerr := cm.cluster.UpsertCompassMapping(kymaName, newCompassRuntimeID)
 	if cmerr != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrap(cmerr, "failed to update Compass Manager Mapping with RuntimeID after registration of runtime")
+		return ctrl.Result{}, errors.Wrap(cmerr, "failed to update Compass Manager Mapping with RuntimeID after registration of runtime")
 	}
 
 	return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
@@ -298,10 +298,10 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 
 		statErr := cm.cluster.SetCompassMappingStatus(kymaName, s.Registered|s.Failed)
 		if statErr != nil {
-			return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt configuration Compass Runtime Agent ")
+			return ctrl.Result{}, errors.Wrap(statErr, "failed to set Compass Manager Status after failed attempt configuration Compass Runtime Agent ")
 		}
 
-		return ctrl.Result{Requeue: true}, errors.Wrapf(cfgError, "failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
+		return ctrl.Result{}, errors.Wrapf(cfgError, "failed attempt to configure Compass Runtime Agent for Kyma resource %s", kymaName.Name)
 	}
 
 	cm.metrics.IncConfigure(kymaName.Name)
@@ -310,7 +310,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 
 	statErr := cm.cluster.SetCompassMappingStatus(kymaName, s.Registered|s.Configured)
 	if statErr != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrap(statErr, "failed to set Compass Manager Status after successful configuration Compass Runtime Agent ")
+		return ctrl.Result{}, errors.Wrap(statErr, "failed to set Compass Manager Status after successful configuration Compass Runtime Agent ")
 	}
 
 	return ctrl.Result{}, nil
@@ -319,7 +319,7 @@ func (cm *CompassManagerReconciler) configureRuntimeAndSetMappingStatus(kymaName
 func (cm *CompassManagerReconciler) setStatusAndRequeue(kymaName types.NamespacedName, status s.Status) (ctrl.Result, error) {
 	err := cm.cluster.SetCompassMappingStatus(kymaName, status)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, errors.Wrap(err, "failed to update Compass Manager Mapping status")
+		return ctrl.Result{}, errors.Wrap(err, "failed to update Compass Manager Mapping status")
 	}
 	return ctrl.Result{RequeueAfter: cm.requeueTime}, nil
 }
