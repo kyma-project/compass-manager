@@ -168,7 +168,7 @@ func (cm *CompassManagerReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	globalAccount, ok := kymaCR.Labels[LabelGlobalAccountID]
 	if !ok {
-		return ctrl.Result{}, errors.Wrap(err, "failed to obtain Global Account label from Kyma CR")
+		return ctrl.Result{}, fmt.Errorf("failed to obtain Global Account label from Kyma CR: label %s not present", LabelGlobalAccountID)
 	}
 
 	/// Part 1 - If compass mapping doesn't exist let's create it and requeue
