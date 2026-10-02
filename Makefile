@@ -76,6 +76,10 @@ endif
 build: manifests generate fmt vet ## Build manager binary.
 	go build -o bin/manager main.go
 
+.PHONY: build-for-codeql
+build-for-codeql: ## Build all packages for CodeQL analysis (no code generation).
+	GOFIPS140=v1.0.0 go build -o /dev/null ./...
+
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
