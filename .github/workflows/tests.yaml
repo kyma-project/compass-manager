@@ -25,6 +25,8 @@ on:
 env:
   COVERFILE: true
 
+permissions: read-all
+
 jobs:
   unit-tests:
     permissions:
