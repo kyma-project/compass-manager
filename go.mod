@@ -1,6 +1,6 @@
 module github.com/kyma-project/compass-manager
 
-go 1.27.1
+go 1.27.2
 
 require (
 	github.com/99designs/gqlgen v0.17.43
