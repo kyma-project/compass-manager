@@ -22,7 +22,8 @@ on:
       - LICENSE
       - .gitignore
       - "**.md"
-permissions: read-all
+permissions:
+  contents: read
 
 env:
   COVERFILE: true
