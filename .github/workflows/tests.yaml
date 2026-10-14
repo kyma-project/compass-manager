@@ -28,6 +28,9 @@ permissions:
 env:
   COVERFILE: true
 
+permissions:
+  contents: read
+
 jobs:
   unit-tests:
     permissions:
